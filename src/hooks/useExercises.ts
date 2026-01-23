@@ -93,18 +93,6 @@ export const useExercises = () => {
     setExercises((prev) => prev.filter((e) => e.id !== id));
   };
 
-  const calculateTotalCalories = (exerciseIds?: string[]) => {
-    const targetExercises = exerciseIds
-      ? exercises.filter((e) => exerciseIds.includes(e.id))
-      : exercises;
-    return targetExercises.reduce((acc, e) => acc + e.caloriesPerSet * e.sets, 0);
-  };
-
-  const calculateProteinNeeded = (calories: number) => {
-    // Estimación: 1.6-2.2g de proteína por kg de peso corporal
-    // Asumiendo 70kg promedio y ajustando por calorías quemadas
-    return Math.round((calories / 4) * 0.3); // 30% de calorías de proteína
-  };
 
   return {
     exercises,
@@ -112,7 +100,5 @@ export const useExercises = () => {
     addExercise,
     updateExercise,
     deleteExercise,
-    calculateTotalCalories,
-    calculateProteinNeeded,
   };
 };
