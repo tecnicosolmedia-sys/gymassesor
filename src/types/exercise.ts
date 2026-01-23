@@ -1,3 +1,9 @@
+export interface SetConfig {
+  setNumber: number;
+  weight: number;
+  restTime: number; // seconds
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -5,8 +11,9 @@ export interface Exercise {
   videoUrl?: string;
   sets: number;
   reps: number;
-  weight: number;
-  restBetweenSets: number; // seconds
+  weight: number; // peso por defecto (deprecated, usar setConfigs)
+  setConfigs: SetConfig[]; // configuración individual por serie
+  restBetweenSets: number; // tiempo por defecto entre series
   restAfterExercise: number; // seconds
   notes: string;
   caloriesPerSet: number;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Exercise } from '@/types/exercise';
-import { X, Image, Video, Save, Dumbbell } from 'lucide-react';
+import { Exercise, SetConfig } from '@/types/exercise';
+import { X, Image, Video, Save, Dumbbell, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ExerciseFormProps {
@@ -13,6 +13,8 @@ const muscleGroups = [
   'Pecho', 'Espalda', 'Hombros', 'Bíceps', 'Tríceps', 
   'Piernas', 'Glúteos', 'Abdomen', 'Core', 'Cardio'
 ];
+
+const setOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) => {
   const [formData, setFormData] = useState({
@@ -28,7 +30,11 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
     caloriesPerSet: 5,
     muscleGroup: 'Pecho',
   });
+  
+  const [setConfigs, setSetConfigs] = useState<SetConfig[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
+  // Inicializar configuración de series
   useEffect(() => {
     if (exercise) {
       setFormData({
@@ -44,12 +50,68 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
         caloriesPerSet: exercise.caloriesPerSet,
         muscleGroup: exercise.muscleGroup,
       });
+      
+      if (exercise.setConfigs && exercise.setConfigs.length > 0) {
+        setSetConfigs(exercise.setConfigs);
+      } else {
+        // Crear configuración por defecto basada en valores del ejercicio
+        const defaultConfigs: SetConfig[] = Array.from({ length: exercise.sets }, (_, i) => ({
+          setNumber: i + 1,
+          weight: exercise.weight,
+          restTime: exercise.restBetweenSets,
+        }));
+        setSetConfigs(defaultConfigs);
+      }
+    } else {
+      // Crear configuración inicial para nuevo ejercicio
+      const defaultConfigs: SetConfig[] = Array.from({ length: 3 }, (_, i) => ({
+        setNumber: i + 1,
+        weight: 20,
+        restTime: 60,
+      }));
+      setSetConfigs(defaultConfigs);
     }
   }, [exercise]);
 
+  // Actualizar configuración cuando cambia el número de series
+  const handleSetsChange = (newSets: number) => {
+    setFormData((prev) => ({ ...prev, sets: newSets }));
+    setShowDropdown(false);
+    
+    setSetConfigs((prev) => {
+      if (newSets > prev.length) {
+        // Añadir nuevas series
+        const lastConfig = prev[prev.length - 1] || { weight: formData.weight, restTime: formData.restBetweenSets };
+        const newConfigs = [...prev];
+        for (let i = prev.length; i < newSets; i++) {
+          newConfigs.push({
+            setNumber: i + 1,
+            weight: lastConfig.weight,
+            restTime: lastConfig.restTime,
+          });
+        }
+        return newConfigs;
+      } else {
+        // Reducir series
+        return prev.slice(0, newSets);
+      }
+    });
+  };
+
+  const updateSetConfig = (index: number, field: 'weight' | 'restTime', value: number) => {
+    setSetConfigs((prev) => 
+      prev.map((config, i) => 
+        i === index ? { ...config, [field]: value } : config
+      )
+    );
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    onSave({
+      ...formData,
+      setConfigs,
+    });
     onClose();
   };
 
@@ -164,21 +226,49 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
               </div>
             </div>
 
-            {/* Sets, reps, weight */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* Sets dropdown and reps */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Sets dropdown */}
               <div>
-                <label className="block text-sm font-medium mb-2">Series</label>
-                <input
-                  type="number"
-                  value={formData.sets}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, sets: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-4 py-3 rounded-xl bg-secondary border border-border focus:border-primary outline-none text-center font-semibold"
-                  min="1"
-                  required
-                />
+                <label className="block text-sm font-medium mb-2">Número de series</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="w-full px-4 py-3 rounded-xl bg-secondary border border-border focus:border-primary outline-none text-left font-semibold flex items-center justify-between transition-all"
+                  >
+                    <span>{formData.sets} series</span>
+                    <ChevronDown className={cn(
+                      "w-5 h-5 text-muted-foreground transition-transform",
+                      showDropdown && "rotate-180"
+                    )} />
+                  </button>
+                  
+                  {showDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-scale-in">
+                      <div className="max-h-48 overflow-y-auto">
+                        {setOptions.map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => handleSetsChange(num)}
+                            className={cn(
+                              "w-full px-4 py-3 text-left hover:bg-secondary transition-colors",
+                              formData.sets === num && "bg-primary/20 text-primary font-semibold"
+                            )}
+                          >
+                            {num} {num === 1 ? 'serie' : 'series'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+              
+              {/* Reps */}
               <div>
-                <label className="block text-sm font-medium mb-2">Reps</label>
+                <label className="block text-sm font-medium mb-2">Repeticiones</label>
                 <input
                   type="number"
                   value={formData.reps}
@@ -188,57 +278,63 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Peso (kg)</label>
-                <input
-                  type="number"
-                  value={formData.weight}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
-                  className="w-full px-4 py-3 rounded-xl bg-secondary border border-border focus:border-primary outline-none text-center font-semibold"
-                  min="0"
-                  step="0.5"
-                  required
-                />
-              </div>
             </div>
 
-            {/* Rest times */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-2">Descanso entre series (seg)</label>
-                <input
-                  type="number"
-                  value={formData.restBetweenSets}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, restBetweenSets: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-4 py-3 rounded-xl bg-secondary border border-border focus:border-primary outline-none text-center font-semibold"
-                  min="0"
-                  step="5"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Descanso entre ejercicios (seg)</label>
-                <input
-                  type="number"
-                  value={formData.restAfterExercise}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, restAfterExercise: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-4 py-3 rounded-xl bg-secondary border border-border focus:border-primary outline-none text-center font-semibold"
-                  min="0"
-                  step="5"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Calories */}
+            {/* Individual set configuration */}
             <div>
-              <label className="block text-sm font-medium mb-2">Calorías por serie (aprox)</label>
+              <label className="block text-sm font-medium mb-3">Configuración por serie</label>
+              <div className="space-y-3">
+                {setConfigs.map((config, index) => (
+                  <div 
+                    key={index}
+                    className="p-3 rounded-xl bg-secondary/50 border border-border animate-fade-in"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-bold text-primary">{index + 1}</span>
+                      </div>
+                      <span className="text-sm font-medium">Serie {index + 1}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">Peso (kg)</label>
+                        <input
+                          type="number"
+                          value={config.weight}
+                          onChange={(e) => updateSetConfig(index, 'weight', parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-center font-semibold text-sm"
+                          min="0"
+                          step="0.5"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">Descanso (seg)</label>
+                        <input
+                          type="number"
+                          value={config.restTime}
+                          onChange={(e) => updateSetConfig(index, 'restTime', parseInt(e.target.value) || 0)}
+                          className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-center font-semibold text-sm"
+                          min="0"
+                          step="5"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Rest after exercise */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Descanso entre ejercicios (seg)</label>
               <input
                 type="number"
-                value={formData.caloriesPerSet}
-                onChange={(e) => setFormData((prev) => ({ ...prev, caloriesPerSet: parseInt(e.target.value) || 0 }))}
+                value={formData.restAfterExercise}
+                onChange={(e) => setFormData((prev) => ({ ...prev, restAfterExercise: parseInt(e.target.value) || 0 }))}
                 className="w-full px-4 py-3 rounded-xl bg-secondary border border-border focus:border-primary outline-none font-semibold"
                 min="0"
+                step="5"
                 required
               />
             </div>
