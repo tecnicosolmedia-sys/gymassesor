@@ -1,18 +1,17 @@
-import { Exercise } from '@/types/exercise';
+import { Exercise, SetConfig } from '@/types/exercise';
 import { Timer } from './Timer';
 import { useState } from 'react';
 import { 
   Play, 
-  Pause, 
   Trash2, 
   Edit2, 
   ChevronDown, 
   ChevronUp,
   Dumbbell,
   Clock,
-  Flame,
   Video,
-  FileText
+  FileText,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,8 +34,23 @@ export const ExerciseCard = ({
   const [currentSet, setCurrentSet] = useState(1);
   const [showSetTimer, setShowSetTimer] = useState(false);
   const [showExerciseTimer, setShowExerciseTimer] = useState(false);
+  const [completedSets, setCompletedSets] = useState<number[]>([]);
+
+  // Obtener configuración de la serie actual
+  const getCurrentSetConfig = (): SetConfig => {
+    if (exercise.setConfigs && exercise.setConfigs[currentSet - 1]) {
+      return exercise.setConfigs[currentSet - 1];
+    }
+    return {
+      setNumber: currentSet,
+      weight: exercise.weight,
+      restTime: exercise.restBetweenSets,
+    };
+  };
 
   const handleSetComplete = () => {
+    setCompletedSets((prev) => [...prev, currentSet]);
+    
     if (currentSet < exercise.sets) {
       setShowSetTimer(true);
     } else {
@@ -54,9 +68,10 @@ export const ExerciseCard = ({
   const handleExerciseTimerComplete = () => {
     setShowExerciseTimer(false);
     setCurrentSet(1);
+    setCompletedSets([]);
   };
 
-  const totalCalories = exercise.caloriesPerSet * exercise.sets;
+  const currentConfig = getCurrentSetConfig();
 
   return (
     <div 
@@ -95,11 +110,7 @@ export const ExerciseCard = ({
             <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Dumbbell className="w-3.5 h-3.5" />
-                {exercise.sets}x{exercise.reps} · {exercise.weight}kg
-              </span>
-              <span className="flex items-center gap-1">
-                <Flame className="w-3.5 h-3.5 text-warning" />
-                {totalCalories} kcal
+                {exercise.sets}x{exercise.reps}
               </span>
             </div>
           </div>
@@ -139,37 +150,71 @@ export const ExerciseCard = ({
             </div>
           )}
           
-          {/* Set tracker */}
+          {/* Set tracker with individual configs */}
           <div className="p-4 rounded-xl bg-secondary/30">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium">Progreso de series</span>
               <span className="text-sm text-muted-foreground">
-                {currentSet} / {exercise.sets}
+                {completedSets.length} / {exercise.sets} completadas
               </span>
             </div>
             
-            {/* Set indicators */}
-            <div className="flex gap-2 mb-4">
-              {Array.from({ length: exercise.sets }).map((_, i) => (
+            {/* Individual set cards */}
+            <div className="space-y-2 mb-4">
+              {(exercise.setConfigs || Array.from({ length: exercise.sets }, (_, i) => ({
+                setNumber: i + 1,
+                weight: exercise.weight,
+                restTime: exercise.restBetweenSets,
+              }))).map((config, index) => (
                 <div
-                  key={i}
+                  key={index}
                   className={cn(
-                    "flex-1 h-2 rounded-full transition-all",
-                    i < currentSet - 1 
-                      ? "bg-primary" 
-                      : i === currentSet - 1 
-                        ? "bg-primary/50" 
-                        : "bg-muted"
+                    "p-3 rounded-xl flex items-center gap-3 transition-all",
+                    completedSets.includes(index + 1)
+                      ? "bg-primary/20 border border-primary"
+                      : index + 1 === currentSet
+                        ? "bg-secondary border border-primary/50"
+                        : "bg-secondary/50 border border-transparent"
                   )}
-                />
+                >
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                    completedSets.includes(index + 1)
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                  )}>
+                    {completedSets.includes(index + 1) ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <span className="text-sm font-bold">{index + 1}</span>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                      <Dumbbell className="w-3.5 h-3.5 text-primary" />
+                      <span className="font-semibold">{config.weight}kg</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-info" />
+                      <span className="text-muted-foreground">{config.restTime}s descanso</span>
+                    </div>
+                  </div>
+                  
+                  {index + 1 === currentSet && !completedSets.includes(index + 1) && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary font-medium">
+                      Actual
+                    </span>
+                  )}
+                </div>
               ))}
             </div>
             
             {/* Set timer */}
             {showSetTimer && (
               <Timer
-                initialTime={exercise.restBetweenSets}
-                label="Descanso entre series"
+                initialTime={currentConfig.restTime}
+                label={`Descanso antes de Serie ${currentSet + 1}`}
                 onComplete={handleSetTimerComplete}
                 variant="compact"
                 autoStart
@@ -187,39 +232,30 @@ export const ExerciseCard = ({
             )}
             
             {/* Complete set button */}
-            {!showSetTimer && !showExerciseTimer && currentSet <= exercise.sets && (
+            {!showSetTimer && !showExerciseTimer && currentSet <= exercise.sets && !completedSets.includes(currentSet) && (
               <button
                 onClick={handleSetComplete}
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
               >
                 <Play className="w-4 h-4" />
-                Completar Serie {currentSet}
+                Completar Serie {currentSet} ({currentConfig.weight}kg)
               </button>
             )}
             
             {/* Exercise completed */}
-            {currentSet > exercise.sets && !showExerciseTimer && (
+            {completedSets.length === exercise.sets && !showExerciseTimer && (
               <div className="text-center py-3">
                 <span className="text-primary font-semibold">¡Ejercicio completado! 🎉</span>
               </div>
             )}
           </div>
           
-          {/* Rest times info */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-xl bg-secondary/30 flex items-center gap-3">
-              <Clock className="w-5 h-5 text-info" />
-              <div>
-                <p className="text-xs text-muted-foreground">Entre series</p>
-                <p className="font-semibold">{exercise.restBetweenSets}s</p>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-secondary/30 flex items-center gap-3">
-              <Clock className="w-5 h-5 text-warning" />
-              <div>
-                <p className="text-xs text-muted-foreground">Entre ejercicios</p>
-                <p className="font-semibold">{exercise.restAfterExercise}s</p>
-              </div>
+          {/* Rest time info */}
+          <div className="p-3 rounded-xl bg-secondary/30 flex items-center gap-3">
+            <Clock className="w-5 h-5 text-warning" />
+            <div>
+              <p className="text-xs text-muted-foreground">Descanso entre ejercicios</p>
+              <p className="font-semibold">{exercise.restAfterExercise}s</p>
             </div>
           </div>
           
