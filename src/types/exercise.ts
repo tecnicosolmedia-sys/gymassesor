@@ -1,7 +1,8 @@
 export interface SetConfig {
   setNumber: number;
-  weight: number;
-  restTime: number; // seconds
+  reps: number; // repeticiones (1-99)
+  weight: number; // peso en kg (0-999, intervalos de 0.5)
+  restTime: number; // segundos de descanso
 }
 
 export interface Exercise {
