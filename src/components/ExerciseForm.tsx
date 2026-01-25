@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Exercise, SetConfig } from '@/types/exercise';
-import { X, Image, Video, Save, Dumbbell, ChevronDown } from 'lucide-react';
+import { X, Image, Video, Save, Dumbbell, ChevronDown, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ExerciseFormProps {
@@ -31,17 +31,60 @@ interface DropdownSelectProps {
   onChange: (value: number) => void;
   formatLabel?: (value: number) => string;
   label: string;
+  parentRef?: React.RefObject<HTMLDivElement>;
 }
 
-const DropdownSelect = ({ value, options, onChange, formatLabel, label }: DropdownSelectProps) => {
+const DropdownSelect = ({ value, options, onChange, formatLabel, label, parentRef }: DropdownSelectProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
   const displayValue = formatLabel ? formatLabel(value) : value.toString();
 
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      
+      // Si hay poco espacio abajo, abrir hacia arriba
+      if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+        setDropdownStyle({
+          bottom: '100%',
+          top: 'auto',
+          marginBottom: '4px',
+          marginTop: 0,
+        });
+      } else {
+        setDropdownStyle({
+          top: '100%',
+          bottom: 'auto',
+          marginTop: '4px',
+          marginBottom: 0,
+        });
+      }
+    }
+  }, [isOpen]);
+
+  // Cerrar al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
   return (
     <div className="relative">
-      <label className="block text-xs text-muted-foreground mb-1">{label}</label>
+      {label && <label className="block text-xs text-muted-foreground mb-1">{label}</label>}
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-center font-semibold text-sm flex items-center justify-between transition-all"
@@ -54,7 +97,10 @@ const DropdownSelect = ({ value, options, onChange, formatLabel, label }: Dropdo
       </button>
       
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden animate-scale-in">
+        <div 
+          className="absolute left-0 right-0 bg-card border border-border rounded-lg shadow-xl overflow-hidden animate-scale-in"
+          style={{ ...dropdownStyle, zIndex: 9999 }}
+        >
           <div className="max-h-40 overflow-y-auto">
             {options.map((opt) => (
               <button
@@ -97,8 +143,9 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
   const [setConfigs, setSetConfigs] = useState<SetConfig[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [expandedSets, setExpandedSets] = useState<number[]>([0]);
+  const formRef = useRef<HTMLDivElement>(null);
 
-  // Inicializar configuración de series
+  // Inicializar configuración de series - usar la última configuración guardada del ejercicio
   useEffect(() => {
     if (exercise) {
       setFormData({
@@ -115,8 +162,8 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
         muscleGroup: exercise.muscleGroup,
       });
       
+      // Usar la configuración guardada del ejercicio (que ya tiene la última sesión)
       if (exercise.setConfigs && exercise.setConfigs.length > 0) {
-        // Asegurar que cada config tiene reps
         const configsWithReps = exercise.setConfigs.map((config, i) => ({
           ...config,
           reps: config.reps || exercise.reps,
@@ -174,6 +221,19 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
     );
   };
 
+  // Copiar configuración de una serie a todas las demás
+  const copyConfigToAll = (sourceIndex: number) => {
+    const sourceConfig = setConfigs[sourceIndex];
+    setSetConfigs((prev) => 
+      prev.map((config, i) => ({
+        ...config,
+        reps: sourceConfig.reps,
+        weight: sourceConfig.weight,
+        restTime: sourceConfig.restTime,
+      }))
+    );
+  };
+
   const toggleSetExpanded = (index: number) => {
     setExpandedSets((prev) => 
       prev.includes(index) 
@@ -213,7 +273,7 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
   return (
     <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 overflow-y-auto">
       <div className="min-h-screen p-4 flex items-start justify-center">
-        <div className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-2xl animate-scale-in my-8">
+        <div ref={formRef} className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-2xl animate-scale-in my-8">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex items-center gap-3">
@@ -319,7 +379,7 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
                 </button>
                 
                 {showDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-scale-in">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-scale-in" style={{ zIndex: 9999 }}>
                     <div className="max-h-48 overflow-y-auto">
                       {setOptions.map((num) => (
                         <button
@@ -347,7 +407,11 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
                 {setConfigs.map((config, index) => (
                   <div 
                     key={index}
-                    className="rounded-xl bg-secondary/50 border border-border overflow-hidden animate-fade-in"
+                    className={cn(
+                      "rounded-xl bg-secondary/50 border border-border overflow-visible animate-fade-in",
+                      expandedSets.includes(index) && "relative z-10"
+                    )}
+                    style={{ zIndex: expandedSets.includes(index) ? 100 - index : 1 }}
                   >
                     {/* Set header - clickable to expand/collapse */}
                     <button
@@ -372,14 +436,15 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
                     
                     {/* Expanded content */}
                     {expandedSets.includes(index) && (
-                      <div className="p-3 pt-0 animate-fade-in">
-                        <div className="grid grid-cols-3 gap-2">
+                      <div className="p-3 pt-0 animate-fade-in relative" style={{ zIndex: 200 }}>
+                        <div className="grid grid-cols-3 gap-2 mb-3">
                           <DropdownSelect
                             label="Repeticiones"
                             value={config.reps}
                             options={repsOptions}
                             onChange={(value) => updateSetConfig(index, 'reps', value)}
                             formatLabel={(v) => `${v} reps`}
+                            parentRef={formRef}
                           />
                           <DropdownSelect
                             label="Peso (kg)"
@@ -387,6 +452,7 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
                             options={weightOptions}
                             onChange={(value) => updateSetConfig(index, 'weight', value)}
                             formatLabel={(v) => `${v} kg`}
+                            parentRef={formRef}
                           />
                           <DropdownSelect
                             label="Descanso (s)"
@@ -394,8 +460,21 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
                             options={restTimeOptions}
                             onChange={(value) => updateSetConfig(index, 'restTime', value)}
                             formatLabel={(v) => `${v}s`}
+                            parentRef={formRef}
                           />
                         </div>
+                        
+                        {/* Copy to all button */}
+                        {setConfigs.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => copyConfigToAll(index)}
+                            className="w-full py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            Copiar a todas las series
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -404,17 +483,16 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
             </div>
 
             {/* Rest after exercise */}
-            <div>
+            <div className="relative" style={{ zIndex: 50 }}>
               <label className="block text-sm font-medium mb-2">Descanso entre ejercicios</label>
-              <div className="relative">
-                <DropdownSelect
-                  label=""
-                  value={formData.restAfterExercise}
-                  options={[...restTimeOptions, 180, 240, 300].sort((a, b) => a - b)}
-                  onChange={(value) => setFormData((prev) => ({ ...prev, restAfterExercise: value }))}
-                  formatLabel={(v) => `${v} segundos`}
-                />
-              </div>
+              <DropdownSelect
+                label=""
+                value={formData.restAfterExercise}
+                options={[...restTimeOptions, 180, 240, 300].sort((a, b) => a - b)}
+                onChange={(value) => setFormData((prev) => ({ ...prev, restAfterExercise: value }))}
+                formatLabel={(v) => `${v} segundos`}
+                parentRef={formRef}
+              />
             </div>
 
             {/* Notes */}
