@@ -1,4 +1,5 @@
-import { Dumbbell, Plus, Calendar } from 'lucide-react';
+import { Plus, Calendar } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 interface HeaderProps {
   onAddExercise: () => void;
@@ -11,12 +12,14 @@ export const Header = ({ onAddExercise, onAddRoutine }: HeaderProps) => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center glow-energy">
-              <Dumbbell className="w-6 h-6 text-primary" />
-            </div>
+            <img 
+              src={logo} 
+              alt="Gym Assessor Logo" 
+              className="w-12 h-12 rounded-2xl object-cover glow-energy"
+            />
             <div>
               <h1 className="font-display font-bold text-xl text-gradient-energy">
-                GymTracker
+                Gym Assessor
               </h1>
               <p className="text-xs text-muted-foreground">Tu rutina personal</p>
             </div>
