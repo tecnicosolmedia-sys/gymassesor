@@ -11,10 +11,10 @@ const defaultExercises: Exercise[] = [
     reps: 10,
     weight: 60,
     setConfigs: [
-      { setNumber: 1, weight: 50, restTime: 90 },
-      { setNumber: 2, weight: 60, restTime: 90 },
-      { setNumber: 3, weight: 60, restTime: 90 },
-      { setNumber: 4, weight: 55, restTime: 90 },
+      { setNumber: 1, reps: 10, weight: 50, restTime: 90 },
+      { setNumber: 2, reps: 10, weight: 60, restTime: 90 },
+      { setNumber: 3, reps: 10, weight: 60, restTime: 90 },
+      { setNumber: 4, reps: 8, weight: 55, restTime: 90 },
     ],
     restBetweenSets: 90,
     restAfterExercise: 180,
@@ -30,10 +30,10 @@ const defaultExercises: Exercise[] = [
     reps: 12,
     weight: 80,
     setConfigs: [
-      { setNumber: 1, weight: 60, restTime: 120 },
-      { setNumber: 2, weight: 80, restTime: 120 },
-      { setNumber: 3, weight: 80, restTime: 120 },
-      { setNumber: 4, weight: 70, restTime: 120 },
+      { setNumber: 1, reps: 12, weight: 60, restTime: 120 },
+      { setNumber: 2, reps: 12, weight: 80, restTime: 120 },
+      { setNumber: 3, reps: 10, weight: 80, restTime: 120 },
+      { setNumber: 4, reps: 10, weight: 70, restTime: 120 },
     ],
     restBetweenSets: 120,
     restAfterExercise: 180,
@@ -49,9 +49,9 @@ const defaultExercises: Exercise[] = [
     reps: 8,
     weight: 100,
     setConfigs: [
-      { setNumber: 1, weight: 80, restTime: 150 },
-      { setNumber: 2, weight: 100, restTime: 150 },
-      { setNumber: 3, weight: 100, restTime: 150 },
+      { setNumber: 1, reps: 8, weight: 80, restTime: 150 },
+      { setNumber: 2, reps: 8, weight: 100, restTime: 150 },
+      { setNumber: 3, reps: 6, weight: 100, restTime: 150 },
     ],
     restBetweenSets: 150,
     restAfterExercise: 180,
@@ -74,9 +74,13 @@ export const useExercises = () => {
         setExercises(parsed.map((e: any) => ({
           ...e,
           createdAt: new Date(e.createdAt),
-          // Asegurar que setConfigs existe
-          setConfigs: e.setConfigs || Array.from({ length: e.sets }, (_, i) => ({
+          // Asegurar que setConfigs existe con reps
+          setConfigs: e.setConfigs ? e.setConfigs.map((config: any, i: number) => ({
+            ...config,
+            reps: config.reps || e.reps,
+          })) : Array.from({ length: e.sets }, (_, i) => ({
             setNumber: i + 1,
+            reps: e.reps,
             weight: e.weight,
             restTime: e.restBetweenSets,
           })),

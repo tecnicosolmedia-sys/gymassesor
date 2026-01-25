@@ -16,6 +16,69 @@ const muscleGroups = [
 
 const setOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
+// Generar opciones de repeticiones (1-99)
+const repsOptions = Array.from({ length: 99 }, (_, i) => i + 1);
+
+// Generar opciones de peso (0-999 en intervalos de 0.5)
+const weightOptions = Array.from({ length: 1999 }, (_, i) => i * 0.5);
+
+// Generar opciones de tiempo de descanso (5-300 en intervalos de 5)
+const restTimeOptions = Array.from({ length: 60 }, (_, i) => (i + 1) * 5);
+
+interface DropdownSelectProps {
+  value: number;
+  options: number[];
+  onChange: (value: number) => void;
+  formatLabel?: (value: number) => string;
+  label: string;
+}
+
+const DropdownSelect = ({ value, options, onChange, formatLabel, label }: DropdownSelectProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const displayValue = formatLabel ? formatLabel(value) : value.toString();
+
+  return (
+    <div className="relative">
+      <label className="block text-xs text-muted-foreground mb-1">{label}</label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-center font-semibold text-sm flex items-center justify-between transition-all"
+      >
+        <span className="flex-1 text-center">{displayValue}</span>
+        <ChevronDown className={cn(
+          "w-4 h-4 text-muted-foreground transition-transform flex-shrink-0",
+          isOpen && "rotate-180"
+        )} />
+      </button>
+      
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden animate-scale-in">
+          <div className="max-h-40 overflow-y-auto">
+            {options.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => {
+                  onChange(opt);
+                  setIsOpen(false);
+                }}
+                className={cn(
+                  "w-full px-3 py-2 text-center text-sm hover:bg-secondary transition-colors",
+                  value === opt && "bg-primary/20 text-primary font-semibold"
+                )}
+              >
+                {formatLabel ? formatLabel(opt) : opt}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -33,6 +96,7 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
   
   const [setConfigs, setSetConfigs] = useState<SetConfig[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [expandedSets, setExpandedSets] = useState<number[]>([0]);
 
   // Inicializar configuración de series
   useEffect(() => {
@@ -52,20 +116,25 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
       });
       
       if (exercise.setConfigs && exercise.setConfigs.length > 0) {
-        setSetConfigs(exercise.setConfigs);
+        // Asegurar que cada config tiene reps
+        const configsWithReps = exercise.setConfigs.map((config, i) => ({
+          ...config,
+          reps: config.reps || exercise.reps,
+        }));
+        setSetConfigs(configsWithReps);
       } else {
-        // Crear configuración por defecto basada en valores del ejercicio
         const defaultConfigs: SetConfig[] = Array.from({ length: exercise.sets }, (_, i) => ({
           setNumber: i + 1,
+          reps: exercise.reps,
           weight: exercise.weight,
           restTime: exercise.restBetweenSets,
         }));
         setSetConfigs(defaultConfigs);
       }
     } else {
-      // Crear configuración inicial para nuevo ejercicio
       const defaultConfigs: SetConfig[] = Array.from({ length: 3 }, (_, i) => ({
         setNumber: i + 1,
+        reps: 10,
         weight: 20,
         restTime: 60,
       }));
@@ -80,29 +149,36 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
     
     setSetConfigs((prev) => {
       if (newSets > prev.length) {
-        // Añadir nuevas series
-        const lastConfig = prev[prev.length - 1] || { weight: formData.weight, restTime: formData.restBetweenSets };
+        const lastConfig = prev[prev.length - 1] || { reps: formData.reps, weight: formData.weight, restTime: formData.restBetweenSets };
         const newConfigs = [...prev];
         for (let i = prev.length; i < newSets; i++) {
           newConfigs.push({
             setNumber: i + 1,
+            reps: lastConfig.reps,
             weight: lastConfig.weight,
             restTime: lastConfig.restTime,
           });
         }
         return newConfigs;
       } else {
-        // Reducir series
         return prev.slice(0, newSets);
       }
     });
   };
 
-  const updateSetConfig = (index: number, field: 'weight' | 'restTime', value: number) => {
+  const updateSetConfig = (index: number, field: keyof Omit<SetConfig, 'setNumber'>, value: number) => {
     setSetConfigs((prev) => 
       prev.map((config, i) => 
         i === index ? { ...config, [field]: value } : config
       )
+    );
+  };
+
+  const toggleSetExpanded = (index: number) => {
+    setExpandedSets((prev) => 
+      prev.includes(index) 
+        ? prev.filter((i) => i !== index)
+        : [...prev, index]
     );
   };
 
@@ -226,100 +302,102 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
               </div>
             </div>
 
-            {/* Sets dropdown and reps */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Sets dropdown */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Número de series</label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    className="w-full px-4 py-3 rounded-xl bg-secondary border border-border focus:border-primary outline-none text-left font-semibold flex items-center justify-between transition-all"
-                  >
-                    <span>{formData.sets} series</span>
-                    <ChevronDown className={cn(
-                      "w-5 h-5 text-muted-foreground transition-transform",
-                      showDropdown && "rotate-180"
-                    )} />
-                  </button>
-                  
-                  {showDropdown && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-scale-in">
-                      <div className="max-h-48 overflow-y-auto">
-                        {setOptions.map((num) => (
-                          <button
-                            key={num}
-                            type="button"
-                            onClick={() => handleSetsChange(num)}
-                            className={cn(
-                              "w-full px-4 py-3 text-left hover:bg-secondary transition-colors",
-                              formData.sets === num && "bg-primary/20 text-primary font-semibold"
-                            )}
-                          >
-                            {num} {num === 1 ? 'serie' : 'series'}
-                          </button>
-                        ))}
-                      </div>
+            {/* Sets dropdown */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Número de series</label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="w-full px-4 py-3 rounded-xl bg-secondary border border-border focus:border-primary outline-none text-left font-semibold flex items-center justify-between transition-all"
+                >
+                  <span>{formData.sets} series</span>
+                  <ChevronDown className={cn(
+                    "w-5 h-5 text-muted-foreground transition-transform",
+                    showDropdown && "rotate-180"
+                  )} />
+                </button>
+                
+                {showDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-scale-in">
+                    <div className="max-h-48 overflow-y-auto">
+                      {setOptions.map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => handleSetsChange(num)}
+                          className={cn(
+                            "w-full px-4 py-3 text-left hover:bg-secondary transition-colors",
+                            formData.sets === num && "bg-primary/20 text-primary font-semibold"
+                          )}
+                        >
+                          {num} {num === 1 ? 'serie' : 'series'}
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Reps */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Repeticiones</label>
-                <input
-                  type="number"
-                  value={formData.reps}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, reps: parseInt(e.target.value) || 0 }))}
-                  className="w-full px-4 py-3 rounded-xl bg-secondary border border-border focus:border-primary outline-none text-center font-semibold"
-                  min="1"
-                  required
-                />
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Individual set configuration */}
+            {/* Individual set configuration with collapsible tabs */}
             <div>
               <label className="block text-sm font-medium mb-3">Configuración por serie</label>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {setConfigs.map((config, index) => (
                   <div 
                     key={index}
-                    className="p-3 rounded-xl bg-secondary/50 border border-border animate-fade-in"
+                    className="rounded-xl bg-secondary/50 border border-border overflow-hidden animate-fade-in"
                   >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-bold text-primary">{index + 1}</span>
+                    {/* Set header - clickable to expand/collapse */}
+                    <button
+                      type="button"
+                      onClick={() => toggleSetExpanded(index)}
+                      className="w-full p-3 flex items-center justify-between hover:bg-secondary/70 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-bold text-primary">{index + 1}</span>
+                        </div>
+                        <span className="text-sm font-medium">Serie {index + 1}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {config.reps} reps · {config.weight}kg · {config.restTime}s
+                        </span>
                       </div>
-                      <span className="text-sm font-medium">Serie {index + 1}</span>
-                    </div>
+                      <ChevronDown className={cn(
+                        "w-5 h-5 text-muted-foreground transition-transform",
+                        expandedSets.includes(index) && "rotate-180"
+                      )} />
+                    </button>
                     
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs text-muted-foreground mb-1">Peso (kg)</label>
-                        <input
-                          type="number"
-                          value={config.weight}
-                          onChange={(e) => updateSetConfig(index, 'weight', parseFloat(e.target.value) || 0)}
-                          className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-center font-semibold text-sm"
-                          min="0"
-                          step="0.5"
-                        />
+                    {/* Expanded content */}
+                    {expandedSets.includes(index) && (
+                      <div className="p-3 pt-0 animate-fade-in">
+                        <div className="grid grid-cols-3 gap-2">
+                          <DropdownSelect
+                            label="Repeticiones"
+                            value={config.reps}
+                            options={repsOptions}
+                            onChange={(value) => updateSetConfig(index, 'reps', value)}
+                            formatLabel={(v) => `${v} reps`}
+                          />
+                          <DropdownSelect
+                            label="Peso (kg)"
+                            value={config.weight}
+                            options={weightOptions}
+                            onChange={(value) => updateSetConfig(index, 'weight', value)}
+                            formatLabel={(v) => `${v} kg`}
+                          />
+                          <DropdownSelect
+                            label="Descanso (s)"
+                            value={config.restTime}
+                            options={restTimeOptions}
+                            onChange={(value) => updateSetConfig(index, 'restTime', value)}
+                            formatLabel={(v) => `${v}s`}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs text-muted-foreground mb-1">Descanso (seg)</label>
-                        <input
-                          type="number"
-                          value={config.restTime}
-                          onChange={(e) => updateSetConfig(index, 'restTime', parseInt(e.target.value) || 0)}
-                          className="w-full px-3 py-2 rounded-lg bg-background border border-border focus:border-primary outline-none text-center font-semibold text-sm"
-                          min="0"
-                          step="5"
-                        />
-                      </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -327,16 +405,16 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
 
             {/* Rest after exercise */}
             <div>
-              <label className="block text-sm font-medium mb-2">Descanso entre ejercicios (seg)</label>
-              <input
-                type="number"
-                value={formData.restAfterExercise}
-                onChange={(e) => setFormData((prev) => ({ ...prev, restAfterExercise: parseInt(e.target.value) || 0 }))}
-                className="w-full px-4 py-3 rounded-xl bg-secondary border border-border focus:border-primary outline-none font-semibold"
-                min="0"
-                step="5"
-                required
-              />
+              <label className="block text-sm font-medium mb-2">Descanso entre ejercicios</label>
+              <div className="relative">
+                <DropdownSelect
+                  label=""
+                  value={formData.restAfterExercise}
+                  options={[...restTimeOptions, 180, 240, 300].sort((a, b) => a - b)}
+                  onChange={(value) => setFormData((prev) => ({ ...prev, restAfterExercise: value }))}
+                  formatLabel={(v) => `${v} segundos`}
+                />
+              </div>
             </div>
 
             {/* Notes */}

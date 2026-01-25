@@ -43,6 +43,7 @@ export const ExerciseCard = ({
     }
     return {
       setNumber: currentSet,
+      reps: exercise.reps,
       weight: exercise.weight,
       restTime: exercise.restBetweenSets,
     };
@@ -161,8 +162,9 @@ export const ExerciseCard = ({
             
             {/* Individual set cards */}
             <div className="space-y-2 mb-4">
-              {(exercise.setConfigs || Array.from({ length: exercise.sets }, (_, i) => ({
+            {(exercise.setConfigs || Array.from({ length: exercise.sets }, (_, i) => ({
                 setNumber: i + 1,
+                reps: exercise.reps,
                 weight: exercise.weight,
                 restTime: exercise.restBetweenSets,
               }))).map((config, index) => (
@@ -192,12 +194,15 @@ export const ExerciseCard = ({
                   
                   <div className="flex-1 flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-1">
+                      <span className="text-muted-foreground">{config.reps || exercise.reps} reps</span>
+                    </div>
+                    <div className="flex items-center gap-1">
                       <Dumbbell className="w-3.5 h-3.5 text-primary" />
                       <span className="font-semibold">{config.weight}kg</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-info" />
-                      <span className="text-muted-foreground">{config.restTime}s descanso</span>
+                      <span className="text-muted-foreground">{config.restTime}s</span>
                     </div>
                   </div>
                   
