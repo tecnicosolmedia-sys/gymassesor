@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { WorkoutSession, ExerciseSession } from '@/types/workoutHistory';
+import { useState, useMemo } from 'react';
+import { WorkoutSession } from '@/types/workoutHistory';
 import { 
   Calendar, 
   Clock, 
@@ -23,6 +23,30 @@ interface WorkoutHistoryProps {
 
 export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHistoryProps) => {
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [selectedRoutine, setSelectedRoutine] = useState<string | 'todas'>('todas');
+
+  // Obtener lista única de rutinas
+  const routineNames = useMemo(() => {
+    const names = new Set<string>();
+    sessions.forEach(session => {
+      if (session.routineName) {
+        names.add(session.routineName);
+      }
+    });
+    return Array.from(names);
+  }, [sessions]);
+
+  // Filtrar y ordenar sesiones (más reciente primero)
+  const filteredSessions = useMemo(() => {
+    let filtered = [...sessions];
+    
+    if (selectedRoutine !== 'todas') {
+      filtered = filtered.filter(s => s.routineName === selectedRoutine);
+    }
+    
+    // Ordenar por fecha descendente (más reciente primero)
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [sessions, selectedRoutine]);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -55,7 +79,7 @@ export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHi
             <div>
               <h1 className="font-display font-bold text-xl">Historial de Entrenamientos</h1>
               <p className="text-sm text-muted-foreground">
-                {sessions.length} sesión{sessions.length !== 1 ? 'es' : ''} registrada{sessions.length !== 1 ? 's' : ''}
+                {filteredSessions.length} de {sessions.length} sesión{sessions.length !== 1 ? 'es' : ''}
               </p>
             </div>
           </div>
@@ -68,24 +92,72 @@ export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHi
           </button>
         </div>
         
+        {/* Routine filter tabs */}
+        {routineNames.length > 0 && (
+          <div className="mb-6">
+            <p className="text-xs text-muted-foreground mb-2 font-medium">Filtrar por rutina:</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedRoutine('todas')}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                  selectedRoutine === 'todas'
+                    ? "bg-primary text-primary-foreground shadow-energy"
+                    : "bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80"
+                )}
+              >
+                Todas
+              </button>
+              {routineNames.map((name) => (
+                <button
+                  key={name}
+                  onClick={() => setSelectedRoutine(name)}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                    selectedRoutine === name
+                      ? "bg-primary text-primary-foreground shadow-energy"
+                      : "bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80"
+                  )}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
         {/* Sessions list */}
-        {sessions.length === 0 ? (
+        {filteredSessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center mb-4">
               <Dumbbell className="w-10 h-10 text-muted-foreground" />
             </div>
-            <h3 className="font-display font-semibold text-lg mb-2">Sin entrenamientos aún</h3>
+            <h3 className="font-display font-semibold text-lg mb-2">
+              {sessions.length === 0 ? 'Sin entrenamientos aún' : 'Sin entrenamientos para esta rutina'}
+            </h3>
             <p className="text-muted-foreground text-sm max-w-xs">
-              Completa series de ejercicios para ver tu historial de entrenamientos aquí
+              {sessions.length === 0 
+                ? 'Completa series de ejercicios para ver tu historial de entrenamientos aquí'
+                : 'No hay sesiones registradas para la rutina seleccionada'}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {sessions.map((session) => (
+            {filteredSessions.map((session, index) => (
               <div 
                 key={session.id}
-                className="rounded-2xl card-gradient border border-border overflow-hidden"
+                className={cn(
+                  "rounded-2xl card-gradient border overflow-hidden",
+                  index === 0 ? "border-primary/50 ring-2 ring-primary/20" : "border-border"
+                )}
               >
+                {/* Most recent badge */}
+                {index === 0 && (
+                  <div className="bg-primary/10 px-4 py-1.5 border-b border-primary/20">
+                    <span className="text-xs font-medium text-primary">✨ Último entrenamiento</span>
+                  </div>
+                )}
+                
                 {/* Session summary card */}
                 <div 
                   className="p-4 cursor-pointer"
