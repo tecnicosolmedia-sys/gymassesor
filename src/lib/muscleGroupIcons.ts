@@ -64,6 +64,7 @@ const muscleGroupIcons: Record<string, string> = {
 };
 
 export const getMuscleGroupIcon = (muscleGroup: string): string | null => {
+  if (!muscleGroup) return null;
   const normalized = muscleGroup.toLowerCase().trim();
   return muscleGroupIcons[normalized] || null;
 };
