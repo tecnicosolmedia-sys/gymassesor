@@ -8,7 +8,8 @@ import {
   ChevronUp, 
   Trash2,
   TrendingUp,
-  X
+  X,
+  Weight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -22,7 +23,6 @@ interface WorkoutHistoryProps {
 
 export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHistoryProps) => {
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
-  const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -33,12 +33,14 @@ export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHi
     return `${mins} min`;
   };
 
-  const getTotalWeight = (exercise: ExerciseSession) => {
-    return exercise.completedSets.reduce((total, set) => total + (set.weight * set.reps), 0);
+  const getTotalWeight = (session: WorkoutSession) => {
+    return session.exercises.reduce((total, exercise) => {
+      return total + exercise.completedSets.reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0);
+    }, 0);
   };
 
-  const getMaxWeight = (exercise: ExerciseSession) => {
-    return Math.max(...exercise.completedSets.map(s => s.weight));
+  const getTotalSets = (session: WorkoutSession) => {
+    return session.exercises.reduce((total, exercise) => total + exercise.completedSets.length, 0);
   };
 
   return (
@@ -84,13 +86,14 @@ export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHi
                 key={session.id}
                 className="rounded-2xl card-gradient border border-border overflow-hidden"
               >
-                {/* Session header */}
+                {/* Session summary card */}
                 <div 
                   className="p-4 cursor-pointer"
                   onClick={() => setExpandedSession(expandedSession === session.id ? null : session.id)}
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
+                      {/* Date */}
                       <div className="flex items-center gap-2 mb-1">
                         <Calendar className="w-4 h-4 text-primary" />
                         <span className="font-display font-bold">
@@ -98,19 +101,9 @@ export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHi
                         </span>
                       </div>
                       
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {formatDuration(session.totalDuration)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Dumbbell className="w-3.5 h-3.5" />
-                          {session.exercises.length} ejercicio{session.exercises.length !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      
+                      {/* Routine name */}
                       {session.routineName && (
-                        <span className="inline-block mt-2 text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
+                        <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
                           {session.routineName}
                         </span>
                       )}
@@ -136,72 +129,84 @@ export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHi
                       )}
                     </div>
                   </div>
-                </div>
-                
-                {/* Expanded content */}
-                {expandedSession === session.id && (
-                  <div className="px-4 pb-4 space-y-3 animate-fade-in">
+                  
+                  {/* Quick stats */}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" />
+                      {formatDuration(session.totalDuration)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Dumbbell className="w-3.5 h-3.5" />
+                      {session.exercises.length} ejercicio{session.exercises.length !== 1 ? 's' : ''}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Weight className="w-3.5 h-3.5" />
+                      {getTotalWeight(session)}kg
+                    </span>
+                  </div>
+                  
+                  {/* Exercises summary - always visible */}
+                  <div className="space-y-2">
                     {session.exercises.map((exercise, exIndex) => (
                       <div 
                         key={`${exercise.exerciseId}-${exIndex}`}
-                        className="rounded-xl bg-secondary/30 overflow-hidden"
+                        className="p-3 rounded-xl bg-secondary/30"
                       >
-                        {/* Exercise header */}
-                        <div 
-                          className="p-3 cursor-pointer flex items-center justify-between"
-                          onClick={() => setExpandedExercise(
-                            expandedExercise === `${session.id}-${exercise.exerciseId}` 
-                              ? null 
-                              : `${session.id}-${exercise.exerciseId}`
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
                               <Dumbbell className="w-4 h-4 text-primary" />
                             </div>
                             <div>
-                              <p className="font-medium">{exercise.exerciseName}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {exercise.muscleGroup} · {exercise.completedSets.length}/{exercise.totalSets} series · Max: {getMaxWeight(exercise)}kg
-                              </p>
+                              <p className="font-medium text-sm">{exercise.exerciseName}</p>
+                              <p className="text-xs text-muted-foreground">{exercise.muscleGroup}</p>
                             </div>
                           </div>
-                          
-                          {expandedExercise === `${session.id}-${exercise.exerciseId}` ? (
-                            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                          )}
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                            {exercise.completedSets.length} series
+                          </span>
                         </div>
                         
-                        {/* Sets detail */}
-                        {expandedExercise === `${session.id}-${exercise.exerciseId}` && (
-                          <div className="px-3 pb-3 space-y-2 animate-fade-in">
-                            {exercise.completedSets.map((set, setIndex) => (
-                              <div 
-                                key={setIndex}
-                                className="flex items-center justify-between p-2 rounded-lg bg-secondary/50"
-                              >
-                                <span className="text-sm font-medium">Serie {set.setNumber}</span>
-                                <div className="flex items-center gap-4 text-sm">
-                                  <span>{set.reps} reps</span>
-                                  <span className="font-semibold text-primary">{set.weight}kg</span>
-                                  <span className="text-muted-foreground text-xs">
-                                    {format(new Date(set.completedAt), 'HH:mm')}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                            
-                            <div className="pt-2 border-t border-border">
-                              <p className="text-xs text-muted-foreground text-right">
-                                Volumen total: <span className="font-semibold text-foreground">{getTotalWeight(exercise)}kg</span>
-                              </p>
+                        {/* Sets grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {exercise.completedSets.map((set, setIndex) => (
+                            <div 
+                              key={setIndex}
+                              className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-secondary/50 text-xs"
+                            >
+                              <span className="font-medium text-muted-foreground">S{set.setNumber}</span>
+                              <span className="font-semibold">{set.reps}x{set.weight}kg</span>
                             </div>
-                          </div>
-                        )}
+                          ))}
+                        </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+                
+                {/* Expanded content - additional stats */}
+                {expandedSession === session.id && (
+                  <div className="px-4 pb-4 space-y-3 animate-fade-in border-t border-border pt-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center p-3 rounded-xl bg-secondary/30">
+                        <p className="text-2xl font-lcd font-bold text-primary">{getTotalSets(session)}</p>
+                        <p className="text-xs text-muted-foreground">Series totales</p>
+                      </div>
+                      <div className="text-center p-3 rounded-xl bg-secondary/30">
+                        <p className="text-2xl font-lcd font-bold text-primary">{session.exercises.length}</p>
+                        <p className="text-xs text-muted-foreground">Ejercicios</p>
+                      </div>
+                      <div className="text-center p-3 rounded-xl bg-secondary/30">
+                        <p className="text-2xl font-lcd font-bold text-primary">{getTotalWeight(session)}</p>
+                        <p className="text-xs text-muted-foreground">Kg totales</p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-center text-xs text-muted-foreground pt-2">
+                      Inicio: {format(new Date(session.startedAt), 'HH:mm')} · 
+                      Fin: {session.completedAt ? format(new Date(session.completedAt), 'HH:mm') : '--'}
+                    </div>
                   </div>
                 )}
               </div>
