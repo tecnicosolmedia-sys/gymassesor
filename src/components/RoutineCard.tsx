@@ -1,5 +1,5 @@
 import { Routine, WEEKDAYS } from '@/types/routine';
-import { Exercise } from '@/types/exercise';
+import { Exercise, SetConfig } from '@/types/exercise';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutFlow } from './WorkoutFlow';
 import { Edit2, Trash2, Dumbbell, ChevronDown, ChevronUp, Play } from 'lucide-react';
@@ -21,6 +21,7 @@ interface RoutineCardProps {
     setData: { setNumber: number; reps: number; weight: number; restTime: number },
     totalSets: number
   ) => void;
+  onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
 }
 
 export const RoutineCard = ({
@@ -32,6 +33,7 @@ export const RoutineCard = ({
   onEditExercise,
   onDeleteExercise,
   onSetComplete,
+  onUpdateSetConfig,
 }: RoutineCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [showWorkoutFlow, setShowWorkoutFlow] = useState(false);
@@ -153,6 +155,7 @@ export const RoutineCard = ({
           onSetComplete={onSetComplete || (() => {})}
           onEditExercise={onEditExercise}
           onDeleteExercise={onDeleteExercise}
+          onUpdateSetConfig={onUpdateSetConfig}
         />
       )}
     </>
