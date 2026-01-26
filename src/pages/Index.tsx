@@ -5,8 +5,10 @@ import { RoutineCard } from '@/components/RoutineCard';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { ExerciseForm } from '@/components/ExerciseForm';
 import { RoutineForm } from '@/components/RoutineForm';
+import { WorkoutHistory } from '@/components/WorkoutHistory';
 import { useExercises } from '@/hooks/useExercises';
 import { useRoutines } from '@/hooks/useRoutines';
+import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { Exercise } from '@/types/exercise';
 import { Routine, WeekDay } from '@/types/routine';
 import { Dumbbell, Calendar } from 'lucide-react';
@@ -28,8 +30,15 @@ const Index = () => {
     deleteRoutine,
   } = useRoutines();
   
+  const {
+    sessions,
+    logCompletedSet,
+    deleteSession,
+  } = useWorkoutHistory();
+  
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [showRoutineForm, setShowRoutineForm] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [selectedDay, setSelectedDay] = useState<WeekDay | 'all'>('all');
@@ -111,7 +120,7 @@ const Index = () => {
       {/* Background glow effect */}
       <div className="fixed inset-0 bg-glow pointer-events-none opacity-30" />
       
-      <Header onAddExercise={handleAddExercise} onAddRoutine={handleAddRoutine} />
+      <Header onAddExercise={handleAddExercise} onAddRoutine={handleAddRoutine} onShowHistory={() => setShowHistory(true)} />
       
       <main className="container mx-auto px-4 py-6 space-y-6 relative">
         {/* Week tabs */}
@@ -158,6 +167,7 @@ const Index = () => {
                   onDelete={handleDeleteRoutine}
                   onEditExercise={handleEditExercise}
                   onDeleteExercise={handleDeleteExercise}
+                  onSetComplete={logCompletedSet}
                 />
               ))}
             </div>
@@ -184,6 +194,7 @@ const Index = () => {
                   exercise={exercise}
                   onEdit={handleEditExercise}
                   onDelete={handleDeleteExercise}
+                  onSetComplete={logCompletedSet}
                 />
               ))}
             </div>
@@ -251,6 +262,15 @@ const Index = () => {
           exercises={exercises}
           onSave={handleSaveRoutine}
           onClose={() => setShowRoutineForm(false)}
+        />
+      )}
+      
+      {/* Workout History Modal */}
+      {showHistory && (
+        <WorkoutHistory
+          sessions={sessions}
+          onDeleteSession={deleteSession}
+          onClose={() => setShowHistory(false)}
         />
       )}
     </div>
