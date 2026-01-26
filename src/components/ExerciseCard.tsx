@@ -13,7 +13,7 @@ import {
   Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
+import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 interface ExerciseCardProps {
   exercise: Exercise;
   onEdit: (exercise: Exercise) => void;
@@ -146,13 +146,19 @@ export const ExerciseCard = ({
           onClick={() => setExpanded(!expanded)}
         >
           <div className="flex items-start gap-4">
-            {/* Image or placeholder */}
+            {/* Image or muscle group icon */}
             <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
               {exercise.imageUrl ? (
                 <img 
                   src={exercise.imageUrl} 
                   alt={exercise.name}
                   className="w-full h-full object-cover"
+                />
+              ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
+                <img 
+                  src={getMuscleGroupIcon(exercise.muscleGroup)!} 
+                  alt={exercise.muscleGroup}
+                  className="w-14 h-14 object-contain"
                 />
               ) : (
                 <Dumbbell className="w-6 h-6 text-primary" />
