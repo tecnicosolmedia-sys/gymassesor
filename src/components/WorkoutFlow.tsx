@@ -7,6 +7,7 @@ import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut } from 'luc
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
 interface WorkoutFlowProps {
+  routineId?: string;
   routineName: string;
   exercises: Exercise[];
   allExercises: Exercise[]; // Para añadir ejercicios extra
@@ -21,6 +22,7 @@ interface WorkoutFlowProps {
   onEditExercise: (exercise: Exercise) => void;
   onDeleteExercise: (id: string) => void;
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
+  onWorkoutComplete?: () => void;
 }
 
 type FlowState = 
@@ -31,6 +33,7 @@ type FlowState =
   | { type: 'add-extra-exercise' };
 
 export const WorkoutFlow = ({
+  routineId,
   routineName,
   exercises: initialExercises,
   allExercises,
@@ -39,6 +42,7 @@ export const WorkoutFlow = ({
   onEditExercise,
   onDeleteExercise,
   onUpdateSetConfig,
+  onWorkoutComplete,
 }: WorkoutFlowProps) => {
   const [workoutExercises, setWorkoutExercises] = useState<Exercise[]>(initialExercises);
   const [completedExerciseIds, setCompletedExerciseIds] = useState<Set<string>>(new Set());
@@ -234,7 +238,10 @@ export const WorkoutFlow = ({
             </button>
             
             <button
-              onClick={onClose}
+              onClick={() => {
+                onWorkoutComplete?.();
+                onClose();
+              }}
               className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
             >
               Finalizar entrenamiento

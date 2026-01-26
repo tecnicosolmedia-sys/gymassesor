@@ -22,6 +22,7 @@ interface RoutineCardProps {
     totalSets: number
   ) => void;
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
+  onWorkoutComplete?: () => void;
 }
 
 export const RoutineCard = ({
@@ -34,6 +35,7 @@ export const RoutineCard = ({
   onDeleteExercise,
   onSetComplete,
   onUpdateSetConfig,
+  onWorkoutComplete,
 }: RoutineCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [showExerciseList, setShowExerciseList] = useState(false);
@@ -199,6 +201,7 @@ export const RoutineCard = ({
       {/* Workout Flow Modal */}
       {showWorkoutFlow && (
         <WorkoutFlow
+          routineId={routine.id}
           routineName={routine.name}
           exercises={routineExercises}
           allExercises={allExercises}
@@ -207,6 +210,7 @@ export const RoutineCard = ({
           onEditExercise={onEditExercise}
           onDeleteExercise={onDeleteExercise}
           onUpdateSetConfig={onUpdateSetConfig}
+          onWorkoutComplete={onWorkoutComplete}
         />
       )}
     </>

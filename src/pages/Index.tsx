@@ -33,7 +33,10 @@ const Index = () => {
   
   const {
     sessions,
+    currentSession,
+    startSession,
     logCompletedSet,
+    endSession,
     deleteSession,
   } = useWorkoutHistory();
   
@@ -181,8 +184,15 @@ const Index = () => {
                   onDelete={handleDeleteRoutine}
                   onEditExercise={handleEditExercise}
                   onDeleteExercise={handleDeleteExercise}
-                  onSetComplete={logCompletedSet}
+                  onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
+                    // Iniciar sesión si no hay una activa
+                    if (!currentSession) {
+                      startSession(routine.id, routine.name);
+                    }
+                    logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets);
+                  }}
                   onUpdateSetConfig={handleUpdateSetConfig}
+                  onWorkoutComplete={endSession}
                 />
               ))}
             </div>
