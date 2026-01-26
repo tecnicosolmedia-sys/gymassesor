@@ -332,71 +332,78 @@ export const ExerciseCard = ({
                     
                     {/* Controles editables - solo si no está completada */}
                     {!isCompleted ? (
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-3 gap-3">
                         {/* Repeticiones */}
                         <div className="flex flex-col items-center">
-                          <span className="text-xs text-muted-foreground mb-1">Reps</span>
+                          <span className="text-xs text-muted-foreground mb-2">Reps</span>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
                               onClick={() => updateSetConfig(index, 'reps', -1)}
-                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                              className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
                             >
-                              <Minus className="w-3 h-3" />
+                              <Minus className="w-4 h-4" />
                             </button>
-                            <span className="w-8 text-center font-semibold text-sm">{config.reps}</span>
+                            <span className="w-12 text-center font-lcd text-2xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]">
+                              {config.reps}
+                            </span>
                             <button
                               type="button"
                               onClick={() => updateSetConfig(index, 'reps', 1)}
-                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                              className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
                             >
-                              <Plus className="w-3 h-3" />
+                              <Plus className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
                         
                         {/* Peso */}
                         <div className="flex flex-col items-center">
-                          <span className="text-xs text-muted-foreground mb-1">Peso (kg)</span>
+                          <span className="text-xs text-muted-foreground mb-2">Peso (kg)</span>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
                               onClick={() => updateSetConfig(index, 'weight', -2.5)}
-                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                              className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
                             >
-                              <Minus className="w-3 h-3" />
+                              <Minus className="w-4 h-4" />
                             </button>
-                            <span className="w-10 text-center font-semibold text-sm">{config.weight}</span>
+                            <span className="w-14 text-center font-lcd text-2xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]">
+                              {config.weight}
+                            </span>
                             <button
                               type="button"
                               onClick={() => updateSetConfig(index, 'weight', 2.5)}
-                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                              className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
                             >
-                              <Plus className="w-3 h-3" />
+                              <Plus className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
                         
                         {/* Descanso */}
                         <div className="flex flex-col items-center">
-                          <span className="text-xs text-muted-foreground mb-1">Descanso</span>
+                          <span className="text-xs text-muted-foreground mb-2">Descanso</span>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
                               onClick={() => updateSetConfig(index, 'restTime', -5)}
-                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                              className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
                             >
-                              <Minus className="w-3 h-3" />
+                              <Minus className="w-4 h-4" />
                             </button>
-                            <span className="w-10 text-center font-semibold text-sm">{config.restTime}s</span>
+                            <span className="w-14 text-center font-lcd text-2xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]">
+                              {config.restTime}
+                            </span>
                             <button
                               type="button"
                               onClick={() => updateSetConfig(index, 'restTime', 5)}
-                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                              className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
                             >
-                              <Plus className="w-3 h-3" />
+                              <Plus className="w-4 h-4" />
                             </button>
                           </div>
+                          <span className="text-[10px] text-muted-foreground mt-1">seg</span>
                         </div>
                       </div>
                     ) : (
