@@ -261,28 +261,38 @@ export const FullscreenTimer = ({
         isLandscape ? "flex-1" : "mt-8"
       )}>
         {!isComplete ? (
-          <div className="flex gap-4">
-            <button
-              onClick={handleToggle}
-              className={cn(
-                "w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center transition-all shadow-lg",
-                isRunning 
-                  ? "bg-warning text-warning-foreground hover:bg-warning/90" 
-                  : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-energy"
-              )}
-            >
-              {isRunning ? (
-                <Pause className="w-8 h-8 sm:w-10 sm:h-10" />
-              ) : (
-                <Play className="w-8 h-8 sm:w-10 sm:h-10 ml-1" />
-              )}
-            </button>
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex gap-4">
+              <button
+                onClick={handleToggle}
+                className={cn(
+                  "w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center transition-all shadow-lg",
+                  isRunning 
+                    ? "bg-warning text-warning-foreground hover:bg-warning/90" 
+                    : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-energy"
+                )}
+              >
+                {isRunning ? (
+                  <Pause className="w-8 h-8 sm:w-10 sm:h-10" />
+                ) : (
+                  <Play className="w-8 h-8 sm:w-10 sm:h-10 ml-1" />
+                )}
+              </button>
+              
+              <button
+                onClick={handleReset}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all"
+              >
+                <RotateCcw className="w-6 h-6 sm:w-8 sm:h-8" />
+              </button>
+            </div>
             
             <button
-              onClick={handleReset}
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all"
+              onClick={handleContinue}
+              className="px-6 py-3 rounded-xl bg-primary/20 text-primary font-medium flex items-center gap-2 hover:bg-primary/30 transition-all border border-primary/30"
             >
-              <RotateCcw className="w-6 h-6 sm:w-8 sm:h-8" />
+              <ArrowRight className="w-5 h-5" />
+              Saltar y continuar
             </button>
           </div>
         ) : (
