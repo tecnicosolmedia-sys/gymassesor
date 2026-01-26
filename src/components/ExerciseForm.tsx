@@ -70,14 +70,20 @@ const DropdownSelect = ({ value, options, onChange, formatLabel, label, parentRe
   // Cerrar al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
+      const dropdownEl = buttonRef.current?.parentElement?.querySelector('[data-dropdown]');
+      if (
+        buttonRef.current && 
+        !buttonRef.current.contains(e.target as Node) &&
+        (!dropdownEl || !dropdownEl.contains(e.target as Node))
+      ) {
         setIsOpen(false);
       }
     };
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Use 'click' instead of 'mousedown' to allow option clicks to complete first
+      document.addEventListener('click', handleClickOutside, true);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside, true);
   }, [isOpen]);
 
   return (
@@ -98,6 +104,7 @@ const DropdownSelect = ({ value, options, onChange, formatLabel, label, parentRe
       
       {isOpen && (
         <div 
+          data-dropdown
           className="absolute left-0 right-0 bg-card border border-border rounded-lg shadow-xl overflow-hidden animate-scale-in"
           style={{ ...dropdownStyle, zIndex: 9999 }}
         >
