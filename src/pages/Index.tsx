@@ -163,6 +163,7 @@ const Index = () => {
                   key={routine.id}
                   routine={routine}
                   exercises={exercises}
+                  allExercises={exercises}
                   onEdit={handleEditRoutine}
                   onDelete={handleDeleteRoutine}
                   onEditExercise={handleEditExercise}
