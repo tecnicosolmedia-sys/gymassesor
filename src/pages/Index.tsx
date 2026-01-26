@@ -6,9 +6,12 @@ import { ExerciseCard } from '@/components/ExerciseCard';
 import { ExerciseForm } from '@/components/ExerciseForm';
 import { RoutineForm } from '@/components/RoutineForm';
 import { WorkoutHistory } from '@/components/WorkoutHistory';
+import { WorkoutFlow, FlowState } from '@/components/WorkoutFlow';
+import { ResumeWorkoutBanner } from '@/components/ResumeWorkoutBanner';
 import { useExercises } from '@/hooks/useExercises';
 import { useRoutines } from '@/hooks/useRoutines';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
+import { useSavedWorkout } from '@/hooks/useSavedWorkout';
 import { Exercise, SetConfig, MuscleGroup, MUSCLE_GROUPS } from '@/types/exercise';
 import { Routine } from '@/types/routine';
 import { Dumbbell, Calendar, Pencil, Trash2 } from 'lucide-react';
@@ -41,6 +44,10 @@ const Index = () => {
     deleteSession,
   } = useWorkoutHistory();
   
+  // Estado de entrenamiento guardado
+  const { savedWorkout, clearSavedWorkout, getTimeSinceSaved } = useSavedWorkout();
+  const [resumingWorkout, setResumingWorkout] = useState(false);
+  
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [showRoutineForm, setShowRoutineForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -48,6 +55,33 @@ const Index = () => {
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [selectedMuscleFilter, setSelectedMuscleFilter] = useState<MuscleGroup | 'todas'>('todas');
   const [libraryMuscleFilter, setLibraryMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
+
+  // Manejar restauración de entrenamiento
+  const handleResumeWorkout = () => {
+    if (savedWorkout) {
+      // Iniciar sesión si no hay una activa
+      if (!currentSession && savedWorkout.routineId) {
+        startSession(savedWorkout.routineId, savedWorkout.routineName);
+      }
+      setResumingWorkout(true);
+    }
+  };
+
+  const handleDiscardWorkout = () => {
+    clearSavedWorkout();
+  };
+
+  // Obtener ejercicios para el entrenamiento a restaurar
+  const savedWorkoutExercises = useMemo(() => {
+    if (!savedWorkout) return [];
+    return exercises.filter(e => savedWorkout.workoutExerciseIds.includes(e.id));
+  }, [savedWorkout, exercises]);
+
+  // Obtener la rutina del entrenamiento guardado
+  const savedRoutine = useMemo(() => {
+    if (!savedWorkout?.routineId) return null;
+    return routines.find(r => r.id === savedWorkout.routineId);
+  }, [savedWorkout, routines]);
 
   const handleAddExercise = () => {
     setEditingExercise(null);
@@ -146,6 +180,16 @@ const Index = () => {
       <Header onAddExercise={handleAddExercise} onAddRoutine={handleAddRoutine} onShowHistory={() => setShowHistory(true)} />
       
       <main className="container mx-auto px-4 py-6 space-y-6 relative">
+        {/* Banner para restaurar entrenamiento */}
+        {savedWorkout && savedRoutine && !resumingWorkout && (
+          <ResumeWorkoutBanner
+            savedWorkout={savedWorkout}
+            timeSinceSaved={getTimeSinceSaved()}
+            onResume={handleResumeWorkout}
+            onDiscard={handleDiscardWorkout}
+          />
+        )}
+        
         {/* Muscle filter tabs */}
         <MuscleFilterTabs selectedMuscle={selectedMuscleFilter} onSelectMuscle={setSelectedMuscleFilter} />
         
@@ -380,6 +424,35 @@ const Index = () => {
           sessions={sessions}
           onDeleteSession={deleteSession}
           onClose={() => setShowHistory(false)}
+        />
+      )}
+      
+      {/* Workout Flow para restaurar entrenamiento */}
+      {resumingWorkout && savedWorkout && savedRoutine && (
+        <WorkoutFlow
+          routineId={savedRoutine.id}
+          routineName={savedRoutine.name}
+          exercises={savedWorkoutExercises}
+          allExercises={exercises}
+          onClose={() => {
+            setResumingWorkout(false);
+            clearSavedWorkout();
+          }}
+          onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
+            logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets);
+          }}
+          onEditExercise={handleEditExercise}
+          onDeleteExercise={handleDeleteExercise}
+          onUpdateSetConfig={handleUpdateSetConfig}
+          onWorkoutComplete={() => {
+            endSession();
+            setResumingWorkout(false);
+            clearSavedWorkout();
+            setShowHistory(true);
+          }}
+          initialCompletedExerciseIds={savedWorkout.completedExerciseIds}
+          initialFlowState={savedWorkout.flowState as FlowState}
+          initialElapsedTime={savedWorkout.elapsedTime}
         />
       )}
     </div>

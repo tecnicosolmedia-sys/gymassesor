@@ -1,11 +1,16 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
-import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut } from 'lucide-react';
+import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
+
+// Clave para persistencia en localStorage
+const WORKOUT_STATE_KEY = 'gym-tracker-active-workout';
 
 interface WorkoutFlowProps {
   routineId?: string;
@@ -24,9 +29,13 @@ interface WorkoutFlowProps {
   onDeleteExercise: (id: string) => void;
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
   onWorkoutComplete?: (elapsedTime?: number) => void;
+  // Props opcionales para restaurar estado
+  initialCompletedExerciseIds?: string[];
+  initialFlowState?: FlowState;
+  initialElapsedTime?: number;
 }
 
-type FlowState = 
+export type FlowState = 
   | { type: 'exercising'; exerciseIndex: number }
   | { type: 'rest-between-exercises'; completedExerciseIndex: number }
   | { type: 'select-next-exercise'; completedExerciseIndex: number }
@@ -44,14 +53,75 @@ export const WorkoutFlow = ({
   onDeleteExercise,
   onUpdateSetConfig,
   onWorkoutComplete,
+  initialCompletedExerciseIds = [],
+  initialFlowState,
+  initialElapsedTime = 0,
 }: WorkoutFlowProps) => {
   const [workoutExercises, setWorkoutExercises] = useState<Exercise[]>(initialExercises);
-  const [completedExerciseIds, setCompletedExerciseIds] = useState<Set<string>>(new Set());
-  const [flowState, setFlowState] = useState<FlowState>({ type: 'exercising', exerciseIndex: 0 });
+  const [completedExerciseIds, setCompletedExerciseIds] = useState<Set<string>>(
+    new Set(initialCompletedExerciseIds)
+  );
+  const [flowState, setFlowState] = useState<FlowState>(
+    initialFlowState || { type: 'exercising', exerciseIndex: 0 }
+  );
   const [extraExercises, setExtraExercises] = useState<Exercise[]>([]);
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   
-  // Cronómetro del entrenamiento
-  const { elapsedTime, isRunning, toggle, stop } = useWorkoutStopwatch(true);
+  // Cronómetro del entrenamiento (con tiempo inicial si se está restaurando)
+  const { elapsedTime, isRunning, toggle, stop } = useWorkoutStopwatch(true, initialElapsedTime);
+
+  // Formatear tiempo para mostrar
+  const formatTime = (totalSeconds: number) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    }
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
+  };
+
+  // Persistir estado del entrenamiento en localStorage
+  useEffect(() => {
+    const stateToSave = {
+      routineId,
+      routineName,
+      workoutExerciseIds: workoutExercises.map(e => e.id),
+      completedExerciseIds: Array.from(completedExerciseIds),
+      flowState,
+      elapsedTime,
+      extraExerciseIds: extraExercises.map(e => e.id),
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(WORKOUT_STATE_KEY, JSON.stringify(stateToSave));
+  }, [routineId, routineName, workoutExercises, completedExerciseIds, flowState, elapsedTime, extraExercises]);
+
+  // Limpiar estado guardado al finalizar
+  const clearSavedState = useCallback(() => {
+    localStorage.removeItem(WORKOUT_STATE_KEY);
+  }, []);
+
+  // Manejar intento de cerrar
+  const handleCloseAttempt = () => {
+    setShowExitConfirmation(true);
+  };
+
+  // Confirmar salida y finalizar
+  const handleConfirmExit = () => {
+    clearSavedState();
+    stop();
+    onWorkoutComplete?.(elapsedTime);
+    onClose(elapsedTime);
+  };
+
+  // Cancelar salida
+  const handleCancelExit = () => {
+    setShowExitConfirmation(false);
+  };
 
   const currentExercise = flowState.type === 'exercising' 
     ? workoutExercises[flowState.exerciseIndex] 
@@ -173,8 +243,9 @@ export const WorkoutFlow = ({
               </p>
             </div>
             <button
-              onClick={() => onClose(elapsedTime)}
+              onClick={handleCloseAttempt}
               className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              title="Salir del entrenamiento"
             >
               <X className="w-5 h-5" />
             </button>
@@ -237,9 +308,20 @@ export const WorkoutFlow = ({
           <h2 className="font-display font-bold text-3xl text-gradient-energy mb-2">
             ¡Rutina Completada!
           </h2>
-          <p className="text-muted-foreground mb-8">
+          <p className="text-muted-foreground mb-4">
             Has completado {completedExerciseIds.size} ejercicios en {routineName}
           </p>
+          
+          {/* Tiempo total del entrenamiento */}
+          <div className="flex items-center justify-center gap-3 p-4 rounded-xl bg-secondary/50 mb-8">
+            <Timer className="w-6 h-6 text-primary" />
+            <div className="text-left">
+              <p className="text-xs text-muted-foreground">Tiempo total</p>
+              <p className="font-lcd text-2xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]">
+                {formatTime(elapsedTime)}
+              </p>
+            </div>
+          </div>
           
           <div className="space-y-3">
             <button
@@ -252,6 +334,8 @@ export const WorkoutFlow = ({
             
             <button
               onClick={() => {
+                clearSavedState();
+                stop();
                 onWorkoutComplete?.(elapsedTime);
                 onClose(elapsedTime);
               }}
@@ -371,8 +455,9 @@ export const WorkoutFlow = ({
               </h2>
             </div>
             <button
-              onClick={() => onClose(elapsedTime)}
+              onClick={handleCloseAttempt}
               className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              title="Salir del entrenamiento"
             >
               <X className="w-5 h-5" />
             </button>
@@ -415,5 +500,42 @@ export const WorkoutFlow = ({
     );
   }
 
-  return null;
+  // Diálogo de confirmación de salida
+  const ExitConfirmationDialog = (
+    <Dialog open={showExitConfirmation} onOpenChange={setShowExitConfirmation}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-warning" />
+            ¿Salir del entrenamiento?
+          </DialogTitle>
+          <DialogDescription>
+            Tu progreso se guardará automáticamente. Podrás continuar donde lo dejaste al volver a abrir esta rutina.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="p-4 rounded-xl bg-secondary/50 my-2">
+          <div className="flex items-center gap-3">
+            <Timer className="w-5 h-5 text-primary" />
+            <div>
+              <p className="text-xs text-muted-foreground">Tiempo transcurrido</p>
+              <p className="font-lcd text-xl text-primary">{formatTime(elapsedTime)}</p>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mt-2">
+            {completedExerciseIds.size} de {workoutExercises.length} ejercicios completados
+          </p>
+        </div>
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
+          <Button variant="outline" onClick={handleCancelExit} className="w-full sm:w-auto">
+            Continuar entrenando
+          </Button>
+          <Button variant="destructive" onClick={handleConfirmExit} className="w-full sm:w-auto">
+            Salir y guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  return ExitConfirmationDialog;
 };
