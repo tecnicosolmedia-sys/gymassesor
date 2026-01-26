@@ -1,8 +1,8 @@
 import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
+import { SetCard } from './SetCard';
 import { useState, useEffect } from 'react';
 import { 
-  Play, 
   Trash2, 
   Edit2, 
   ChevronDown, 
@@ -10,9 +10,6 @@ import {
   Dumbbell,
   Clock,
   FileText,
-  Check,
-  Minus,
-  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
@@ -290,156 +287,31 @@ export const ExerciseCard = ({
                 </span>
               </div>
               
-              {/* Individual set cards - editables */}
-              <div className="space-y-2 mb-4">
-              {localSetConfigs.map((config, index) => {
-                const isCompleted = completedSets.includes(index + 1);
-                const isCurrent = index + 1 === currentSet && !isCompleted;
-                
-                return (
-                  <div
-                    key={index}
-                    className={cn(
-                      "p-3 rounded-xl transition-all",
-                      isCompleted
-                        ? "bg-primary/20 border border-primary"
-                        : isCurrent
-                          ? "bg-secondary border border-primary/50"
-                          : "bg-secondary/50 border border-transparent"
-                    )}
-                  >
-                    {/* Header de la serie */}
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-                        isCompleted
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      )}>
-                        {isCompleted ? (
-                          <Check className="w-4 h-4" />
-                        ) : (
-                          <span className="text-sm font-bold">{index + 1}</span>
-                        )}
-                      </div>
-                      <span className="text-sm font-medium">Serie {index + 1}</span>
-                      {isCurrent && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary font-medium ml-auto">
-                          Actual
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* Controles editables - solo si no está completada */}
-                    {!isCompleted ? (
-                      <div className="grid grid-cols-3 gap-4">
-                        {/* Repeticiones */}
-                        <div className="flex flex-col items-center">
-                          <span className="text-xs text-muted-foreground mb-1">Reps</span>
-                          <span className="font-lcd text-3xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] mb-2">
-                            {config.reps}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => updateSetConfig(index, 'reps', -1)}
-                              className="w-9 h-9 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
-                            >
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => updateSetConfig(index, 'reps', 1)}
-                              className="w-9 h-9 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                        
-                        {/* Peso */}
-                        <div className="flex flex-col items-center">
-                          <span className="text-xs text-muted-foreground mb-1">Peso</span>
-                          <span className="font-lcd text-3xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] mb-2">
-                            {config.weight}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => updateSetConfig(index, 'weight', -2.5)}
-                              className="w-9 h-9 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
-                            >
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => updateSetConfig(index, 'weight', 2.5)}
-                              className="w-9 h-9 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground mt-1">kg</span>
-                        </div>
-                        
-                        {/* Descanso */}
-                        <div className="flex flex-col items-center">
-                          <span className="text-xs text-muted-foreground mb-1">Descanso</span>
-                          <span className="font-lcd text-3xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] mb-2">
-                            {config.restTime}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => updateSetConfig(index, 'restTime', -5)}
-                              className="w-9 h-9 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
-                            >
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => updateSetConfig(index, 'restTime', 5)}
-                              className="w-9 h-9 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground mt-1">seg</span>
-                        </div>
-                      </div>
-                    ) : (
-                      // Vista compacta para series completadas
-                      <div className="flex items-center gap-4 text-sm pl-11">
-                        <span className="text-muted-foreground">{config.reps} reps</span>
-                        <span className="flex items-center gap-1">
-                          <Dumbbell className="w-3.5 h-3.5 text-primary" />
-                          <span className="font-semibold">{config.weight}kg</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-muted-foreground">{config.restTime}s</span>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {/* Individual set cards - usando SetCard component */}
+              <div className="space-y-2">
+                {localSetConfigs.map((config, index) => {
+                  const isCompleted = completedSets.includes(index + 1);
+                  const isCurrent = index + 1 === currentSet && !isCompleted;
+                  
+                  return (
+                    <SetCard
+                      key={index}
+                      config={config}
+                      index={index}
+                      isCompleted={isCompleted}
+                      isCurrent={isCurrent}
+                      currentSet={currentSet}
+                      currentWeight={currentConfig.weight}
+                      onUpdateConfig={updateSetConfig}
+                      onCompleteSet={handleSetComplete}
+                    />
+                  );
+                })}
               </div>
-              
-              {/* Complete set button */}
-              {currentSet <= exercise.sets && !completedSets.includes(currentSet) && (
-                <button
-                  onClick={handleSetComplete}
-                  className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
-                >
-                  <Play className="w-4 h-4" />
-                  Completar Serie {currentSet} ({currentConfig.weight}kg)
-                </button>
-              )}
               
               {/* Exercise completed */}
               {completedSets.length === exercise.sets && !showFullscreenTimer && (
-                <div className="text-center py-3">
+                <div className="text-center py-3 mt-4">
                   <span className="text-primary font-semibold">¡Ejercicio completado! 🎉</span>
                 </div>
               )}
