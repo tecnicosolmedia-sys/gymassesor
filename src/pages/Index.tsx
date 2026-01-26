@@ -9,7 +9,7 @@ import { WorkoutHistory } from '@/components/WorkoutHistory';
 import { useExercises } from '@/hooks/useExercises';
 import { useRoutines } from '@/hooks/useRoutines';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
-import { Exercise } from '@/types/exercise';
+import { Exercise, SetConfig } from '@/types/exercise';
 import { Routine, WeekDay } from '@/types/routine';
 import { Dumbbell, Calendar } from 'lucide-react';
 
@@ -91,6 +91,11 @@ const Index = () => {
     }
   };
 
+  // Handler para actualizar la configuración de series durante el entrenamiento
+  const handleUpdateSetConfig = (exerciseId: string, setConfigs: SetConfig[]) => {
+    updateExercise(exerciseId, { setConfigs });
+  };
+
   // Filtrar rutinas por día seleccionado
   const filteredRoutines = selectedDay === 'all' 
     ? routines 
@@ -169,6 +174,7 @@ const Index = () => {
                   onEditExercise={handleEditExercise}
                   onDeleteExercise={handleDeleteExercise}
                   onSetComplete={logCompletedSet}
+                  onUpdateSetConfig={handleUpdateSetConfig}
                 />
               ))}
             </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Exercise } from '@/types/exercise';
+import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard } from './ExerciseCard';
 import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight } from 'lucide-react';
@@ -20,6 +20,7 @@ interface WorkoutFlowProps {
   ) => void;
   onEditExercise: (exercise: Exercise) => void;
   onDeleteExercise: (id: string) => void;
+  onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
 }
 
 type FlowState = 
@@ -37,6 +38,7 @@ export const WorkoutFlow = ({
   onSetComplete,
   onEditExercise,
   onDeleteExercise,
+  onUpdateSetConfig,
 }: WorkoutFlowProps) => {
   const [workoutExercises, setWorkoutExercises] = useState<Exercise[]>(initialExercises);
   const [completedExerciseIds, setCompletedExerciseIds] = useState<Set<string>>(new Set());
@@ -366,6 +368,7 @@ export const WorkoutFlow = ({
             isActive={true}
             skipExerciseRestTimer={true}
             onExerciseComplete={() => handleExerciseComplete(currentExercise.id)}
+            onUpdateSetConfig={onUpdateSetConfig}
           />
         </div>
       </div>

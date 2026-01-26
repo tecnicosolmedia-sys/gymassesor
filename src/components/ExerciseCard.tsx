@@ -1,6 +1,6 @@
 import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Play, 
   Trash2, 
@@ -10,10 +10,13 @@ import {
   Dumbbell,
   Clock,
   FileText,
-  Check
+  Check,
+  Minus,
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
+
 interface ExerciseCardProps {
   exercise: Exercise;
   onEdit: (exercise: Exercise) => void;
@@ -30,6 +33,8 @@ interface ExerciseCardProps {
   // Si es true, no muestra el temporizador de ejercicio completo (lo maneja el padre)
   skipExerciseRestTimer?: boolean;
   onExerciseComplete?: () => void;
+  // Callback para guardar cambios en la configuración
+  onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
 }
 
 export const ExerciseCard = ({ 
@@ -41,18 +46,40 @@ export const ExerciseCard = ({
   onSetComplete,
   skipExerciseRestTimer = false,
   onExerciseComplete,
+  onUpdateSetConfig,
 }: ExerciseCardProps) => {
   const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(1);
   const [showFullscreenTimer, setShowFullscreenTimer] = useState(false);
   const [timerType, setTimerType] = useState<'set' | 'exercise'>('set');
   const [completedSets, setCompletedSets] = useState<number[]>([]);
+  
+  // Estado local para las configuraciones editables
+  const [localSetConfigs, setLocalSetConfigs] = useState<SetConfig[]>(() => {
+    return exercise.setConfigs || Array.from({ length: exercise.sets }, (_, i) => ({
+      setNumber: i + 1,
+      reps: exercise.reps,
+      weight: exercise.weight,
+      restTime: exercise.restBetweenSets,
+    }));
+  });
 
+  // Sincronizar cuando cambia el ejercicio
+  useEffect(() => {
+    setLocalSetConfigs(
+      exercise.setConfigs || Array.from({ length: exercise.sets }, (_, i) => ({
+        setNumber: i + 1,
+        reps: exercise.reps,
+        weight: exercise.weight,
+        restTime: exercise.restBetweenSets,
+      }))
+    );
+  }, [exercise.id, exercise.setConfigs, exercise.sets, exercise.reps, exercise.weight, exercise.restBetweenSets]);
 
   // Obtener configuración de la serie actual
   const getCurrentSetConfig = (): SetConfig => {
-    if (exercise.setConfigs && exercise.setConfigs[currentSet - 1]) {
-      return exercise.setConfigs[currentSet - 1];
+    if (localSetConfigs && localSetConfigs[currentSet - 1]) {
+      return localSetConfigs[currentSet - 1];
     }
     return {
       setNumber: currentSet,
@@ -60,6 +87,30 @@ export const ExerciseCard = ({
       weight: exercise.weight,
       restTime: exercise.restBetweenSets,
     };
+  };
+
+  // Actualizar configuración de una serie
+  const updateSetConfig = (index: number, field: keyof Omit<SetConfig, 'setNumber'>, delta: number) => {
+    setLocalSetConfigs((prev) => {
+      const updated = prev.map((config, i) => {
+        if (i === index) {
+          let newValue = config[field] + delta;
+          // Límites según el campo
+          if (field === 'reps') {
+            newValue = Math.max(1, Math.min(99, newValue));
+          } else if (field === 'weight') {
+            newValue = Math.max(0, Math.min(999, newValue));
+          } else if (field === 'restTime') {
+            newValue = Math.max(5, Math.min(600, newValue));
+          }
+          return { ...config, [field]: newValue };
+        }
+        return config;
+      });
+      // Notificar cambios al padre
+      onUpdateSetConfig?.(exercise.id, updated);
+      return updated;
+    });
   };
 
   const handleSetComplete = () => {
@@ -239,59 +290,132 @@ export const ExerciseCard = ({
                 </span>
               </div>
               
-              {/* Individual set cards */}
+              {/* Individual set cards - editables */}
               <div className="space-y-2 mb-4">
-              {(exercise.setConfigs || Array.from({ length: exercise.sets }, (_, i) => ({
-                  setNumber: i + 1,
-                  reps: exercise.reps,
-                  weight: exercise.weight,
-                  restTime: exercise.restBetweenSets,
-                }))).map((config, index) => (
+              {localSetConfigs.map((config, index) => {
+                const isCompleted = completedSets.includes(index + 1);
+                const isCurrent = index + 1 === currentSet && !isCompleted;
+                
+                return (
                   <div
                     key={index}
                     className={cn(
-                      "p-3 rounded-xl flex items-center gap-3 transition-all",
-                      completedSets.includes(index + 1)
+                      "p-3 rounded-xl transition-all",
+                      isCompleted
                         ? "bg-primary/20 border border-primary"
-                        : index + 1 === currentSet
+                        : isCurrent
                           ? "bg-secondary border border-primary/50"
                           : "bg-secondary/50 border border-transparent"
                     )}
                   >
-                    <div className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-                      completedSets.includes(index + 1)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    )}>
-                      {completedSets.includes(index + 1) ? (
-                        <Check className="w-4 h-4" />
-                      ) : (
-                        <span className="text-sm font-bold">{index + 1}</span>
+                    {/* Header de la serie */}
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                        isCompleted
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                      )}>
+                        {isCompleted ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <span className="text-sm font-bold">{index + 1}</span>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium">Serie {index + 1}</span>
+                      {isCurrent && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary font-medium ml-auto">
+                          Actual
+                        </span>
                       )}
                     </div>
                     
-                    <div className="flex-1 flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <span className="text-muted-foreground">{config.reps || exercise.reps} reps</span>
+                    {/* Controles editables - solo si no está completada */}
+                    {!isCompleted ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {/* Repeticiones */}
+                        <div className="flex flex-col items-center">
+                          <span className="text-xs text-muted-foreground mb-1">Reps</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => updateSetConfig(index, 'reps', -1)}
+                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-8 text-center font-semibold text-sm">{config.reps}</span>
+                            <button
+                              type="button"
+                              onClick={() => updateSetConfig(index, 'reps', 1)}
+                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Peso */}
+                        <div className="flex flex-col items-center">
+                          <span className="text-xs text-muted-foreground mb-1">Peso (kg)</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => updateSetConfig(index, 'weight', -2.5)}
+                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-10 text-center font-semibold text-sm">{config.weight}</span>
+                            <button
+                              type="button"
+                              onClick={() => updateSetConfig(index, 'weight', 2.5)}
+                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Descanso */}
+                        <div className="flex flex-col items-center">
+                          <span className="text-xs text-muted-foreground mb-1">Descanso</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => updateSetConfig(index, 'restTime', -5)}
+                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-10 text-center font-semibold text-sm">{config.restTime}s</span>
+                            <button
+                              type="button"
+                              onClick={() => updateSetConfig(index, 'restTime', 5)}
+                              className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Dumbbell className="w-3.5 h-3.5 text-primary" />
-                        <span className="font-semibold">{config.weight}kg</span>
+                    ) : (
+                      // Vista compacta para series completadas
+                      <div className="flex items-center gap-4 text-sm pl-11">
+                        <span className="text-muted-foreground">{config.reps} reps</span>
+                        <span className="flex items-center gap-1">
+                          <Dumbbell className="w-3.5 h-3.5 text-primary" />
+                          <span className="font-semibold">{config.weight}kg</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-muted-foreground">{config.restTime}s</span>
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-info" />
-                        <span className="text-muted-foreground">{config.restTime}s</span>
-                      </div>
-                    </div>
-                    
-                    {index + 1 === currentSet && !completedSets.includes(index + 1) && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary font-medium">
-                        Actual
-                      </span>
                     )}
                   </div>
-                ))}
+                );
+              })}
               </div>
               
               {/* Complete set button */}
