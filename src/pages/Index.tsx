@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Header } from '@/components/Header';
-import { WeekTabs } from '@/components/WeekTabs';
+import { MuscleFilterTabs } from '@/components/MuscleFilterTabs';
 import { RoutineCard } from '@/components/RoutineCard';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { ExerciseForm } from '@/components/ExerciseForm';
@@ -10,7 +10,7 @@ import { useExercises } from '@/hooks/useExercises';
 import { useRoutines } from '@/hooks/useRoutines';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { Exercise, SetConfig, MuscleGroup, MUSCLE_GROUPS } from '@/types/exercise';
-import { Routine, WeekDay } from '@/types/routine';
+import { Routine } from '@/types/routine';
 import { Dumbbell, Calendar, Pencil, Trash2 } from 'lucide-react';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { cn } from '@/lib/utils';
@@ -46,7 +46,7 @@ const Index = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
-  const [selectedDay, setSelectedDay] = useState<WeekDay | 'all'>('all');
+  const [selectedMuscleFilter, setSelectedMuscleFilter] = useState<MuscleGroup | 'todas'>('todas');
   const [libraryMuscleFilter, setLibraryMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
 
   const handleAddExercise = () => {
@@ -102,10 +102,16 @@ const Index = () => {
     updateExercise(exerciseId, { setConfigs });
   };
 
-  // Filtrar rutinas por día seleccionado
-  const filteredRoutines = selectedDay === 'all' 
-    ? routines 
-    : routines.filter((r) => r.day === selectedDay);
+  // Filtrar rutinas por grupo muscular seleccionado
+  const filteredRoutines = useMemo(() => {
+    if (selectedMuscleFilter === 'todas') return routines;
+    
+    // Filtrar rutinas que contienen ejercicios del grupo muscular seleccionado
+    return routines.filter((routine) => {
+      const routineExercises = exercises.filter((e) => routine.exerciseIds.includes(e.id));
+      return routineExercises.some((e) => e.muscleGroup === selectedMuscleFilter);
+    });
+  }, [routines, exercises, selectedMuscleFilter]);
 
   // Ejercicios que no están en ninguna rutina
   const exerciseIdsInRoutines = new Set(routines.flatMap((r) => r.exerciseIds));
@@ -140,8 +146,8 @@ const Index = () => {
       <Header onAddExercise={handleAddExercise} onAddRoutine={handleAddRoutine} onShowHistory={() => setShowHistory(true)} />
       
       <main className="container mx-auto px-4 py-6 space-y-6 relative">
-        {/* Week tabs */}
-        <WeekTabs selectedDay={selectedDay} onSelectDay={setSelectedDay} />
+        {/* Muscle filter tabs */}
+        <MuscleFilterTabs selectedMuscle={selectedMuscleFilter} onSelectMuscle={setSelectedMuscleFilter} />
         
         {/* Routines section */}
         <section>
@@ -161,10 +167,10 @@ const Index = () => {
                 <Calendar className="w-8 h-8 text-muted-foreground" />
               </div>
               <h3 className="font-display font-semibold text-lg mb-2">
-                {selectedDay === 'all' ? 'Sin rutinas aún' : 'Sin rutinas para este día'}
+                {selectedMuscleFilter === 'todas' ? 'Sin rutinas aún' : `Sin rutinas con ejercicios de ${selectedMuscleFilter}`}
               </h3>
               <p className="text-muted-foreground text-sm mb-6 max-w-xs">
-                Crea rutinas para organizar tus ejercicios por día de la semana
+                Crea rutinas para organizar tus ejercicios por grupo muscular
               </p>
               <button
                 onClick={handleAddRoutine}
@@ -204,7 +210,7 @@ const Index = () => {
         </section>
         
         {/* Unassigned exercises */}
-        {unassignedExercises.length > 0 && selectedDay === 'all' && (
+        {unassignedExercises.length > 0 && selectedMuscleFilter === 'todas' && (
           <section>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -231,7 +237,7 @@ const Index = () => {
         )}
         
         {/* All exercises library */}
-        {selectedDay === 'all' && exercises.length > 0 && (
+        {selectedMuscleFilter === 'todas' && exercises.length > 0 && (
           <section className="pt-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
