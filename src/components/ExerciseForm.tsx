@@ -362,41 +362,36 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
               </div>
             </div>
 
-            {/* Sets dropdown */}
+            {/* Sets with +/- buttons */}
             <div>
               <label className="block text-sm font-medium mb-2">Número de series</label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className="w-full px-4 py-3 rounded-xl bg-secondary border border-border focus:border-primary outline-none text-left font-semibold flex items-center justify-between transition-all"
+              <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-secondary border border-border">
+                <span 
+                  className="font-lcd text-4xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]"
                 >
-                  <span>{formData.sets} series</span>
-                  <ChevronDown className={cn(
-                    "w-5 h-5 text-muted-foreground transition-transform",
-                    showDropdown && "rotate-180"
-                  )} />
-                </button>
-                
-                {showDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-scale-in" style={{ zIndex: 9999 }}>
-                    <div className="max-h-48 overflow-y-auto">
-                      {setOptions.map((num) => (
-                        <button
-                          key={num}
-                          type="button"
-                          onClick={() => handleSetsChange(num)}
-                          className={cn(
-                            "w-full px-4 py-3 text-left hover:bg-secondary transition-colors",
-                            formData.sets === num && "bg-primary/20 text-primary font-semibold"
-                          )}
-                        >
-                          {num} {num === 1 ? 'serie' : 'series'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  {formData.sets}
+                </span>
+                <span className="text-xs text-muted-foreground mb-1">
+                  {formData.sets === 1 ? 'serie' : 'series'}
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => formData.sets > 1 && handleSetsChange(formData.sets - 1)}
+                    className="w-10 h-10 rounded-lg bg-background border border-border flex items-center justify-center text-lg font-bold hover:bg-primary/20 hover:border-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={formData.sets <= 1}
+                  >
+                    −
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => formData.sets < 10 && handleSetsChange(formData.sets + 1)}
+                    className="w-10 h-10 rounded-lg bg-background border border-border flex items-center justify-center text-lg font-bold hover:bg-primary/20 hover:border-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={formData.sets >= 10}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
 
