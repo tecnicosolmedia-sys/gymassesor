@@ -11,7 +11,7 @@ import { useRoutines } from '@/hooks/useRoutines';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { Exercise, SetConfig } from '@/types/exercise';
 import { Routine, WeekDay } from '@/types/routine';
-import { Dumbbell, Calendar } from 'lucide-react';
+import { Dumbbell, Calendar, Pencil, Trash2 } from 'lucide-react';
 
 const Index = () => {
   const { 
@@ -225,7 +225,7 @@ const Index = () => {
               {exercises.map((exercise) => (
                 <div
                   key={exercise.id}
-                  className="p-4 rounded-xl card-gradient border border-border hover:border-primary/50 transition-all"
+                  className="p-4 rounded-xl card-gradient border border-border hover:border-primary/50 transition-all group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
@@ -239,11 +239,27 @@ const Index = () => {
                         <Dumbbell className="w-4 h-4 text-primary" />
                       )}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="font-medium truncate">{exercise.name}</p>
                       <p className="text-xs text-muted-foreground">
                         {exercise.muscleGroup} · {exercise.sets}x{exercise.reps}
                       </p>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleEditExercise(exercise)}
+                        className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
+                        title="Editar"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteExercise(exercise.id)}
+                        className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/20 transition-colors"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
