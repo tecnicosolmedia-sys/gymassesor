@@ -58,8 +58,8 @@ export const WorkoutStopwatch = ({
 };
 
 // Hook para gestionar el tiempo del cronómetro desde el padre
-export const useWorkoutStopwatch = (autoStart = true) => {
-  const [elapsedTime, setElapsedTime] = useState(0);
+export const useWorkoutStopwatch = (autoStart = true, initialTime = 0) => {
+  const [elapsedTime, setElapsedTime] = useState(initialTime);
   const [isRunning, setIsRunning] = useState(autoStart);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
