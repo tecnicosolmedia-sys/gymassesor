@@ -50,8 +50,22 @@ export const FullscreenTimer = ({
     };
   }, []);
 
+  // Función para vibrar el dispositivo
+  const vibrate = useCallback((pattern: number | number[]) => {
+    try {
+      if ('vibrate' in navigator) {
+        navigator.vibrate(pattern);
+      }
+    } catch (e) {
+      console.log('Vibration not available');
+    }
+  }, []);
+
   // Función para reproducir triple beep
   const playTripleBeep = useCallback(() => {
+    // Vibración: 3 pulsos cortos (100ms vibra, 50ms pausa)
+    vibrate([100, 50, 100, 50, 100]);
+    
     try {
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -80,10 +94,13 @@ export const FullscreenTimer = ({
     } catch (e) {
       console.log('Audio not available');
     }
-  }, []);
+  }, [vibrate]);
 
   // Función para beep final largo
   const playFinalBeep = useCallback(() => {
+    // Vibración larga para el final
+    vibrate(500);
+    
     try {
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -107,7 +124,7 @@ export const FullscreenTimer = ({
     } catch (e) {
       console.log('Audio not available');
     }
-  }, []);
+  }, [vibrate]);
 
   // Timer countdown
   useEffect(() => {
