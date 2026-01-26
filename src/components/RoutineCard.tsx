@@ -63,26 +63,26 @@ export const RoutineCard = ({
           className="p-4 cursor-pointer"
           onClick={() => setExpanded(!expanded)}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                <span className="text-lg font-bold text-primary">
-                  {dayLabel.slice(0, 2).toUpperCase()}
-                </span>
-              </div>
+          <div className="flex flex-col gap-3">
+            {/* Title and info */}
+            <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-display font-bold text-lg">{routine.name}</h3>
                 <p className="text-sm text-muted-foreground">
                   {dayLabel} · {routineExercises.length} ejercicio{routineExercises.length !== 1 ? 's' : ''}
                 </p>
               </div>
+              <button className="p-2 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+                {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              </button>
             </div>
             
-            <div className="flex items-center gap-2">
+            {/* Action buttons - wrap on mobile */}
+            <div className="flex items-center gap-2 flex-wrap">
               {routineExercises.length > 0 && (
                 <button
                   onClick={handleStartWorkout}
-                  className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors shadow-energy"
+                  className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors shadow-energy flex-shrink-0"
                   title="Iniciar entrenamiento"
                 >
                   <Play className="w-4 h-4 ml-0.5" />
@@ -93,7 +93,7 @@ export const RoutineCard = ({
                   e.stopPropagation();
                   setShowExerciseList(!showExerciseList);
                 }}
-                className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
                 title="Ver ejercicios"
               >
                 <Eye className="w-4 h-4" />
@@ -103,7 +103,7 @@ export const RoutineCard = ({
                   e.stopPropagation();
                   setExpanded(!expanded);
                 }}
-                className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
                 title="Expandir detalles"
               >
                 <Dumbbell className="w-4 h-4" />
@@ -113,7 +113,7 @@ export const RoutineCard = ({
                   e.stopPropagation();
                   onEdit(routine);
                 }}
-                className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
                 title="Editar rutina"
               >
                 <Edit2 className="w-4 h-4" />
@@ -123,13 +123,10 @@ export const RoutineCard = ({
                   e.stopPropagation();
                   onDelete(routine.id);
                 }}
-                className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20 transition-colors"
+                className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20 transition-colors flex-shrink-0"
                 title="Eliminar rutina"
               >
                 <Trash2 className="w-4 h-4" />
-              </button>
-              <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-                {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
               </button>
             </div>
           </div>
