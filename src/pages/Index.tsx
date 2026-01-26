@@ -12,6 +12,7 @@ import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { Exercise, SetConfig, MuscleGroup, MUSCLE_GROUPS } from '@/types/exercise';
 import { Routine, WeekDay } from '@/types/routine';
 import { Dumbbell, Calendar, Pencil, Trash2 } from 'lucide-react';
+import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { cn } from '@/lib/utils';
 
 const Index = () => {
@@ -283,12 +284,18 @@ const Index = () => {
                     className="p-4 rounded-xl card-gradient border border-border hover:border-primary/50 transition-all group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {exercise.imageUrl ? (
                           <img 
                             src={exercise.imageUrl} 
                             alt={exercise.name}
                             className="w-full h-full object-cover rounded-lg"
+                          />
+                        ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
+                          <img 
+                            src={getMuscleGroupIcon(exercise.muscleGroup)!} 
+                            alt={exercise.muscleGroup}
+                            className="w-8 h-8 object-contain"
                           />
                         ) : (
                           <Dumbbell className="w-4 h-4 text-primary" />

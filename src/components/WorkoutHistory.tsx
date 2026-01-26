@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
 interface WorkoutHistoryProps {
   sessions: WorkoutSession[];
@@ -227,8 +228,16 @@ export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHi
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-                              <Dumbbell className="w-4 h-4 text-primary" />
+                            <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center overflow-hidden">
+                              {getMuscleGroupIcon(exercise.muscleGroup) ? (
+                                <img 
+                                  src={getMuscleGroupIcon(exercise.muscleGroup)!} 
+                                  alt={exercise.muscleGroup}
+                                  className="w-6 h-6 object-contain"
+                                />
+                              ) : (
+                                <Dumbbell className="w-4 h-4 text-primary" />
+                              )}
                             </div>
                             <div>
                               <p className="font-medium text-sm">{exercise.exerciseName}</p>
