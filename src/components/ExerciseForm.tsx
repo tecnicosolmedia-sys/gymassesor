@@ -221,17 +221,28 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
     );
   };
 
-  // Copiar configuración de una serie a todas las demás
-  const copyConfigToAll = (sourceIndex: number) => {
+  // Copiar configuración de una serie a la siguiente
+  const copyConfigToNext = (sourceIndex: number) => {
+    if (sourceIndex >= setConfigs.length - 1) return; // No hay serie siguiente
+    
     const sourceConfig = setConfigs[sourceIndex];
     setSetConfigs((prev) => 
-      prev.map((config, i) => ({
-        ...config,
-        reps: sourceConfig.reps,
-        weight: sourceConfig.weight,
-        restTime: sourceConfig.restTime,
-      }))
+      prev.map((config, i) => 
+        i === sourceIndex + 1 
+          ? {
+              ...config,
+              reps: sourceConfig.reps,
+              weight: sourceConfig.weight,
+              restTime: sourceConfig.restTime,
+            }
+          : config
+      )
     );
+    
+    // Expandir la siguiente serie para mostrar los cambios
+    if (!expandedSets.includes(sourceIndex + 1)) {
+      setExpandedSets((prev) => [...prev, sourceIndex + 1]);
+    }
   };
 
   const toggleSetExpanded = (index: number) => {
@@ -459,15 +470,15 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
                           />
                         </div>
                         
-                        {/* Copy to all button */}
-                        {setConfigs.length > 1 && (
+                        {/* Copy to next set button */}
+                        {index < setConfigs.length - 1 && (
                           <button
                             type="button"
-                            onClick={() => copyConfigToAll(index)}
+                            onClick={() => copyConfigToNext(index)}
                             className="w-full py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors"
                           >
                             <Copy className="w-3.5 h-3.5" />
-                            Copiar a todas las series
+                            Copiar a la siguiente serie
                           </button>
                         )}
                       </div>
