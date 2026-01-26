@@ -27,6 +27,9 @@ interface ExerciseCardProps {
     setData: { setNumber: number; reps: number; weight: number; restTime: number },
     totalSets: number
   ) => void;
+  // Si es true, no muestra el temporizador de ejercicio completo (lo maneja el padre)
+  skipExerciseRestTimer?: boolean;
+  onExerciseComplete?: () => void;
 }
 
 export const ExerciseCard = ({ 
@@ -36,12 +39,15 @@ export const ExerciseCard = ({
   isActive = false,
   onActivate,
   onSetComplete,
+  skipExerciseRestTimer = false,
+  onExerciseComplete,
 }: ExerciseCardProps) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(1);
   const [showFullscreenTimer, setShowFullscreenTimer] = useState(false);
   const [timerType, setTimerType] = useState<'set' | 'exercise'>('set');
   const [completedSets, setCompletedSets] = useState<number[]>([]);
+
 
   // Obtener configuración de la serie actual
   const getCurrentSetConfig = (): SetConfig => {
@@ -76,11 +82,19 @@ export const ExerciseCard = ({
     setCompletedSets((prev) => [...prev, currentSet]);
     
     if (currentSet < exercise.sets) {
+      // Hay más series, mostrar temporizador entre series
       setTimerType('set');
       setShowFullscreenTimer(true);
     } else {
-      setTimerType('exercise');
-      setShowFullscreenTimer(true);
+      // Es la última serie
+      if (skipExerciseRestTimer) {
+        // El componente padre maneja el temporizador entre ejercicios
+        onExerciseComplete?.();
+      } else {
+        // Mostrar nuestro propio temporizador
+        setTimerType('exercise');
+        setShowFullscreenTimer(true);
+      }
     }
   };
 
