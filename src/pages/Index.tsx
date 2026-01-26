@@ -192,7 +192,10 @@ const Index = () => {
                     logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets);
                   }}
                   onUpdateSetConfig={handleUpdateSetConfig}
-                  onWorkoutComplete={endSession}
+                  onWorkoutComplete={() => {
+                    endSession();
+                    setShowHistory(true);
+                  }}
                 />
               ))}
             </div>
