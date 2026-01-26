@@ -12,6 +12,13 @@ interface RoutineCardProps {
   onDelete: (id: string) => void;
   onEditExercise: (exercise: Exercise) => void;
   onDeleteExercise: (id: string) => void;
+  onSetComplete?: (
+    exerciseId: string,
+    exerciseName: string,
+    muscleGroup: string,
+    setData: { setNumber: number; reps: number; weight: number; restTime: number },
+    totalSets: number
+  ) => void;
 }
 
 export const RoutineCard = ({
@@ -21,6 +28,7 @@ export const RoutineCard = ({
   onDelete,
   onEditExercise,
   onDeleteExercise,
+  onSetComplete,
 }: RoutineCardProps) => {
   const [expanded, setExpanded] = useState(false);
   
@@ -95,6 +103,7 @@ export const RoutineCard = ({
                 exercise={exercise}
                 onEdit={onEditExercise}
                 onDelete={onDeleteExercise}
+                onSetComplete={onSetComplete}
               />
             ))
           )}

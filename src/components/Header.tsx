@@ -1,12 +1,13 @@
-import { Plus, Calendar } from 'lucide-react';
+import { Plus, Calendar, TrendingUp } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 interface HeaderProps {
   onAddExercise: () => void;
   onAddRoutine: () => void;
+  onShowHistory: () => void;
 }
 
-export const Header = ({ onAddExercise, onAddRoutine }: HeaderProps) => {
+export const Header = ({ onAddExercise, onAddRoutine, onShowHistory }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto px-4 py-4">
@@ -26,6 +27,14 @@ export const Header = ({ onAddExercise, onAddRoutine }: HeaderProps) => {
           </div>
           
           <div className="flex items-center gap-2">
+            <button
+              onClick={onShowHistory}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+              title="Historial"
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden sm:inline">Historial</span>
+            </button>
             <button
               onClick={onAddRoutine}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary text-foreground font-medium hover:bg-secondary/80 transition-all"
