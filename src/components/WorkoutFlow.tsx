@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard } from './ExerciseCard';
+import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
 import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut } from 'lucide-react';
 
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
@@ -11,7 +12,7 @@ interface WorkoutFlowProps {
   routineName: string;
   exercises: Exercise[];
   allExercises: Exercise[]; // Para añadir ejercicios extra
-  onClose: () => void;
+  onClose: (elapsedTime?: number) => void;
   onSetComplete: (
     exerciseId: string,
     exerciseName: string,
@@ -22,7 +23,7 @@ interface WorkoutFlowProps {
   onEditExercise: (exercise: Exercise) => void;
   onDeleteExercise: (id: string) => void;
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
-  onWorkoutComplete?: () => void;
+  onWorkoutComplete?: (elapsedTime?: number) => void;
 }
 
 type FlowState = 
@@ -48,6 +49,9 @@ export const WorkoutFlow = ({
   const [completedExerciseIds, setCompletedExerciseIds] = useState<Set<string>>(new Set());
   const [flowState, setFlowState] = useState<FlowState>({ type: 'exercising', exerciseIndex: 0 });
   const [extraExercises, setExtraExercises] = useState<Exercise[]>([]);
+  
+  // Cronómetro del entrenamiento
+  const { elapsedTime, isRunning, toggle, stop } = useWorkoutStopwatch(true);
 
   const currentExercise = flowState.type === 'exercising' 
     ? workoutExercises[flowState.exerciseIndex] 
@@ -149,6 +153,15 @@ export const WorkoutFlow = ({
     return (
       <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
         <div className="min-h-screen p-4">
+          {/* Cronómetro */}
+          <div className="flex justify-center mb-4">
+            <WorkoutStopwatch 
+              elapsedTime={elapsedTime}
+              isRunning={isRunning}
+              onToggle={toggle}
+            />
+          </div>
+
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -160,7 +173,7 @@ export const WorkoutFlow = ({
               </p>
             </div>
             <button
-              onClick={onClose}
+              onClick={() => onClose(elapsedTime)}
               className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="w-5 h-5" />
@@ -239,8 +252,8 @@ export const WorkoutFlow = ({
             
             <button
               onClick={() => {
-                onWorkoutComplete?.();
-                onClose();
+                onWorkoutComplete?.(elapsedTime);
+                onClose(elapsedTime);
               }}
               className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
             >
@@ -340,6 +353,15 @@ export const WorkoutFlow = ({
     return (
       <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
         <div className="min-h-screen p-4">
+          {/* Cronómetro */}
+          <div className="flex justify-center mb-4">
+            <WorkoutStopwatch 
+              elapsedTime={elapsedTime}
+              isRunning={isRunning}
+              onToggle={toggle}
+            />
+          </div>
+
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -349,7 +371,7 @@ export const WorkoutFlow = ({
               </h2>
             </div>
             <button
-              onClick={onClose}
+              onClick={() => onClose(elapsedTime)}
               className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="w-5 h-5" />

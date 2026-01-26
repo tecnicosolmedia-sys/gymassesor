@@ -23,7 +23,7 @@ interface RoutineCardProps {
     totalSets: number
   ) => void;
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
-  onWorkoutComplete?: () => void;
+  onWorkoutComplete?: (elapsedTime?: number) => void;
 }
 
 export const RoutineCard = ({
@@ -214,7 +214,10 @@ export const RoutineCard = ({
           onEditExercise={onEditExercise}
           onDeleteExercise={onDeleteExercise}
           onUpdateSetConfig={onUpdateSetConfig}
-          onWorkoutComplete={onWorkoutComplete}
+          onWorkoutComplete={(elapsedTime) => {
+            setShowWorkoutFlow(false);
+            onWorkoutComplete?.(elapsedTime);
+          }}
         />
       )}
     </>
