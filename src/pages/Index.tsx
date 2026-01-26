@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { WeekTabs } from '@/components/WeekTabs';
 import { RoutineCard } from '@/components/RoutineCard';
@@ -9,9 +9,10 @@ import { WorkoutHistory } from '@/components/WorkoutHistory';
 import { useExercises } from '@/hooks/useExercises';
 import { useRoutines } from '@/hooks/useRoutines';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
-import { Exercise, SetConfig } from '@/types/exercise';
+import { Exercise, SetConfig, MuscleGroup, MUSCLE_GROUPS } from '@/types/exercise';
 import { Routine, WeekDay } from '@/types/routine';
 import { Dumbbell, Calendar, Pencil, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Index = () => {
   const { 
@@ -42,6 +43,7 @@ const Index = () => {
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [selectedDay, setSelectedDay] = useState<WeekDay | 'all'>('all');
+  const [libraryMuscleFilter, setLibraryMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
 
   const handleAddExercise = () => {
     setEditingExercise(null);
@@ -104,6 +106,12 @@ const Index = () => {
   // Ejercicios que no están en ninguna rutina
   const exerciseIdsInRoutines = new Set(routines.flatMap((r) => r.exerciseIds));
   const unassignedExercises = exercises.filter((e) => !exerciseIdsInRoutines.has(e.id));
+
+  // Filtrar biblioteca por grupo muscular
+  const filteredLibraryExercises = useMemo(() => {
+    if (libraryMuscleFilter === 'todos') return exercises;
+    return exercises.filter((e) => e.muscleGroup === libraryMuscleFilter);
+  }, [exercises, libraryMuscleFilter]);
 
   const isLoading = exercisesLoading || routinesLoading;
 
@@ -217,54 +225,89 @@ const Index = () => {
                 <h2 className="font-display font-bold text-xl">Biblioteca de Ejercicios</h2>
               </div>
               <span className="text-sm text-muted-foreground">
-                {exercises.length} total
+                {filteredLibraryExercises.length} de {exercises.length}
               </span>
             </div>
             
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {exercises.map((exercise) => (
-                <div
-                  key={exercise.id}
-                  className="p-4 rounded-xl card-gradient border border-border hover:border-primary/50 transition-all group"
+            {/* Muscle group filter tabs */}
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              <button
+                onClick={() => setLibraryMuscleFilter('todos')}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                  libraryMuscleFilter === 'todos'
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Todos
+              </button>
+              {MUSCLE_GROUPS.map((group) => (
+                <button
+                  key={group}
+                  onClick={() => setLibraryMuscleFilter(group)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                    libraryMuscleFilter === group
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground hover:text-foreground"
+                  )}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
-                      {exercise.imageUrl ? (
-                        <img 
-                          src={exercise.imageUrl} 
-                          alt={exercise.name}
-                          className="w-full h-full object-cover rounded-lg"
-                        />
-                      ) : (
-                        <Dumbbell className="w-4 h-4 text-primary" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate">{exercise.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {exercise.muscleGroup} · {exercise.sets}x{exercise.reps}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => handleEditExercise(exercise)}
-                        className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
-                        title="Editar"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteExercise(exercise.id)}
-                        className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/20 transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                  {group}
+                </button>
               ))}
             </div>
+            
+            {filteredLibraryExercises.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No hay ejercicios de {libraryMuscleFilter}
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredLibraryExercises.map((exercise) => (
+                  <div
+                    key={exercise.id}
+                    className="p-4 rounded-xl card-gradient border border-border hover:border-primary/50 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                        {exercise.imageUrl ? (
+                          <img 
+                            src={exercise.imageUrl} 
+                            alt={exercise.name}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        ) : (
+                          <Dumbbell className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{exercise.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {exercise.muscleGroup} · {exercise.sets}x{exercise.reps}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleEditExercise(exercise)}
+                          className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
+                          title="Editar"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteExercise(exercise.id)}
+                          className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/20 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
       </main>

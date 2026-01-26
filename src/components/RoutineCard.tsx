@@ -2,7 +2,7 @@ import { Routine, WEEKDAYS } from '@/types/routine';
 import { Exercise, SetConfig } from '@/types/exercise';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutFlow } from './WorkoutFlow';
-import { Edit2, Trash2, Dumbbell, ChevronDown, ChevronUp, Play } from 'lucide-react';
+import { Edit2, Trash2, Dumbbell, ChevronDown, ChevronUp, Play, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +36,7 @@ export const RoutineCard = ({
   onUpdateSetConfig,
 }: RoutineCardProps) => {
   const [expanded, setExpanded] = useState(false);
+  const [showExerciseList, setShowExerciseList] = useState(false);
   const [showWorkoutFlow, setShowWorkoutFlow] = useState(false);
   
   const routineExercises = exercises.filter((e) => 
@@ -87,10 +88,20 @@ export const RoutineCard = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setExpanded(!expanded);
+                  setShowExerciseList(!showExerciseList);
                 }}
                 className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                 title="Ver ejercicios"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded(!expanded);
+                }}
+                className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                title="Expandir detalles"
               >
                 <Dumbbell className="w-4 h-4" />
               </button>
@@ -120,6 +131,34 @@ export const RoutineCard = ({
             </div>
           </div>
         </div>
+        
+        {/* Quick exercise list */}
+        {showExerciseList && (
+          <div className="px-4 pb-4 animate-fade-in">
+            <div className="p-3 rounded-xl bg-secondary/50 border border-border">
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                Ejercicios en esta rutina:
+              </p>
+              {routineExercises.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">Sin ejercicios</p>
+              ) : (
+                <ul className="space-y-1">
+                  {routineExercises.map((exercise, index) => (
+                    <li key={exercise.id} className="text-sm flex items-center gap-2">
+                      <span className="w-5 h-5 rounded bg-primary/20 text-primary text-xs flex items-center justify-center font-medium">
+                        {index + 1}
+                      </span>
+                      <span className="truncate">{exercise.name}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {exercise.muscleGroup}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
         
         {/* Expanded exercises */}
         {expanded && (
