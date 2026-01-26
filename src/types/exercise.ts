@@ -1,3 +1,15 @@
+export const MUSCLE_GROUPS = [
+  'Pecho',
+  'Espalda',
+  'Hombros',
+  'Brazos',
+  'Piernas',
+  'Glúteos',
+  'Core',
+] as const;
+
+export type MuscleGroup = typeof MUSCLE_GROUPS[number];
+
 export interface SetConfig {
   setNumber: number;
   reps: number; // repeticiones (1-99)

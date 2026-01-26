@@ -87,9 +87,20 @@ export const RoutineCard = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  setExpanded(!expanded);
+                }}
+                className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                title="Ver ejercicios"
+              >
+                <Dumbbell className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
                   onEdit(routine);
                 }}
                 className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                title="Editar rutina"
               >
                 <Edit2 className="w-4 h-4" />
               </button>
@@ -99,6 +110,7 @@ export const RoutineCard = ({
                   onDelete(routine.id);
                 }}
                 className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20 transition-colors"
+                title="Eliminar rutina"
               >
                 <Trash2 className="w-4 h-4" />
               </button>

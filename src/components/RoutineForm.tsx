@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Routine, WeekDay, WEEKDAYS } from '@/types/routine';
-import { Exercise } from '@/types/exercise';
+import { Exercise, MuscleGroup, MUSCLE_GROUPS } from '@/types/exercise';
 import { X, Calendar, Plus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +15,12 @@ export const RoutineForm = ({ routine, exercises, onSave, onClose }: RoutineForm
   const [name, setName] = useState(routine?.name || '');
   const [day, setDay] = useState<WeekDay>(routine?.day || 'lunes');
   const [selectedExercises, setSelectedExercises] = useState<string[]>(routine?.exerciseIds || []);
+  const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
+
+  const filteredExercises = useMemo(() => {
+    if (muscleFilter === 'todos') return exercises;
+    return exercises.filter((e) => e.muscleGroup === muscleFilter);
+  }, [exercises, muscleFilter]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,13 +104,49 @@ export const RoutineForm = ({ routine, exercises, onSave, onClose }: RoutineForm
               <label className="block text-sm font-medium mb-2">
                 Ejercicios ({selectedExercises.length} seleccionados)
               </label>
+              
+              {/* Muscle group filter tabs */}
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setMuscleFilter('todos')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                    muscleFilter === 'todos'
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Todos
+                </button>
+                {MUSCLE_GROUPS.map((group) => (
+                  <button
+                    key={group}
+                    type="button"
+                    onClick={() => setMuscleFilter(group)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                      muscleFilter === group
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {group}
+                  </button>
+                ))}
+              </div>
+              
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {exercises.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
                     No hay ejercicios. Crea algunos primero.
                   </p>
+                ) : filteredExercises.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No hay ejercicios de {muscleFilter}.
+                  </p>
                 ) : (
-                  exercises.map((exercise) => (
+                  filteredExercises.map((exercise) => (
                     <button
                       key={exercise.id}
                       type="button"
