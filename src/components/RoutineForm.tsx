@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Routine, WeekDay, WEEKDAYS } from '@/types/routine';
+import { Routine } from '@/types/routine';
 import { Exercise, MuscleGroup, MUSCLE_GROUPS } from '@/types/exercise';
 import { X, Calendar, Plus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,6 @@ interface RoutineFormProps {
 
 export const RoutineForm = ({ routine, exercises, onSave, onClose }: RoutineFormProps) => {
   const [name, setName] = useState(routine?.name || '');
-  const [day, setDay] = useState<WeekDay>(routine?.day || 'lunes');
   const [selectedExercises, setSelectedExercises] = useState<string[]>(routine?.exerciseIds || []);
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
 
@@ -26,7 +25,6 @@ export const RoutineForm = ({ routine, exercises, onSave, onClose }: RoutineForm
     e.preventDefault();
     onSave({
       name,
-      day,
       exerciseIds: selectedExercises,
     });
     onClose();
@@ -75,28 +73,6 @@ export const RoutineForm = ({ routine, exercises, onSave, onClose }: RoutineForm
                 placeholder="Ej: Día de Pecho"
                 required
               />
-            </div>
-
-            {/* Day selector */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Día de la semana</label>
-              <div className="grid grid-cols-4 gap-2">
-                {WEEKDAYS.map((weekday) => (
-                  <button
-                    key={weekday.key}
-                    type="button"
-                    onClick={() => setDay(weekday.key)}
-                    className={cn(
-                      "px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
-                      day === weekday.key
-                        ? "bg-primary text-primary-foreground shadow-energy"
-                        : "bg-secondary text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {weekday.label.slice(0, 3)}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Exercise selector */}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routine, WeekDay } from '@/types/routine';
+import { Routine } from '@/types/routine';
 
 const STORAGE_KEY = 'gym-tracker-routines';
 
@@ -7,21 +7,18 @@ const defaultRoutines: Routine[] = [
   {
     id: '1',
     name: 'Día de Pecho',
-    day: 'lunes',
     exerciseIds: ['1'],
     createdAt: new Date(),
   },
   {
     id: '2',
     name: 'Día de Pierna',
-    day: 'martes',
     exerciseIds: ['2'],
     createdAt: new Date(),
   },
   {
     id: '3',
     name: 'Día de Espalda',
-    day: 'miercoles',
     exerciseIds: ['3'],
     createdAt: new Date(),
   },
@@ -75,10 +72,6 @@ export const useRoutines = () => {
     setRoutines((prev) => prev.filter((r) => r.id !== id));
   };
 
-  const getRoutinesByDay = (day: WeekDay) => {
-    return routines.filter((r) => r.day === day);
-  };
-
   const addExerciseToRoutine = (routineId: string, exerciseId: string) => {
     setRoutines((prev) =>
       prev.map((r) =>
@@ -105,7 +98,6 @@ export const useRoutines = () => {
     addRoutine,
     updateRoutine,
     deleteRoutine,
-    getRoutinesByDay,
     addExerciseToRoutine,
     removeExerciseFromRoutine,
   };

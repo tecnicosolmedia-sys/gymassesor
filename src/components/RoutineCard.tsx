@@ -1,4 +1,4 @@
-import { Routine, WEEKDAYS } from '@/types/routine';
+import { Routine } from '@/types/routine';
 import { Exercise, SetConfig } from '@/types/exercise';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutFlow } from './WorkoutFlow';
@@ -46,8 +46,6 @@ export const RoutineCard = ({
     routine.exerciseIds.includes(e.id)
   );
 
-  const dayLabel = WEEKDAYS.find((d) => d.key === routine.day)?.label || routine.day;
-
   const handleStartWorkout = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (routineExercises.length > 0) {
@@ -69,7 +67,7 @@ export const RoutineCard = ({
               <div>
                 <h3 className="font-display font-bold text-lg">{routine.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {dayLabel} · {routineExercises.length} ejercicio{routineExercises.length !== 1 ? 's' : ''}
+                  {routineExercises.length} ejercicio{routineExercises.length !== 1 ? 's' : ''}
                 </p>
               </div>
               <button className="p-2 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
