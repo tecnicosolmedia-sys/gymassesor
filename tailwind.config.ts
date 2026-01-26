@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         display: ['Space Grotesk', 'sans-serif'],
+        lcd: ['Orbitron', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",

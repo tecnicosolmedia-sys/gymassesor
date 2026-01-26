@@ -166,12 +166,12 @@ export const FullscreenTimer = ({
     onClose();
   };
 
-  // Calcular tamaños según orientación
-  const ringSize = isLandscape ? 'w-64 h-64 sm:w-80 sm:h-80' : 'w-64 h-64 sm:w-72 sm:h-72';
-  const ringRadius = isLandscape ? 110 : 100;
-  const ringCenter = isLandscape ? 130 : 128;
-  const svgSize = isLandscape ? 260 : 256;
-  const fontSize = isLandscape ? 'text-6xl sm:text-8xl' : 'text-5xl sm:text-7xl';
+  // Calcular tamaños según orientación - más grandes para LCD
+  const ringSize = isLandscape ? 'w-72 h-72 sm:w-96 sm:h-96' : 'w-72 h-72 sm:w-80 sm:h-80';
+  const ringRadius = isLandscape ? 140 : 120;
+  const ringCenter = isLandscape ? 160 : 144;
+  const svgSize = isLandscape ? 320 : 288;
+  const fontSize = isLandscape ? 'text-7xl sm:text-9xl' : 'text-6xl sm:text-8xl';
 
   return (
     <div 
@@ -241,13 +241,14 @@ export const FullscreenTimer = ({
             />
           </svg>
           
-          {/* Time display */}
+          {/* Time display - LCD style */}
           <div className="absolute inset-0 flex items-center justify-center">
             <span className={cn(
-              "font-display font-bold transition-all",
+              "font-lcd font-bold transition-all tracking-wider",
               fontSize,
               isWarning && "text-warning animate-pulse",
-              isComplete && "text-primary"
+              isComplete && "text-primary",
+              "drop-shadow-[0_0_10px_currentColor]"
             )}>
               {formatTime(timeLeft)}
             </span>
