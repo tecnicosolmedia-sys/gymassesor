@@ -105,14 +105,14 @@ export const SetCard = ({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => onUpdateConfig(index, 'weight', -2.5)}
+                  onClick={() => onUpdateConfig(index, 'weight', -0.5)}
                   className="w-9 h-9 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => onUpdateConfig(index, 'weight', 2.5)}
+                  onClick={() => onUpdateConfig(index, 'weight', 0.5)}
                   className="w-9 h-9 rounded-lg bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
                 >
                   <Plus className="w-4 h-4" />
