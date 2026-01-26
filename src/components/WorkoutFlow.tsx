@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard } from './ExerciseCard';
-import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight } from 'lucide-react';
+import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut } from 'lucide-react';
 
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
@@ -370,6 +370,17 @@ export const WorkoutFlow = ({
             onExerciseComplete={() => handleExerciseComplete(currentExercise.id)}
             onUpdateSetConfig={onUpdateSetConfig}
           />
+
+          {/* Botón para terminar sesión anticipadamente */}
+          <div className="mt-8 pt-6 border-t border-border">
+            <button
+              onClick={() => setFlowState({ type: 'routine-complete' })}
+              className="w-full py-3 rounded-xl bg-secondary text-muted-foreground font-medium flex items-center justify-center gap-2 hover:bg-destructive/20 hover:text-destructive transition-all"
+            >
+              <LogOut className="w-5 h-5" />
+              Terminar sesión
+            </button>
+          </div>
         </div>
       </div>
     );
