@@ -10,8 +10,8 @@ interface ExerciseFormProps {
 }
 
 const muscleGroups = [
-  'Pecho', 'Espalda', 'Hombros', 'Bíceps', 'Tríceps', 
-  'Piernas', 'Glúteos', 'Abdomen', 'Core', 'Cardio'
+  'Pecho', 'Espalda', 'Hombros', 'Brazos', 
+  'Piernas', 'Glúteos', 'Core'
 ];
 
 const setOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
