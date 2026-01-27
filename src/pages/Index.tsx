@@ -173,13 +173,13 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen min-h-[100dvh] bg-background w-full max-w-full overflow-x-hidden">
       {/* Background glow effect */}
       <div className="fixed inset-0 bg-glow pointer-events-none opacity-30" />
       
       <Header onAddExercise={handleAddExercise} onAddRoutine={handleAddRoutine} onShowHistory={() => setShowHistory(true)} />
       
-      <main className="container mx-auto px-4 py-6 space-y-6 relative">
+      <main className="w-full px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 relative pb-safe">
         {/* Banner para restaurar entrenamiento */}
         {savedWorkout && savedRoutine && !resumingWorkout && (
           <ResumeWorkoutBanner

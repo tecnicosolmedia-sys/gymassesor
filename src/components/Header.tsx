@@ -9,45 +9,47 @@ interface HeaderProps {
 
 export const Header = ({ onAddExercise, onAddRoutine, onShowHistory }: HeaderProps) => {
   return (
-    <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border safe-area-top">
+      <div className="w-full px-3 sm:px-4 py-3 sm:py-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
             <img 
               src={logo} 
               alt="Gym Assessor Logo" 
-              className="w-12 h-12 rounded-2xl object-cover glow-energy"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl object-cover glow-energy flex-shrink-0"
             />
-            <div>
-              <h1 className="font-display font-bold text-xl text-gradient-energy">
+            <div className="min-w-0">
+              <h1 className="font-display font-bold text-lg sm:text-xl text-gradient-energy truncate">
                 Gym Assessor
               </h1>
-              <p className="text-xs text-muted-foreground">Tu rutina personal</p>
+              <p className="text-xs text-muted-foreground hidden xs:block">Tu rutina personal</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <button
               onClick={onShowHistory}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+              className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2.5 rounded-xl bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
               title="Historial"
             >
               <TrendingUp className="w-4 h-4" />
-              <span className="hidden sm:inline">Historial</span>
+              <span className="hidden sm:inline sm:ml-2">Historial</span>
             </button>
             <button
               onClick={onAddRoutine}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary text-foreground font-medium hover:bg-secondary/80 transition-all"
+              className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2.5 rounded-xl bg-secondary text-foreground font-medium hover:bg-secondary/80 transition-all"
+              title="Nueva rutina"
             >
               <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Rutina</span>
+              <span className="hidden sm:inline sm:ml-2">Rutina</span>
             </button>
             <button
               onClick={onAddExercise}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all shadow-energy"
+              className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all shadow-energy"
+              title="Nuevo ejercicio"
             >
               <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">Ejercicio</span>
+              <span className="hidden sm:inline sm:ml-2">Ejercicio</span>
             </button>
           </div>
         </div>
