@@ -164,45 +164,54 @@ export const FullscreenTimer = ({
     }
   }, [vibrate]);
 
-  // Reproducir sonido de inicio al montar el componente
+  // Reproducir sonido de inicio e iniciar timer inmediatamente al montar
   useEffect(() => {
+    // Reproducir sonido de inicio una sola vez
     if (!hasPlayedStartRef.current) {
       hasPlayedStartRef.current = true;
-      playStartBeep();
+      // Pequeño delay para asegurar que el AudioContext se active correctamente
+      setTimeout(() => {
+        playStartBeep();
+      }, 100);
     }
-  }, [playStartBeep]);
-
-  // Timer countdown
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => {
-          const newTime = prev - 1;
-          
-          // Triple beep para los últimos 5 segundos
-          if (newTime <= 5 && newTime > 0 && !hasPlayedRef.current.has(newTime)) {
-            hasPlayedRef.current.add(newTime);
-            playTripleBeep();
-          }
-          
-          // Beep final al llegar a 0
-          if (newTime === 0 && !hasPlayedRef.current.has(0)) {
+    
+    // Iniciar el timer inmediatamente
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          // Timer completado
+          if (!hasPlayedRef.current.has(0)) {
             hasPlayedRef.current.add(0);
             playFinalBeep();
-            setIsComplete(true);
-            setIsRunning(false);
-            onComplete();
           }
-          
-          return newTime;
-        });
-      }, 1000);
-    }
+          setIsComplete(true);
+          setIsRunning(false);
+          onComplete();
+          return 0;
+        }
+        
+        const newTime = prev - 1;
+        
+        // Triple beep para los últimos 5 segundos
+        if (newTime <= 5 && newTime > 0 && !hasPlayedRef.current.has(newTime)) {
+          hasPlayedRef.current.add(newTime);
+          playTripleBeep();
+        }
+        
+        return newTime;
+      });
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft, onComplete, playTripleBeep, playFinalBeep]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Solo ejecutar al montar
+
+  // Pausar/reanudar timer
+  useEffect(() => {
+    if (!isRunning && timeLeft > 0 && !isComplete) {
+      // Timer está pausado, no hacer nada aquí ya que el interval ya está corriendo
+    }
+  }, [isRunning, timeLeft, isComplete]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
