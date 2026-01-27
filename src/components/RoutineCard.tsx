@@ -2,6 +2,7 @@ import { Routine } from '@/types/routine';
 import { Exercise, SetConfig } from '@/types/exercise';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutFlow } from './WorkoutFlow';
+import { StartWorkoutSelector } from './StartWorkoutSelector';
 import { Edit2, Trash2, Dumbbell, ChevronDown, ChevronUp, Play, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -41,16 +42,32 @@ export const RoutineCard = ({
   const [expanded, setExpanded] = useState(false);
   const [showExerciseList, setShowExerciseList] = useState(false);
   const [showWorkoutFlow, setShowWorkoutFlow] = useState(false);
+  const [showStartSelector, setShowStartSelector] = useState(false);
+  const [startExerciseIndex, setStartExerciseIndex] = useState(0);
   
-  const routineExercises = exercises.filter((e) => 
-    routine.exerciseIds.includes(e.id)
-  );
+  // Ordenar ejercicios según el orden en exerciseIds
+  const routineExercises = routine.exerciseIds
+    .map(id => exercises.find(e => e.id === id))
+    .filter((e): e is Exercise => e !== undefined);
 
   const handleStartWorkout = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (routineExercises.length > 0) {
-      setShowWorkoutFlow(true);
+      if (routineExercises.length === 1) {
+        // Solo hay un ejercicio, iniciar directamente
+        setStartExerciseIndex(0);
+        setShowWorkoutFlow(true);
+      } else {
+        // Mostrar selector de ejercicio inicial
+        setShowStartSelector(true);
+      }
     }
+  };
+
+  const handleStartFromIndex = (index: number) => {
+    setStartExerciseIndex(index);
+    setShowStartSelector(false);
+    setShowWorkoutFlow(true);
   };
 
   return (
@@ -202,6 +219,16 @@ export const RoutineCard = ({
         )}
       </div>
 
+      {/* Start Workout Selector */}
+      {showStartSelector && (
+        <StartWorkoutSelector
+          routineName={routine.name}
+          exercises={routineExercises}
+          onStart={handleStartFromIndex}
+          onClose={() => setShowStartSelector(false)}
+        />
+      )}
+
       {/* Workout Flow Modal */}
       {showWorkoutFlow && (
         <WorkoutFlow
@@ -218,6 +245,7 @@ export const RoutineCard = ({
             setShowWorkoutFlow(false);
             onWorkoutComplete?.(elapsedTime);
           }}
+          initialFlowState={{ type: 'exercising', exerciseIndex: startExerciseIndex }}
         />
       )}
     </>

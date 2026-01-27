@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { Routine } from '@/types/routine';
 import { Exercise, MuscleGroup, MUSCLE_GROUPS } from '@/types/exercise';
-import { X, Calendar, Plus, Check } from 'lucide-react';
+import { X, Calendar, Plus, Check, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
 interface RoutineFormProps {
   routine?: Routine | null;
@@ -21,6 +22,13 @@ export const RoutineForm = ({ routine, exercises, onSave, onClose }: RoutineForm
     return exercises.filter((e) => e.muscleGroup === muscleFilter);
   }, [exercises, muscleFilter]);
 
+  // Obtener ejercicios seleccionados en orden
+  const orderedSelectedExercises = useMemo(() => {
+    return selectedExercises
+      .map(id => exercises.find(e => e.id === id))
+      .filter((e): e is Exercise => e !== undefined);
+  }, [selectedExercises, exercises]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
@@ -36,6 +44,16 @@ export const RoutineForm = ({ routine, exercises, onSave, onClose }: RoutineForm
         ? prev.filter((id) => id !== exerciseId)
         : [...prev, exerciseId]
     );
+  };
+
+  const moveExercise = (index: number, direction: 'up' | 'down') => {
+    const newOrder = [...selectedExercises];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (newIndex < 0 || newIndex >= newOrder.length) return;
+    
+    [newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
+    setSelectedExercises(newOrder);
   };
 
   return (
@@ -75,10 +93,69 @@ export const RoutineForm = ({ routine, exercises, onSave, onClose }: RoutineForm
               />
             </div>
 
+            {/* Selected exercises order */}
+            {orderedSelectedExercises.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Orden de ejercicios ({orderedSelectedExercises.length})
+                </label>
+                <div className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border">
+                  {orderedSelectedExercises.map((exercise, index) => (
+                    <div
+                      key={exercise.id}
+                      className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border"
+                    >
+                      <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {getMuscleGroupIcon(exercise.muscleGroup) ? (
+                          <img 
+                            src={getMuscleGroupIcon(exercise.muscleGroup)!} 
+                            alt={exercise.muscleGroup}
+                            className="w-6 h-6 object-contain"
+                          />
+                        ) : (
+                          <span className="text-xs font-bold text-primary">{index + 1}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{exercise.name}</p>
+                        <p className="text-xs text-muted-foreground">{exercise.muscleGroup}</p>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => moveExercise(index, 'up')}
+                          disabled={index === 0}
+                          className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveExercise(index, 'down')}
+                          disabled={index === orderedSelectedExercises.length - 1}
+                          className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleExercise(exercise.id)}
+                        className="p-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Exercise selector */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Ejercicios ({selectedExercises.length} seleccionados)
+                Añadir ejercicios
               </label>
               
               {/* Muscle group filter tabs */}
