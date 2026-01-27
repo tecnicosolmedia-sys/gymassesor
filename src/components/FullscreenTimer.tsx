@@ -50,6 +50,9 @@ export const FullscreenTimer = ({
     };
   }, []);
 
+  // Estado para controlar si ya se reprodujo el sonido de inicio
+  const hasPlayedStartRef = useRef(false);
+
   // Función para vibrar el dispositivo
   const vibrate = useCallback((pattern: number | number[]) => {
     try {
@@ -60,6 +63,38 @@ export const FullscreenTimer = ({
       console.log('Vibration not available');
     }
   }, []);
+
+  // Función para reproducir beep de inicio
+  const playStartBeep = useCallback(() => {
+    // Vibración corta de inicio
+    vibrate(150);
+    
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      const ctx = audioContextRef.current;
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      // Tono ascendente para indicar inicio
+      oscillator.frequency.setValueAtTime(400, ctx.currentTime);
+      oscillator.frequency.linearRampToValueAtTime(800, ctx.currentTime + 0.15);
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+      
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.2);
+    } catch (e) {
+      console.log('Audio not available');
+    }
+  }, [vibrate]);
 
   // Función para reproducir triple beep
   const playTripleBeep = useCallback(() => {
@@ -125,6 +160,14 @@ export const FullscreenTimer = ({
       console.log('Audio not available');
     }
   }, [vibrate]);
+
+  // Reproducir sonido de inicio al montar el componente
+  useEffect(() => {
+    if (!hasPlayedStartRef.current) {
+      hasPlayedStartRef.current = true;
+      playStartBeep();
+    }
+  }, [playStartBeep]);
 
   // Timer countdown
   useEffect(() => {
