@@ -6,6 +6,7 @@ import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
 import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { useWakeLock } from '@/hooks/useWakeLock';
 
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
@@ -66,6 +67,9 @@ export const WorkoutFlow = ({
   );
   const [extraExercises, setExtraExercises] = useState<Exercise[]>([]);
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+  
+  // Mantener pantalla activa durante el entrenamiento
+  useWakeLock(true);
   
   // Cronómetro del entrenamiento (con tiempo inicial si se está restaurando)
   const { elapsedTime, isRunning, toggle, stop } = useWorkoutStopwatch(true, initialElapsedTime);
