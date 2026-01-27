@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Play, Pause, RotateCcw, X, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useWakeLock } from '@/hooks/useWakeLock';
 
 interface FullscreenTimerProps {
   initialTime: number;
@@ -25,6 +26,9 @@ export const FullscreenTimer = ({
   const [isLandscape, setIsLandscape] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const hasPlayedRef = useRef<Set<number>>(new Set());
+
+  // Mantener pantalla activa durante el temporizador
+  useWakeLock(true);
 
   // Detectar orientación
   useEffect(() => {
