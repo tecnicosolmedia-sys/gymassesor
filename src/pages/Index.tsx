@@ -8,6 +8,7 @@ import { RoutineForm } from '@/components/RoutineForm';
 import { WorkoutHistory } from '@/components/WorkoutHistory';
 import { WorkoutFlow, FlowState } from '@/components/WorkoutFlow';
 import { ResumeWorkoutBanner } from '@/components/ResumeWorkoutBanner';
+import { PersonalDataForm } from '@/components/PersonalDataForm';
 import { useExercises } from '@/hooks/useExercises';
 import { useRoutines } from '@/hooks/useRoutines';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
@@ -51,6 +52,7 @@ const Index = () => {
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [showRoutineForm, setShowRoutineForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showPersonalData, setShowPersonalData] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [selectedMuscleFilter, setSelectedMuscleFilter] = useState<MuscleGroup | 'todas'>('todas');
@@ -177,7 +179,7 @@ const Index = () => {
       {/* Background glow effect */}
       <div className="fixed inset-0 bg-glow pointer-events-none opacity-30" />
       
-      <Header onAddExercise={handleAddExercise} onAddRoutine={handleAddRoutine} onShowHistory={() => setShowHistory(true)} />
+      <Header onAddExercise={handleAddExercise} onAddRoutine={handleAddRoutine} onShowHistory={() => setShowHistory(true)} onShowPersonalData={() => setShowPersonalData(true)} />
       
       <main className="w-full px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 relative pb-safe">
         {/* Banner para restaurar entrenamiento */}
@@ -425,6 +427,11 @@ const Index = () => {
           onDeleteSession={deleteSession}
           onClose={() => setShowHistory(false)}
         />
+      )}
+      
+      {/* Personal Data Form Modal */}
+      {showPersonalData && (
+        <PersonalDataForm onClose={() => setShowPersonalData(false)} />
       )}
       
       {/* Workout Flow para restaurar entrenamiento */}
