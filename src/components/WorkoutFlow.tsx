@@ -1,13 +1,15 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
-import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff } from 'lucide-react';
+import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff, Flame, Weight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useWorkoutNotification } from '@/hooks/useWorkoutNotification';
+import { usePersonalData } from '@/hooks/usePersonalData';
+import { calculateAge, calculateCaloriesBurned } from '@/types/personalData';
 
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
@@ -69,6 +71,9 @@ export const WorkoutFlow = ({
   const [extraExercises, setExtraExercises] = useState<Exercise[]>([]);
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   
+  // Datos personales para cálculo de calorías
+  const { personalData } = usePersonalData();
+  
   // Mantener pantalla activa durante el entrenamiento
   useWakeLock(true);
   
@@ -83,6 +88,31 @@ export const WorkoutFlow = ({
   
   // Cronómetro del entrenamiento (con tiempo inicial si se está restaurando)
   const { elapsedTime, isRunning, toggle, stop } = useWorkoutStopwatch(true, initialElapsedTime);
+
+  // Estado para guardar las series completadas con peso
+  const [completedSetsData, setCompletedSetsData] = useState<{exerciseId: string; weight: number; reps: number}[]>([]);
+
+  // Calcular kg totales movidos y calorías
+  const workoutStats = useMemo(() => {
+    let totalKgMoved = 0;
+    
+    completedSetsData.forEach(set => {
+      totalKgMoved += set.weight * set.reps;
+    });
+    
+    let caloriesBurned = 0;
+    if (personalData) {
+      const age = calculateAge(personalData.birthDate);
+      caloriesBurned = calculateCaloriesBurned(
+        personalData.weight,
+        elapsedTime,
+        age,
+        personalData.sex
+      );
+    }
+    
+    return { totalKgMoved, caloriesBurned };
+  }, [completedSetsData, elapsedTime, personalData]);
 
   // Formatear tiempo para mostrar
   const formatTime = (totalSeconds: number) => {
@@ -335,8 +365,8 @@ export const WorkoutFlow = ({
   // Renderizar pantalla de rutina completada
   if (flowState.type === 'routine-complete') {
     return (
-      <div className="fixed inset-0 bg-background z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md text-center">
+      <div className="fixed inset-0 bg-background z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="w-full max-w-md text-center py-8">
           <div className="w-24 h-24 mx-auto rounded-full bg-primary/20 flex items-center justify-center mb-6 animate-pulse">
             <Trophy className="w-12 h-12 text-primary" />
           </div>
@@ -344,20 +374,53 @@ export const WorkoutFlow = ({
           <h2 className="font-display font-bold text-3xl text-gradient-energy mb-2">
             ¡Rutina Completada!
           </h2>
-          <p className="text-muted-foreground mb-4">
+          <p className="text-muted-foreground mb-6">
             Has completado {completedExerciseIds.size} ejercicios en {routineName}
           </p>
           
-          {/* Tiempo total del entrenamiento */}
-          <div className="flex items-center justify-center gap-3 p-4 rounded-xl bg-secondary/50 mb-8">
-            <Timer className="w-6 h-6 text-primary" />
-            <div className="text-left">
-              <p className="text-xs text-muted-foreground">Tiempo total</p>
-              <p className="font-lcd text-2xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]">
-                {formatTime(elapsedTime)}
-              </p>
+          {/* Stats del entrenamiento */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {/* Tiempo total */}
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/50">
+              <Timer className="w-6 h-6 text-primary flex-shrink-0" />
+              <div className="text-left min-w-0">
+                <p className="text-xs text-muted-foreground">Tiempo</p>
+                <p className="font-lcd text-xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] truncate">
+                  {formatTime(elapsedTime)}
+                </p>
+              </div>
+            </div>
+            
+            {/* Kg movidos */}
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/50">
+              <Weight className="w-6 h-6 text-primary flex-shrink-0" />
+              <div className="text-left min-w-0">
+                <p className="text-xs text-muted-foreground">Kg movidos</p>
+                <p className="font-lcd text-xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] truncate">
+                  {workoutStats.totalKgMoved.toLocaleString()}
+                </p>
+              </div>
             </div>
           </div>
+          
+          {/* Calorías quemadas */}
+          {personalData ? (
+            <div className="flex items-center justify-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 mb-8">
+              <Flame className="w-10 h-10 text-orange-500 flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-sm text-orange-200/80">Calorías consumidas</p>
+                <p className="font-lcd text-4xl text-orange-400 drop-shadow-[0_0_12px_rgba(251,146,60,0.5)]">
+                  {workoutStats.caloriesBurned} <span className="text-lg">kcal</span>
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-muted/30 border border-border mb-8 text-left">
+              <p className="text-sm text-muted-foreground">
+                💡 Añade tus datos personales (peso, edad, sexo) en el perfil para calcular las calorías quemadas.
+              </p>
+            </div>
+          )}
           
           <div className="space-y-3">
             <button
@@ -533,7 +596,16 @@ export const WorkoutFlow = ({
             exercise={currentExercise}
             onEdit={onEditExercise}
             onDelete={onDeleteExercise}
-            onSetComplete={onSetComplete}
+            onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
+              // Registrar los datos de la serie para calcular kg totales
+              setCompletedSetsData(prev => [...prev, {
+                exerciseId,
+                weight: setData.weight,
+                reps: setData.reps,
+              }]);
+              // Llamar al callback original
+              onSetComplete(exerciseId, exerciseName, muscleGroup, setData, totalSets);
+            }}
             isActive={true}
             skipExerciseRestTimer={true}
             onExerciseComplete={() => handleExerciseComplete(currentExercise.id)}
