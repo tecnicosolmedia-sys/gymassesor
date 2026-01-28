@@ -1,13 +1,14 @@
-import { Plus, Calendar, TrendingUp } from 'lucide-react';
+import { Plus, Calendar, TrendingUp, User } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 interface HeaderProps {
   onAddExercise: () => void;
   onAddRoutine: () => void;
   onShowHistory: () => void;
+  onShowPersonalData: () => void;
 }
 
-export const Header = ({ onAddExercise, onAddRoutine, onShowHistory }: HeaderProps) => {
+export const Header = ({ onAddExercise, onAddRoutine, onShowHistory, onShowPersonalData }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border safe-area-top">
       <div className="w-full px-3 sm:px-4 py-3 sm:py-4">
@@ -27,6 +28,14 @@ export const Header = ({ onAddExercise, onAddRoutine, onShowHistory }: HeaderPro
           </div>
           
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <button
+              onClick={onShowPersonalData}
+              className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2.5 rounded-xl bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+              title="Datos personales"
+            >
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline sm:ml-2">Perfil</span>
+            </button>
             <button
               onClick={onShowHistory}
               className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2.5 rounded-xl bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
