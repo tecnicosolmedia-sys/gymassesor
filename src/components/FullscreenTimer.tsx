@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Play, Pause, RotateCcw, X, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWakeLock } from '@/hooks/useWakeLock';
+import { useWorkoutNotification } from '@/hooks/useWorkoutNotification';
 
 interface FullscreenTimerProps {
   initialTime: number;
@@ -28,6 +29,14 @@ export const FullscreenTimer = ({
   const hasPlayedRef = useRef<Set<number>>(new Set());
 
   // Mantener pantalla activa durante el temporizador
+  useWakeLock(true);
+  
+  // Notificaciones para pantalla de bloqueo
+  const { 
+    permission: notificationPermission,
+    updateRestNotification,
+    closeNotification,
+  } = useWorkoutNotification();
   useWakeLock(true);
 
   // Detectar orientación
@@ -209,6 +218,19 @@ export const FullscreenTimer = ({
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Solo ejecutar al montar
+
+  // Actualizar notificación de descanso
+  useEffect(() => {
+    if (notificationPermission !== 'granted') return;
+    
+    // Actualizar notificación inmediatamente y cuando cambia el tiempo
+    updateRestNotification(timeLeft, nextSetLabel);
+    
+    // Limpiar notificación al desmontar
+    return () => {
+      closeNotification();
+    };
+  }, [timeLeft, nextSetLabel, notificationPermission, updateRestNotification, closeNotification]);
 
   // Pausar/reanudar timer
   useEffect(() => {

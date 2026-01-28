@@ -3,10 +3,11 @@ import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
-import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle } from 'lucide-react';
+import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useWakeLock } from '@/hooks/useWakeLock';
+import { useWorkoutNotification } from '@/hooks/useWorkoutNotification';
 
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
@@ -71,6 +72,15 @@ export const WorkoutFlow = ({
   // Mantener pantalla activa durante el entrenamiento
   useWakeLock(true);
   
+  // Notificaciones para pantalla de bloqueo
+  const { 
+    isSupported: notificationsSupported,
+    permission: notificationPermission,
+    requestPermission,
+    updateWorkoutNotification,
+    stopUpdates: stopNotifications,
+  } = useWorkoutNotification();
+  
   // Cronómetro del entrenamiento (con tiempo inicial si se está restaurando)
   const { elapsedTime, isRunning, toggle, stop } = useWorkoutStopwatch(true, initialElapsedTime);
 
@@ -130,6 +140,28 @@ export const WorkoutFlow = ({
   const currentExercise = flowState.type === 'exercising' 
     ? workoutExercises[flowState.exerciseIndex] 
     : null;
+
+  // Actualizar notificación periódicamente cuando está activo
+  useEffect(() => {
+    if (notificationPermission !== 'granted') return;
+    
+    // Actualizar notificación cada 5 segundos
+    const interval = setInterval(() => {
+      updateWorkoutNotification(elapsedTime, currentExercise?.name);
+    }, 5000);
+    
+    // Actualizar inmediatamente
+    updateWorkoutNotification(elapsedTime, currentExercise?.name);
+    
+    return () => clearInterval(interval);
+  }, [elapsedTime, currentExercise?.name, notificationPermission, updateWorkoutNotification]);
+  
+  // Limpiar notificaciones al salir
+  useEffect(() => {
+    return () => {
+      stopNotifications();
+    };
+  }, [stopNotifications]);
 
   const remainingExercises = workoutExercises.filter(
     (e) => !completedExerciseIds.has(e.id)
@@ -441,13 +473,32 @@ export const WorkoutFlow = ({
     return (
       <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
         <div className="min-h-screen p-4">
-          {/* Cronómetro */}
-          <div className="flex justify-center mb-4">
+          {/* Cronómetro y notificaciones */}
+          <div className="flex items-center justify-center gap-2 mb-4">
             <WorkoutStopwatch 
               elapsedTime={elapsedTime}
               isRunning={isRunning}
               onToggle={toggle}
             />
+            {notificationsSupported && (
+              <button
+                onClick={requestPermission}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                  notificationPermission === 'granted'
+                    ? 'bg-primary/20 text-primary'
+                    : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+                }`}
+                title={notificationPermission === 'granted' 
+                  ? 'Notificaciones activas' 
+                  : 'Activar notificaciones para pantalla de bloqueo'}
+              >
+                {notificationPermission === 'granted' ? (
+                  <Bell className="w-5 h-5" />
+                ) : (
+                  <BellOff className="w-5 h-5" />
+                )}
+              </button>
+            )}
           </div>
 
           {/* Header */}
