@@ -1,34 +1,108 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, User, Calendar, Ruler, Scale, Users, Save, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePersonalData } from '@/hooks/usePersonalData';
 import { PersonalData, Sex, calculateAge } from '@/types/personalData';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 interface PersonalDataFormProps {
   onClose: () => void;
 }
 
+const MONTHS = [
+  { value: '01', label: 'Enero' },
+  { value: '02', label: 'Febrero' },
+  { value: '03', label: 'Marzo' },
+  { value: '04', label: 'Abril' },
+  { value: '05', label: 'Mayo' },
+  { value: '06', label: 'Junio' },
+  { value: '07', label: 'Julio' },
+  { value: '08', label: 'Agosto' },
+  { value: '09', label: 'Septiembre' },
+  { value: '10', label: 'Octubre' },
+  { value: '11', label: 'Noviembre' },
+  { value: '12', label: 'Diciembre' },
+];
+
 export const PersonalDataForm = ({ onClose }: PersonalDataFormProps) => {
   const { personalData, savePersonalData, clearPersonalData } = usePersonalData();
   
-  const [birthDate, setBirthDate] = useState('');
+  // Estados separados para día, mes y año
+  const [birthDay, setBirthDay] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthYear, setBirthYear] = useState('');
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [sex, setSex] = useState<Sex>('masculino');
 
+  // Generar años disponibles (desde 1920 hasta el año actual)
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const yearsArray = [];
+    for (let year = currentYear; year >= 1920; year--) {
+      yearsArray.push(year.toString());
+    }
+    return yearsArray;
+  }, []);
+
+  // Generar días disponibles según el mes y año seleccionados
+  const days = useMemo(() => {
+    let maxDays = 31;
+    
+    if (birthMonth && birthYear) {
+      const year = parseInt(birthYear);
+      const month = parseInt(birthMonth);
+      maxDays = new Date(year, month, 0).getDate();
+    } else if (birthMonth) {
+      // Si solo hay mes, usar máximo según el mes
+      const month = parseInt(birthMonth);
+      if ([4, 6, 9, 11].includes(month)) {
+        maxDays = 30;
+      } else if (month === 2) {
+        maxDays = 29; // Por defecto permitir 29 para febrero
+      }
+    }
+    
+    const daysArray = [];
+    for (let day = 1; day <= maxDays; day++) {
+      daysArray.push(day.toString().padStart(2, '0'));
+    }
+    return daysArray;
+  }, [birthMonth, birthYear]);
+
+  // Construir fecha en formato ISO
+  const birthDate = useMemo(() => {
+    if (birthDay && birthMonth && birthYear) {
+      return `${birthYear}-${birthMonth}-${birthDay}`;
+    }
+    return '';
+  }, [birthDay, birthMonth, birthYear]);
+
   useEffect(() => {
     if (personalData) {
-      setBirthDate(personalData.birthDate);
+      // Parsear fecha existente
+      const [year, month, day] = personalData.birthDate.split('-');
+      setBirthYear(year || '');
+      setBirthMonth(month || '');
+      setBirthDay(day || '');
       setHeight(personalData.height.toString());
       setWeight(personalData.weight.toString());
       setSex(personalData.sex);
     }
   }, [personalData]);
+
+  // Ajustar el día si excede el máximo para el mes/año seleccionado
+  useEffect(() => {
+    if (birthDay && days.length > 0) {
+      const maxDay = days[days.length - 1];
+      if (parseInt(birthDay) > parseInt(maxDay)) {
+        setBirthDay(maxDay);
+      }
+    }
+  }, [birthMonth, birthYear, days, birthDay]);
 
   const handleSave = () => {
     if (!birthDate || !height || !weight) {
@@ -49,7 +123,9 @@ export const PersonalDataForm = ({ onClose }: PersonalDataFormProps) => {
   const handleClear = () => {
     if (confirm('¿Estás seguro de eliminar tus datos personales?')) {
       clearPersonalData();
-      setBirthDate('');
+      setBirthDay('');
+      setBirthMonth('');
+      setBirthYear('');
       setHeight('');
       setWeight('');
       setSex('masculino');
@@ -83,18 +159,56 @@ export const PersonalDataForm = ({ onClose }: PersonalDataFormProps) => {
         {/* Form */}
         <div className="p-4 space-y-5">
           {/* Fecha de nacimiento */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label className="flex items-center gap-2 text-sm font-medium">
               <Calendar className="w-4 h-4 text-primary" />
               Fecha de nacimiento
             </Label>
-            <Input
-              type="date"
-              value={birthDate}
-              onChange={(e) => setBirthDate(e.target.value)}
-              max={format(new Date(), 'yyyy-MM-dd')}
-              className="bg-secondary border-border"
-            />
+            
+            <div className="grid grid-cols-3 gap-2">
+              {/* Día */}
+              <Select value={birthDay} onValueChange={setBirthDay}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Día" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[200px] bg-card border-border z-[100]">
+                  {days.map((day) => (
+                    <SelectItem key={day} value={day}>
+                      {day}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Mes */}
+              <Select value={birthMonth} onValueChange={setBirthMonth}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Mes" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[200px] bg-card border-border z-[100]">
+                  {MONTHS.map((month) => (
+                    <SelectItem key={month.value} value={month.value}>
+                      {month.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Año */}
+              <Select value={birthYear} onValueChange={setBirthYear}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Año" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[200px] bg-card border-border z-[100]">
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             {age !== null && age > 0 && (
               <p className="text-sm text-primary font-medium">
                 Edad: {age} años
