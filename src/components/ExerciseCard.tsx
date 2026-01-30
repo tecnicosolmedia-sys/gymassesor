@@ -10,6 +10,7 @@ import {
   Dumbbell,
   Clock,
   FileText,
+  CheckCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
@@ -336,11 +337,29 @@ export const ExerciseCard = ({
                 })}
               </div>
               
-              {/* Exercise completed */}
+              {/* Exercise completed message */}
               {completedSets.length === exercise.sets && !showFullscreenTimer && (
                 <div className="text-center py-3 mt-4">
                   <span className="text-primary font-semibold">¡Ejercicio completado! 🎉</span>
                 </div>
+              )}
+
+              {/* Botón para terminar ejercicio anticipadamente */}
+              {completedSets.length > 0 && completedSets.length < exercise.sets && (
+                <button
+                  onClick={() => {
+                    if (skipExerciseRestTimer) {
+                      onExerciseComplete?.();
+                    } else {
+                      setTimerType('exercise');
+                      setShowFullscreenTimer(true);
+                    }
+                  }}
+                  className="w-full mt-4 py-3 rounded-xl bg-secondary text-foreground font-medium flex items-center justify-center gap-2 hover:bg-secondary/80 transition-colors"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Terminar ejercicio ({completedSets.length}/{exercise.sets} series)
+                </button>
               )}
             </div>
             
