@@ -6,7 +6,7 @@ import { ExerciseCard } from '@/components/ExerciseCard';
 import { ExerciseForm } from '@/components/ExerciseForm';
 import { RoutineForm } from '@/components/RoutineForm';
 import { WorkoutHistory } from '@/components/WorkoutHistory';
-import { WorkoutFlow, FlowState } from '@/components/WorkoutFlow';
+import { WorkoutFlow, FlowState, ExerciseSetState } from '@/components/WorkoutFlow';
 import { ResumeWorkoutBanner } from '@/components/ResumeWorkoutBanner';
 import { PersonalDataForm } from '@/components/PersonalDataForm';
 import { useExercises } from '@/hooks/useExercises';
@@ -460,6 +460,7 @@ const Index = () => {
           initialCompletedExerciseIds={savedWorkout.completedExerciseIds}
           initialFlowState={savedWorkout.flowState as FlowState}
           initialElapsedTime={savedWorkout.elapsedTime}
+          initialExerciseSetStates={(savedWorkout.exerciseSetStates || []) as ExerciseSetState[]}
         />
       )}
     </div>

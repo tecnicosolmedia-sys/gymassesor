@@ -33,6 +33,11 @@ interface ExerciseCardProps {
   onExerciseComplete?: () => void;
   // Callback para guardar cambios en la configuración
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
+  // Estado inicial para restaurar sesión (serie actual y series completadas)
+  initialCurrentSet?: number;
+  initialCompletedSets?: number[];
+  // Callback cuando cambia el estado de las series (para persistir)
+  onSetStateChange?: (exerciseId: string, currentSet: number, completedSets: number[]) => void;
 }
 
 export const ExerciseCard = ({ 
@@ -45,12 +50,15 @@ export const ExerciseCard = ({
   skipExerciseRestTimer = false,
   onExerciseComplete,
   onUpdateSetConfig,
+  initialCurrentSet = 1,
+  initialCompletedSets = [],
+  onSetStateChange,
 }: ExerciseCardProps) => {
   const [expanded, setExpanded] = useState(isActive);
-  const [currentSet, setCurrentSet] = useState(1);
+  const [currentSet, setCurrentSet] = useState(initialCurrentSet);
   const [showFullscreenTimer, setShowFullscreenTimer] = useState(false);
   const [timerType, setTimerType] = useState<'set' | 'exercise'>('set');
-  const [completedSets, setCompletedSets] = useState<number[]>([]);
+  const [completedSets, setCompletedSets] = useState<number[]>(initialCompletedSets);
   
   // Estado local para las configuraciones editables
   const [localSetConfigs, setLocalSetConfigs] = useState<SetConfig[]>(() => {
@@ -74,7 +82,11 @@ export const ExerciseCard = ({
     );
   }, [exercise.id, exercise.setConfigs, exercise.sets, exercise.reps, exercise.weight, exercise.restBetweenSets]);
 
-  // Obtener configuración de la serie actual
+  // Notificar cambios en el estado de las series al padre (para persistencia)
+  useEffect(() => {
+    onSetStateChange?.(exercise.id, currentSet, completedSets);
+  }, [exercise.id, currentSet, completedSets, onSetStateChange]);
+
   const getCurrentSetConfig = (): SetConfig => {
     if (localSetConfigs && localSetConfigs[currentSet - 1]) {
       return localSetConfigs[currentSet - 1];

@@ -16,6 +16,12 @@ import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 // Clave para persistencia en localStorage
 const WORKOUT_STATE_KEY = 'gym-tracker-active-workout';
 
+export interface ExerciseSetState {
+  exerciseId: string;
+  currentSet: number;
+  completedSets: number[];
+}
+
 interface WorkoutFlowProps {
   routineId?: string;
   routineName: string;
@@ -37,6 +43,8 @@ interface WorkoutFlowProps {
   initialCompletedExerciseIds?: string[];
   initialFlowState?: FlowState;
   initialElapsedTime?: number;
+  // Estado inicial de series por ejercicio
+  initialExerciseSetStates?: ExerciseSetState[];
 }
 
 export type FlowState = 
@@ -60,6 +68,7 @@ export const WorkoutFlow = ({
   initialCompletedExerciseIds = [],
   initialFlowState,
   initialElapsedTime = 0,
+  initialExerciseSetStates = [],
 }: WorkoutFlowProps) => {
   const [workoutExercises, setWorkoutExercises] = useState<Exercise[]>(initialExercises);
   const [completedExerciseIds, setCompletedExerciseIds] = useState<Set<string>>(
@@ -70,6 +79,9 @@ export const WorkoutFlow = ({
   );
   const [extraExercises, setExtraExercises] = useState<Exercise[]>([]);
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+  
+  // Estado de series por ejercicio (para persistir y restaurar)
+  const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(initialExerciseSetStates);
   
   // Datos personales para cálculo de calorías
   const { personalData } = usePersonalData();
@@ -140,9 +152,24 @@ export const WorkoutFlow = ({
       elapsedTime,
       extraExerciseIds: extraExercises.map(e => e.id),
       savedAt: new Date().toISOString(),
+      exerciseSetStates,
     };
     localStorage.setItem(WORKOUT_STATE_KEY, JSON.stringify(stateToSave));
-  }, [routineId, routineName, workoutExercises, completedExerciseIds, flowState, elapsedTime, extraExercises]);
+  }, [routineId, routineName, workoutExercises, completedExerciseIds, flowState, elapsedTime, extraExercises, exerciseSetStates]);
+
+  // Actualizar estado de series de un ejercicio
+  const handleSetStateChange = useCallback((exerciseId: string, currentSet: number, completedSets: number[]) => {
+    setExerciseSetStates(prev => {
+      const existing = prev.findIndex(s => s.exerciseId === exerciseId);
+      const newState = { exerciseId, currentSet, completedSets };
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = newState;
+        return updated;
+      }
+      return [...prev, newState];
+    });
+  }, []);
 
   // Limpiar estado guardado al finalizar
   const clearSavedState = useCallback(() => {
@@ -603,25 +630,33 @@ export const WorkoutFlow = ({
           </div>
 
           {/* Exercise card con props para flujo de entrenamiento */}
-          <ExerciseCard
-            exercise={currentExercise}
-            onEdit={onEditExercise}
-            onDelete={onDeleteExercise}
-            onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
-              // Registrar los datos de la serie para calcular kg totales
-              setCompletedSetsData(prev => [...prev, {
-                exerciseId,
-                weight: setData.weight,
-                reps: setData.reps,
-              }]);
-              // Llamar al callback original
-              onSetComplete(exerciseId, exerciseName, muscleGroup, setData, totalSets);
-            }}
-            isActive={true}
-            skipExerciseRestTimer={true}
-            onExerciseComplete={() => handleExerciseComplete(currentExercise.id)}
-            onUpdateSetConfig={onUpdateSetConfig}
-          />
+          {(() => {
+            const savedSetState = exerciseSetStates.find(s => s.exerciseId === currentExercise.id);
+            return (
+              <ExerciseCard
+                exercise={currentExercise}
+                onEdit={onEditExercise}
+                onDelete={onDeleteExercise}
+                onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
+                  // Registrar los datos de la serie para calcular kg totales
+                  setCompletedSetsData(prev => [...prev, {
+                    exerciseId,
+                    weight: setData.weight,
+                    reps: setData.reps,
+                  }]);
+                  // Llamar al callback original
+                  onSetComplete(exerciseId, exerciseName, muscleGroup, setData, totalSets);
+                }}
+                isActive={true}
+                skipExerciseRestTimer={true}
+                onExerciseComplete={() => handleExerciseComplete(currentExercise.id)}
+                onUpdateSetConfig={onUpdateSetConfig}
+                initialCurrentSet={savedSetState?.currentSet}
+                initialCompletedSets={savedSetState?.completedSets}
+                onSetStateChange={handleSetStateChange}
+              />
+            );
+          })()}
 
           {/* Botón para terminar sesión anticipadamente */}
           <div className="mt-8 pt-6 border-t border-border">
