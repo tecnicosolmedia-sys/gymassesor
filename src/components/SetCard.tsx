@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { SetConfig } from '@/types/exercise';
-import { Check, Minus, Plus, Edit2, Dumbbell, Clock, Play } from 'lucide-react';
+import { Check, Minus, Plus, Edit2, Dumbbell, Clock, Play, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -18,9 +18,11 @@ interface SetCardProps {
   isCurrent: boolean;
   currentSet: number;
   currentWeight: number;
+  previousConfig?: SetConfig; // Configuración de la serie anterior
   onUpdateConfig: (index: number, field: keyof Omit<SetConfig, 'setNumber'>, delta: number) => void;
   onCompleteSet: () => void;
   onSetDirectValue?: (index: number, field: keyof Omit<SetConfig, 'setNumber'>, value: number) => void;
+  onCopyFromPrevious?: (index: number) => void; // Callback para copiar de la serie anterior
 }
 
 type EditableField = 'reps' | 'weight' | 'restTime';
@@ -32,9 +34,11 @@ export const SetCard = ({
   isCurrent,
   currentSet,
   currentWeight,
+  previousConfig,
   onUpdateConfig,
   onCompleteSet,
   onSetDirectValue,
+  onCopyFromPrevious,
 }: SetCardProps) => {
   const [isEditingCompleted, setIsEditingCompleted] = useState(false);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
@@ -273,15 +277,29 @@ export const SetCard = ({
           )}
         </div>
         
-        {/* Botón de completar serie - flotante justo debajo de la serie actual */}
+        {/* Botones de acción para la serie actual */}
         {isCurrent && (
-          <button
-            onClick={onCompleteSet}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy animate-fade-in"
-          >
-            <Play className="w-4 h-4" />
-            Completar Serie {currentSet} ({currentWeight}kg)
-          </button>
+          <div className="space-y-2">
+            {/* Botón para copiar de la serie anterior */}
+            {previousConfig && onCopyFromPrevious && (
+              <button
+                onClick={() => onCopyFromPrevious(index)}
+                className="w-full py-2.5 rounded-xl bg-secondary text-foreground font-medium flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all"
+              >
+                <Copy className="w-4 h-4" />
+                Copiar serie anterior ({previousConfig.weight}kg × {previousConfig.reps})
+              </button>
+            )}
+            
+            {/* Botón de completar serie */}
+            <button
+              onClick={onCompleteSet}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy animate-fade-in"
+            >
+              <Play className="w-4 h-4" />
+              Completar Serie {currentSet} ({currentWeight}kg)
+            </button>
+          </div>
         )}
       </div>
 

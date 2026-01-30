@@ -149,6 +149,29 @@ export const ExerciseCard = ({
     });
   };
 
+  // Copiar configuración de la serie anterior
+  const copyFromPreviousSet = (index: number) => {
+    if (index <= 0) return; // No hay serie anterior
+    
+    setLocalSetConfigs((prev) => {
+      const previousConfig = prev[index - 1];
+      const updated = prev.map((config, i) => {
+        if (i === index) {
+          return {
+            ...config,
+            reps: previousConfig.reps,
+            weight: previousConfig.weight,
+            restTime: previousConfig.restTime,
+          };
+        }
+        return config;
+      });
+      // Notificar cambios al padre
+      onUpdateSetConfig?.(exercise.id, updated);
+      return updated;
+    });
+  };
+
   const handleSetComplete = () => {
     const config = getCurrentSetConfig();
     
@@ -331,6 +354,7 @@ export const ExerciseCard = ({
                 {localSetConfigs.map((config, index) => {
                   const isCompleted = completedSets.includes(index + 1);
                   const isCurrent = index + 1 === currentSet && !isCompleted;
+                  const previousConfig = index > 0 ? localSetConfigs[index - 1] : undefined;
                   
                   return (
                     <SetCard
@@ -341,9 +365,11 @@ export const ExerciseCard = ({
                       isCurrent={isCurrent}
                       currentSet={currentSet}
                       currentWeight={currentConfig.weight}
+                      previousConfig={previousConfig}
                       onUpdateConfig={updateSetConfig}
                       onCompleteSet={handleSetComplete}
                       onSetDirectValue={setDirectValue}
+                      onCopyFromPrevious={copyFromPreviousSet}
                     />
                   );
                 })}
