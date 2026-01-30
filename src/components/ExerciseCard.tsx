@@ -110,6 +110,32 @@ export const ExerciseCard = ({
     });
   };
 
+  // Establecer valor directo en una serie (para edición mediante long press)
+  const setDirectValue = (index: number, field: keyof Omit<SetConfig, 'setNumber'>, value: number) => {
+    setLocalSetConfigs((prev) => {
+      const updated = prev.map((config, i) => {
+        if (i === index) {
+          let newValue = value;
+          // Límites según el campo
+          if (field === 'reps') {
+            newValue = Math.max(1, Math.min(99, newValue));
+          } else if (field === 'weight') {
+            // Redondear a 0.5
+            newValue = Math.round(newValue * 2) / 2;
+            newValue = Math.max(0, Math.min(999, newValue));
+          } else if (field === 'restTime') {
+            newValue = Math.max(5, Math.min(600, Math.round(newValue)));
+          }
+          return { ...config, [field]: newValue };
+        }
+        return config;
+      });
+      // Notificar cambios al padre
+      onUpdateSetConfig?.(exercise.id, updated);
+      return updated;
+    });
+  };
+
   const handleSetComplete = () => {
     const config = getCurrentSetConfig();
     
@@ -304,6 +330,7 @@ export const ExerciseCard = ({
                       currentWeight={currentConfig.weight}
                       onUpdateConfig={updateSetConfig}
                       onCompleteSet={handleSetComplete}
+                      onSetDirectValue={setDirectValue}
                     />
                   );
                 })}
