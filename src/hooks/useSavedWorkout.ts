@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 
 const WORKOUT_STATE_KEY = 'gym-tracker-active-workout';
 
+export interface ExerciseSetState {
+  exerciseId: string;
+  currentSet: number;
+  completedSets: number[];
+}
+
 export interface SavedWorkoutState {
   routineId?: string;
   routineName?: string;
@@ -15,6 +21,8 @@ export interface SavedWorkoutState {
   elapsedTime: number;
   extraExerciseIds: string[];
   savedAt: string;
+  // Estado de series por ejercicio
+  exerciseSetStates?: ExerciseSetState[];
 }
 
 export const useSavedWorkout = () => {
