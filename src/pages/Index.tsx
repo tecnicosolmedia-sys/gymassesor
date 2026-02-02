@@ -336,11 +336,11 @@ const Index = () => {
                   return (
                     <div
                       key={exercise.id}
-                      className="p-4 rounded-xl card-gradient border border-border hover:border-primary/50 transition-all group"
+                      className="p-3 sm:p-4 rounded-xl card-gradient border border-border hover:border-primary/50 transition-all group"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3">
                         {/* Icono del grupo muscular - SIEMPRE visible */}
-                        <div className="relative w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
                           {exercise.imageUrl ? (
                             <>
                               <img 
@@ -350,11 +350,11 @@ const Index = () => {
                               />
                               {/* Badge del músculo sobre la imagen */}
                               {muscleIcon && (
-                                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-background border-2 border-primary/50 flex items-center justify-center overflow-hidden">
+                                <div className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-background border-2 border-primary/50 flex items-center justify-center overflow-hidden">
                                   <img 
                                     src={muscleIcon} 
                                     alt={exercise.muscleGroup}
-                                    className="w-4 h-4 object-contain"
+                                    className="w-3 h-3 sm:w-4 sm:h-4 object-contain"
                                   />
                                 </div>
                               )}
@@ -363,29 +363,36 @@ const Index = () => {
                             <img 
                               src={muscleIcon} 
                               alt={exercise.muscleGroup}
-                              className="w-10 h-10 object-contain"
+                              className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
                             />
                           ) : (
-                            <Dumbbell className="w-5 h-5 text-primary" />
+                            <Dumbbell className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium truncate">{exercise.name}</p>
+                          <p className="font-medium text-sm sm:text-base truncate">{exercise.name}</p>
                           <p className="text-xs text-muted-foreground">
                             {exercise.muscleGroup} · {exercise.sets}x{exercise.reps}
                           </p>
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Botones siempre visibles en móvil, hover en desktop */}
+                        <div className="flex items-center gap-1 flex-shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => handleEditExercise(exercise)}
-                            className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditExercise(exercise);
+                            }}
+                            className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/20 active:bg-primary/20 transition-colors"
                             title="Editar"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteExercise(exercise.id)}
-                            className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/20 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteExercise(exercise.id);
+                            }}
+                            className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/20 active:bg-destructive/20 transition-colors"
                             title="Eliminar"
                           >
                             <Trash2 className="w-4 h-4" />
