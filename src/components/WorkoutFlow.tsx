@@ -307,6 +307,9 @@ export const WorkoutFlow = ({
           type: 'select-next-exercise', 
           completedExerciseIndex: flowState.completedExerciseIndex 
         })}
+        globalElapsedTime={elapsedTime}
+        globalIsRunning={isRunning}
+        onGlobalToggle={toggle}
       />
     );
   }
@@ -654,6 +657,9 @@ export const WorkoutFlow = ({
                 initialCurrentSet={savedSetState?.currentSet}
                 initialCompletedSets={savedSetState?.completedSets}
                 onSetStateChange={handleSetStateChange}
+                globalElapsedTime={elapsedTime}
+                globalIsRunning={isRunning}
+                onGlobalToggle={toggle}
               />
             );
           })()}

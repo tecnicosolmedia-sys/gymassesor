@@ -28,19 +28,19 @@ export const WorkoutStopwatch = ({
 
   return (
     <div className={cn(
-      "flex items-center gap-3 px-4 py-2 rounded-xl bg-secondary/50 backdrop-blur-sm border border-border",
+      "flex items-center gap-4 px-5 py-2.5 rounded-xl bg-secondary/50 backdrop-blur-sm border border-border",
       className
     )}>
-      <Timer className="w-5 h-5 text-primary" />
+      <Timer className="w-6 h-6 text-primary" />
       
-      <span className="font-lcd text-2xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] min-w-[80px] text-center">
+      <span className="font-lcd text-3xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] min-w-[96px] text-center">
         {formatTime(elapsedTime)}
       </span>
       
       <button
         onClick={onToggle}
         className={cn(
-          "w-9 h-9 rounded-lg flex items-center justify-center transition-all",
+          "w-10 h-10 rounded-lg flex items-center justify-center transition-all",
           isRunning 
             ? "bg-warning/20 text-warning hover:bg-warning/30" 
             : "bg-primary/20 text-primary hover:bg-primary/30"
@@ -48,9 +48,9 @@ export const WorkoutStopwatch = ({
         title={isRunning ? "Pausar cronómetro" : "Reanudar cronómetro"}
       >
         {isRunning ? (
-          <Pause className="w-4 h-4" />
+          <Pause className="w-5 h-5" />
         ) : (
-          <Play className="w-4 h-4" />
+          <Play className="w-5 h-5" />
         )}
       </button>
     </div>
