@@ -70,6 +70,12 @@ export const ExerciseCard = ({
     }));
   });
 
+  // Sincronizar estado de series cuando cambia el ejercicio o se restaura sesión
+  useEffect(() => {
+    setCurrentSet(initialCurrentSet);
+    setCompletedSets(initialCompletedSets);
+  }, [exercise.id, initialCurrentSet, initialCompletedSets]);
+
   // Sincronizar cuando cambia el ejercicio
   useEffect(() => {
     setLocalSetConfigs(
