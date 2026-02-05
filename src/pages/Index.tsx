@@ -191,6 +191,58 @@ const Index = () => {
             onResume={handleResumeWorkout}
             onDiscard={handleDiscardWorkout}
             onFinish={() => {
+              // Si no hay sesión activa pero hay un entrenamiento guardado,
+              // crear la sesión desde el estado guardado antes de finalizarla
+              if (!currentSession && savedWorkout) {
+                // Reconstruir ejercicios completados desde el estado guardado
+                const completedExercises = savedWorkout.completedExerciseIds.map(exId => {
+                  const exercise = exercises.find(e => e.id === exId);
+                  const setStateData = savedWorkout.exerciseSetStates?.find(s => s.exerciseId === exId);
+                  if (exercise && setStateData) {
+                    return {
+                      exerciseId: exId,
+                      exerciseName: exercise.name,
+                      muscleGroup: exercise.muscleGroup,
+                      completedSets: setStateData.completedSets.length,
+                    };
+                  }
+                  return null;
+                }).filter(Boolean);
+
+                // Iniciar y finalizar sesión con los datos guardados
+                if (completedExercises.length > 0 || savedWorkout.elapsedTime > 0) {
+                  startSession(savedWorkout.routineId, savedWorkout.routineName);
+                  // Registrar cada ejercicio completado
+                  savedWorkout.completedExerciseIds.forEach(exId => {
+                    const exercise = exercises.find(e => e.id === exId);
+                    const setStateData = savedWorkout.exerciseSetStates?.find(s => s.exerciseId === exId);
+                    if (exercise && setStateData) {
+                      setStateData.completedSets.forEach((_, idx) => {
+                        const setConfig = exercise.setConfigs?.[idx];
+                        logCompletedSet(
+                          exercise.id,
+                          exercise.name,
+                          exercise.muscleGroup,
+                          {
+                            setNumber: idx + 1,
+                            reps: setConfig?.reps || exercise.reps,
+                            weight: setConfig?.weight || exercise.weight,
+                            restTime: setConfig?.restTime || exercise.restBetweenSets,
+                          },
+                          exercise.sets
+                        );
+                      });
+                    }
+                  });
+                  // Pequeño delay para asegurar que el estado se actualice
+                  setTimeout(() => {
+                    endSession();
+                    clearSavedWorkout();
+                    setShowHistory(true);
+                  }, 100);
+                  return;
+                }
+              }
               endSession();
               clearSavedWorkout();
               setShowHistory(true);
