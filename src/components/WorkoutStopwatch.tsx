@@ -62,6 +62,15 @@ export const useWorkoutStopwatch = (autoStart = true, initialTime = 0) => {
   const [elapsedTime, setElapsedTime] = useState(initialTime);
   const [isRunning, setIsRunning] = useState(autoStart);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const initialTimeRef = useRef(initialTime);
+
+  // Sincronizar tiempo inicial cuando se restaura una sesión
+  useEffect(() => {
+    if (initialTime !== initialTimeRef.current) {
+      setElapsedTime(initialTime);
+      initialTimeRef.current = initialTime;
+    }
+  }, [initialTime]);
 
   useEffect(() => {
     if (isRunning) {
