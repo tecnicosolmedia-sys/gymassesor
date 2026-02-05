@@ -3,6 +3,7 @@ import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
+import { AddExerciseDuringWorkoutDialog } from './AddExerciseDuringWorkoutDialog';
 import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff, Flame, Weight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ interface WorkoutFlowProps {
   onDeleteExercise: (id: string) => void;
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
   onWorkoutComplete?: (elapsedTime?: number) => void;
+  onAddExerciseToRoutine?: (exerciseId: string) => void;
   // Props opcionales para restaurar estado
   initialCompletedExerciseIds?: string[];
   initialFlowState?: FlowState;
@@ -65,12 +67,16 @@ export const WorkoutFlow = ({
   onDeleteExercise,
   onUpdateSetConfig,
   onWorkoutComplete,
+  onAddExerciseToRoutine,
   initialCompletedExerciseIds = [],
   initialFlowState,
   initialElapsedTime = 0,
   initialExerciseSetStates = [],
 }: WorkoutFlowProps) => {
   const [workoutExercises, setWorkoutExercises] = useState<Exercise[]>(initialExercises);
+  // Estado para el diálogo de guardar ejercicio en rutina
+  const [pendingExerciseToAdd, setPendingExerciseToAdd] = useState<Exercise | null>(null);
+  const [showSaveToRoutineDialog, setShowSaveToRoutineDialog] = useState(false);
   const [completedExerciseIds, setCompletedExerciseIds] = useState<Set<string>>(
     new Set(initialCompletedExerciseIds)
   );
@@ -270,9 +276,24 @@ export const WorkoutFlow = ({
   };
 
   const handleAddExtraExercise = (exercise: Exercise) => {
-    setWorkoutExercises((prev) => [...prev, exercise]);
-    setExtraExercises((prev) => [...prev, exercise]);
+    // Guardar el ejercicio pendiente y mostrar el diálogo
+    setPendingExerciseToAdd(exercise);
+    setShowSaveToRoutineDialog(true);
+  };
+
+  const handleConfirmAddExercise = (saveToRoutine: boolean) => {
+    if (!pendingExerciseToAdd) return;
+    
+    setWorkoutExercises((prev) => [...prev, pendingExerciseToAdd]);
+    setExtraExercises((prev) => [...prev, pendingExerciseToAdd]);
     const newIndex = workoutExercises.length;
+    
+    if (saveToRoutine && routineId && onAddExerciseToRoutine) {
+      onAddExerciseToRoutine(pendingExerciseToAdd.id);
+    }
+    
+    setShowSaveToRoutineDialog(false);
+    setPendingExerciseToAdd(null);
     setFlowState({ type: 'exercising', exerciseIndex: newIndex });
   };
 
@@ -664,8 +685,18 @@ export const WorkoutFlow = ({
             );
           })()}
 
-          {/* Botón para terminar sesión anticipadamente */}
-          <div className="mt-8 pt-6 border-t border-border">
+          {/* Botones de acciones */}
+          <div className="mt-8 pt-6 border-t border-border space-y-3">
+            {/* Botón para añadir ejercicio */}
+            <button
+              onClick={() => setFlowState({ type: 'add-extra-exercise' })}
+              className="w-full py-3 rounded-xl bg-primary/10 text-primary font-medium flex items-center justify-center gap-2 hover:bg-primary/20 transition-all border border-primary/20"
+            >
+              <Plus className="w-5 h-5" />
+              Añadir ejercicio
+            </button>
+            
+            {/* Botón para terminar sesión anticipadamente */}
             <button
               onClick={() => setFlowState({ type: 'routine-complete' })}
               className="w-full py-3 rounded-xl bg-secondary text-muted-foreground font-medium flex items-center justify-center gap-2 hover:bg-destructive/20 hover:text-destructive transition-all"
@@ -674,6 +705,16 @@ export const WorkoutFlow = ({
               Terminar sesión
             </button>
           </div>
+
+          {/* Diálogo para guardar ejercicio en rutina */}
+          <AddExerciseDuringWorkoutDialog
+            open={showSaveToRoutineDialog}
+            onOpenChange={setShowSaveToRoutineDialog}
+            exercise={pendingExerciseToAdd}
+            routineName={routineName}
+            onSaveToRoutine={() => handleConfirmAddExercise(true)}
+            onJustThisTime={() => handleConfirmAddExercise(false)}
+          />
         </div>
       </div>
     );
