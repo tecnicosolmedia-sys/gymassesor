@@ -38,6 +38,10 @@ interface ExerciseCardProps {
   initialCompletedSets?: number[];
   // Callback cuando cambia el estado de las series (para persistir)
   onSetStateChange?: (exerciseId: string, currentSet: number, completedSets: number[]) => void;
+  // Cronómetro global del entrenamiento
+  globalElapsedTime?: number;
+  globalIsRunning?: boolean;
+  onGlobalToggle?: () => void;
 }
 
 export const ExerciseCard = ({ 
@@ -53,6 +57,9 @@ export const ExerciseCard = ({
   initialCurrentSet = 1,
   initialCompletedSets = [],
   onSetStateChange,
+  globalElapsedTime,
+  globalIsRunning,
+  onGlobalToggle,
 }: ExerciseCardProps) => {
   const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
@@ -445,6 +452,9 @@ export const ExerciseCard = ({
           onComplete={handleTimerComplete}
           onContinue={handleContinue}
           onClose={handleCloseTimer}
+          globalElapsedTime={globalElapsedTime}
+          globalIsRunning={globalIsRunning}
+          onGlobalToggle={onGlobalToggle}
         />
       )}
     </>

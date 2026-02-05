@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, ArrowRight } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, ArrowRight, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useWorkoutNotification } from '@/hooks/useWorkoutNotification';
@@ -11,6 +11,10 @@ interface FullscreenTimerProps {
   onComplete: () => void;
   onContinue: () => void;
   onClose: () => void;
+  // Cronómetro global del entrenamiento
+  globalElapsedTime?: number;
+  globalIsRunning?: boolean;
+  onGlobalToggle?: () => void;
 }
 
 export const FullscreenTimer = ({
@@ -20,6 +24,9 @@ export const FullscreenTimer = ({
   onComplete,
   onContinue,
   onClose,
+  globalElapsedTime,
+  globalIsRunning,
+  onGlobalToggle,
 }: FullscreenTimerProps) => {
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [isRunning, setIsRunning] = useState(true);
@@ -271,6 +278,18 @@ export const FullscreenTimer = ({
   const svgSize = isLandscape ? 320 : 288;
   const fontSize = isLandscape ? 'text-7xl sm:text-9xl' : 'text-6xl sm:text-8xl';
 
+  // Formatear tiempo del cronómetro global
+  const formatGlobalTime = (totalSeconds: number) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div 
       className={cn(
@@ -278,6 +297,33 @@ export const FullscreenTimer = ({
         isLandscape && "flex-row gap-8"
       )}
     >
+      {/* Cronómetro global siempre visible arriba */}
+      {globalElapsedTime !== undefined && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-3 px-5 py-2.5 rounded-xl bg-secondary/70 backdrop-blur-sm border border-border">
+          <span className="font-lcd text-2xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] min-w-[96px] text-center">
+            {formatGlobalTime(globalElapsedTime)}
+          </span>
+          {onGlobalToggle && (
+            <button
+              onClick={onGlobalToggle}
+              className={cn(
+                "w-9 h-9 rounded-lg flex items-center justify-center transition-all",
+                globalIsRunning 
+                  ? "bg-warning/20 text-warning hover:bg-warning/30" 
+                  : "bg-primary/20 text-primary hover:bg-primary/30"
+              )}
+              title={globalIsRunning ? "Pausar cronómetro" : "Reanudar cronómetro"}
+            >
+              {globalIsRunning ? (
+                <Pause className="w-4 h-4" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Close button - solo visible cuando está completo */}
       {!isComplete && (
         <button
