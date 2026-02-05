@@ -588,6 +588,17 @@ export const WorkoutFlow = ({
               ))}
             </div>
           )}
+
+          {/* Botón para terminar sesión */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <button
+              onClick={() => setFlowState({ type: 'routine-complete' })}
+              className="w-full py-3 rounded-xl bg-secondary text-muted-foreground font-medium flex items-center justify-center gap-2 hover:bg-destructive/20 hover:text-destructive transition-all"
+            >
+              <LogOut className="w-5 h-5" />
+              Terminar sesión
+            </button>
+          </div>
         </div>
       </div>
     );
