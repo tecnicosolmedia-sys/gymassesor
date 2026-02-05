@@ -1,4 +1,4 @@
-import { Play, X, Timer, RotateCcw } from 'lucide-react';
+import { Play, X, Timer, RotateCcw, Trophy, LogOut } from 'lucide-react';
 import { SavedWorkoutState } from '@/hooks/useSavedWorkout';
 import { cn } from '@/lib/utils';
 
@@ -7,6 +7,7 @@ interface ResumeWorkoutBannerProps {
   timeSinceSaved: string;
   onResume: () => void;
   onDiscard: () => void;
+  onFinish: () => void;
   className?: string;
 }
 
@@ -15,6 +16,7 @@ export const ResumeWorkoutBanner = ({
   timeSinceSaved,
   onResume,
   onDiscard,
+  onFinish,
   className,
 }: ResumeWorkoutBannerProps) => {
   const formatTime = (totalSeconds: number) => {
@@ -31,6 +33,7 @@ export const ResumeWorkoutBanner = ({
   const completedCount = savedWorkout.completedExerciseIds.length;
   const totalCount = savedWorkout.workoutExerciseIds.length;
   const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  const allCompleted = completedCount >= totalCount && totalCount > 0;
 
   return (
     <div className={cn(
@@ -38,12 +41,21 @@ export const ResumeWorkoutBanner = ({
       className
     )}>
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
-          <RotateCcw className="w-6 h-6 text-primary" />
+        <div className={cn(
+          "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
+          allCompleted ? "bg-warning/20" : "bg-primary/20"
+        )}>
+          {allCompleted ? (
+            <Trophy className="w-6 h-6 text-warning" />
+          ) : (
+            <RotateCcw className="w-6 h-6 text-primary" />
+          )}
         </div>
         
         <div className="flex-1 min-w-0">
-          <h3 className="font-display font-bold text-lg">Entrenamiento en curso</h3>
+          <h3 className="font-display font-bold text-lg">
+            {allCompleted ? '¡Rutina completada!' : 'Entrenamiento en curso'}
+          </h3>
           <p className="text-sm text-muted-foreground">
             {savedWorkout.routineName} · {timeSinceSaved}
           </p>
@@ -59,23 +71,38 @@ export const ResumeWorkoutBanner = ({
             </div>
             <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
               <div 
-                className="h-full bg-primary rounded-full transition-all"
+                className={cn(
+                  "h-full rounded-full transition-all",
+                  allCompleted ? "bg-warning" : "bg-primary"
+                )}
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
           </div>
           
           <div className="flex gap-2">
+            {/* Botón principal: Continuar o Añadir ejercicio */}
             <button
               onClick={onResume}
               className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all text-sm"
             >
               <Play className="w-4 h-4" />
-              Continuar
+              {allCompleted ? 'Añadir ejercicio' : 'Continuar'}
             </button>
+            
+            {/* Botón Terminar sesión */}
+            <button
+              onClick={onFinish}
+              className="py-2.5 px-3 rounded-xl bg-secondary text-foreground font-medium flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all text-sm"
+              title="Terminar sesión"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+            
+            {/* Botón Descartar */}
             <button
               onClick={onDiscard}
-              className="py-2.5 px-4 rounded-xl bg-secondary text-muted-foreground font-medium flex items-center justify-center gap-2 hover:bg-destructive/20 hover:text-destructive transition-all text-sm"
+              className="py-2.5 px-3 rounded-xl bg-secondary text-muted-foreground font-medium flex items-center justify-center gap-2 hover:bg-destructive/20 hover:text-destructive transition-all text-sm"
               title="Descartar entrenamiento"
             >
               <X className="w-4 h-4" />

@@ -190,6 +190,11 @@ const Index = () => {
             timeSinceSaved={getTimeSinceSaved()}
             onResume={handleResumeWorkout}
             onDiscard={handleDiscardWorkout}
+            onFinish={() => {
+              endSession();
+              clearSavedWorkout();
+              setShowHistory(true);
+            }}
           />
         )}
         
