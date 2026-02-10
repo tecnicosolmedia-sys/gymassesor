@@ -289,7 +289,7 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
   };
 
   return (
-    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] overflow-y-auto">
       <div className="min-h-screen p-4 flex items-start justify-center">
         <div ref={formRef} className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-2xl animate-scale-in my-8">
           {/* Header */}
