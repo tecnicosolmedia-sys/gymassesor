@@ -58,6 +58,8 @@ const Index = () => {
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [selectedMuscleFilter, setSelectedMuscleFilter] = useState<MuscleGroup | 'todas'>('todas');
   const [libraryMuscleFilter, setLibraryMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
+  const [creatingExerciseForWorkout, setCreatingExerciseForWorkout] = useState(false);
+  const [newlyCreatedExercise, setNewlyCreatedExercise] = useState<Exercise | null>(null);
 
   // Manejar restauración de entrenamiento
   const handleResumeWorkout = () => {
@@ -88,6 +90,13 @@ const Index = () => {
 
   const handleAddExercise = () => {
     setEditingExercise(null);
+    setCreatingExerciseForWorkout(false);
+    setShowExerciseForm(true);
+  };
+
+  const handleCreateExerciseForWorkout = () => {
+    setEditingExercise(null);
+    setCreatingExerciseForWorkout(true);
     setShowExerciseForm(true);
   };
 
@@ -98,6 +107,7 @@ const Index = () => {
 
   const handleEditExercise = (exercise: Exercise) => {
     setEditingExercise(exercise);
+    setCreatingExerciseForWorkout(false);
     setShowExerciseForm(true);
   };
 
@@ -110,8 +120,12 @@ const Index = () => {
     if (editingExercise) {
       updateExercise(editingExercise.id, data);
     } else {
-      addExercise(data);
+      const newExercise = addExercise(data);
+      if (creatingExerciseForWorkout && newExercise) {
+        setNewlyCreatedExercise(newExercise);
+      }
     }
+    setCreatingExerciseForWorkout(false);
   };
 
   const handleSaveRoutine = (data: Omit<Routine, 'id' | 'createdAt'>) => {
@@ -308,7 +322,9 @@ const Index = () => {
                     setShowHistory(true);
                   }}
                   onAddExerciseToRoutine={addExerciseToRoutine}
-                  onCreateExercise={handleAddExercise}
+                  onCreateExercise={handleCreateExerciseForWorkout}
+                  newExerciseToAdd={newlyCreatedExercise}
+                  onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
                 />
               ))}
             </div>
@@ -527,7 +543,9 @@ const Index = () => {
            onAddExerciseToRoutine={(exerciseId) => {
              addExerciseToRoutine(savedRoutine.id, exerciseId);
            }}
-           onCreateExercise={handleAddExercise}
+           onCreateExercise={handleCreateExerciseForWorkout}
+           newExerciseToAdd={newlyCreatedExercise}
+           onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
           initialCompletedExerciseIds={savedWorkout.completedExerciseIds}
           initialFlowState={savedWorkout.flowState as FlowState}
           initialElapsedTime={savedWorkout.elapsedTime}
