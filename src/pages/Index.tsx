@@ -308,6 +308,7 @@ const Index = () => {
                     setShowHistory(true);
                   }}
                   onAddExerciseToRoutine={addExerciseToRoutine}
+                  onCreateExercise={handleAddExercise}
                 />
               ))}
             </div>
@@ -523,9 +524,10 @@ const Index = () => {
             clearSavedWorkout();
             setShowHistory(true);
           }}
-          onAddExerciseToRoutine={(exerciseId) => {
-            addExerciseToRoutine(savedRoutine.id, exerciseId);
-          }}
+           onAddExerciseToRoutine={(exerciseId) => {
+             addExerciseToRoutine(savedRoutine.id, exerciseId);
+           }}
+           onCreateExercise={handleAddExercise}
           initialCompletedExerciseIds={savedWorkout.completedExerciseIds}
           initialFlowState={savedWorkout.flowState as FlowState}
           initialElapsedTime={savedWorkout.elapsedTime}
