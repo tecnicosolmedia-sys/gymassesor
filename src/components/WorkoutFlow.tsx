@@ -5,6 +5,7 @@ import { ExerciseCard } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
 import { AddExerciseDuringWorkoutDialog } from './AddExerciseDuringWorkoutDialog';
 import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff, Flame, Weight } from 'lucide-react';
+import { ExerciseSummary } from './ExerciseSummary';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useWakeLock } from '@/hooks/useWakeLock';
@@ -51,6 +52,7 @@ interface WorkoutFlowProps {
 
 export type FlowState = 
   | { type: 'exercising'; exerciseIndex: number }
+  | { type: 'exercise-summary'; completedExerciseIndex: number }
   | { type: 'rest-between-exercises'; completedExerciseIndex: number }
   | { type: 'select-next-exercise'; completedExerciseIndex: number }
   | { type: 'routine-complete' }
@@ -237,22 +239,35 @@ export const WorkoutFlow = ({
 
   const handleExerciseComplete = (exerciseId: string) => {
     const exerciseIndex = workoutExercises.findIndex((e) => e.id === exerciseId);
-    const exercise = workoutExercises[exerciseIndex];
     
     setCompletedExerciseIds((prev) => new Set([...prev, exerciseId]));
     
-    // Si hay más ejercicios, iniciar temporizador entre ejercicios
+    // Mostrar resumen del ejercicio antes de continuar
+    setFlowState({ 
+      type: 'exercise-summary', 
+      completedExerciseIndex: exerciseIndex 
+    });
+  };
+
+  const handleSummaryContinue = (completedExerciseIndex: number, updatedConfigs: SetConfig[]) => {
+    const exercise = workoutExercises[completedExerciseIndex];
+    
+    // Actualizar configs si fueron editadas en el resumen
+    if (exercise && onUpdateSetConfig) {
+      onUpdateSetConfig(exercise.id, updatedConfigs);
+    }
+    
+    // Continuar con el flujo normal
     const remaining = workoutExercises.filter(
-      (e) => !completedExerciseIds.has(e.id) && e.id !== exerciseId
+      (e) => !completedExerciseIds.has(e.id)
     );
     
     if (remaining.length > 0) {
       setFlowState({ 
         type: 'rest-between-exercises', 
-        completedExerciseIndex: exerciseIndex 
+        completedExerciseIndex 
       });
     } else if (extraExercises.length > 0) {
-      // Si hay ejercicios extra pendientes
       const nextExtraIndex = workoutExercises.length;
       setFlowState({ type: 'exercising', exerciseIndex: nextExtraIndex });
     } else {
@@ -313,6 +328,31 @@ export const WorkoutFlow = ({
     }
     return 120;
   };
+
+  // Renderizar resumen del ejercicio completado
+  if (flowState.type === 'exercise-summary') {
+    const summaryExercise = workoutExercises[flowState.completedExerciseIndex];
+    const savedSetState = exerciseSetStates.find(s => s.exerciseId === summaryExercise?.id);
+    
+    if (summaryExercise) {
+      const configs = summaryExercise.setConfigs || Array.from({ length: summaryExercise.sets }, (_, i) => ({
+        setNumber: i + 1,
+        reps: summaryExercise.reps,
+        weight: summaryExercise.weight,
+        restTime: summaryExercise.restBetweenSets,
+      }));
+      
+      return (
+        <ExerciseSummary
+          exerciseName={summaryExercise.name}
+          muscleGroup={summaryExercise.muscleGroup}
+          setConfigs={configs}
+          completedSets={savedSetState?.completedSets || []}
+          onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
+        />
+      );
+    }
+  }
 
   // Renderizar temporizador entre ejercicios
   if (flowState.type === 'rest-between-exercises') {
