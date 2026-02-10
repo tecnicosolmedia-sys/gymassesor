@@ -42,6 +42,7 @@ interface WorkoutFlowProps {
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
   onWorkoutComplete?: (elapsedTime?: number) => void;
   onAddExerciseToRoutine?: (exerciseId: string) => void;
+  onCreateExercise?: () => void;
   // Props opcionales para restaurar estado
   initialCompletedExerciseIds?: string[];
   initialFlowState?: FlowState;
@@ -70,6 +71,7 @@ export const WorkoutFlow = ({
   onUpdateSetConfig,
   onWorkoutComplete,
   onAddExerciseToRoutine,
+  onCreateExercise,
   initialCompletedExerciseIds = [],
   initialFlowState,
   initialElapsedTime = 0,
@@ -449,8 +451,17 @@ export const WorkoutFlow = ({
             ))}
           </div>
 
-          {/* Botón para finalizar rutina anticipadamente */}
-          <div className="mt-6 pt-6 border-t border-border">
+          {/* Botones de acción */}
+          <div className="mt-6 pt-6 border-t border-border space-y-3">
+            {onCreateExercise && (
+              <button
+                onClick={onCreateExercise}
+                className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
+              >
+                <Plus className="w-5 h-5" />
+                Crear ejercicio nuevo
+              </button>
+            )}
             <button
               onClick={() => setFlowState({ type: 'routine-complete' })}
               className="w-full py-4 rounded-xl bg-secondary text-foreground font-semibold flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all"
@@ -629,8 +640,17 @@ export const WorkoutFlow = ({
             </div>
           )}
 
-          {/* Botón para terminar sesión */}
-          <div className="mt-6 pt-6 border-t border-border">
+          {/* Botones de acción */}
+          <div className="mt-6 pt-6 border-t border-border space-y-3">
+            {onCreateExercise && (
+              <button
+                onClick={onCreateExercise}
+                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
+              >
+                <Plus className="w-5 h-5" />
+                Crear ejercicio nuevo
+              </button>
+            )}
             <button
               onClick={() => setFlowState({ type: 'routine-complete' })}
               className="w-full py-3 rounded-xl bg-secondary text-muted-foreground font-medium flex items-center justify-center gap-2 hover:bg-destructive/20 hover:text-destructive transition-all"

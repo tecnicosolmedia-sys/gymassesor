@@ -26,6 +26,7 @@ interface RoutineCardProps {
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
   onWorkoutComplete?: (elapsedTime?: number) => void;
   onAddExerciseToRoutine?: (routineId: string, exerciseId: string) => void;
+  onCreateExercise?: () => void;
 }
 
 export const RoutineCard = ({
@@ -40,6 +41,7 @@ export const RoutineCard = ({
   onUpdateSetConfig,
   onWorkoutComplete,
   onAddExerciseToRoutine,
+  onCreateExercise,
 }: RoutineCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [showExerciseList, setShowExerciseList] = useState(false);
@@ -250,6 +252,7 @@ export const RoutineCard = ({
           onAddExerciseToRoutine={(exerciseId) => {
             onAddExerciseToRoutine?.(routine.id, exerciseId);
           }}
+          onCreateExercise={onCreateExercise}
           initialFlowState={{ type: 'exercising', exerciseIndex: startExerciseIndex }}
         />
       )}
