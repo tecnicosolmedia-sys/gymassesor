@@ -43,6 +43,8 @@ interface WorkoutFlowProps {
   onWorkoutComplete?: (elapsedTime?: number) => void;
   onAddExerciseToRoutine?: (exerciseId: string) => void;
   onCreateExercise?: () => void;
+  newExerciseToAdd?: Exercise | null;
+  onNewExerciseHandled?: () => void;
   // Props opcionales para restaurar estado
   initialCompletedExerciseIds?: string[];
   initialFlowState?: FlowState;
@@ -72,6 +74,8 @@ export const WorkoutFlow = ({
   onWorkoutComplete,
   onAddExerciseToRoutine,
   onCreateExercise,
+  newExerciseToAdd,
+  onNewExerciseHandled,
   initialCompletedExerciseIds = [],
   initialFlowState,
   initialElapsedTime = 0,
@@ -229,6 +233,14 @@ export const WorkoutFlow = ({
       stopNotifications();
     };
   }, [stopNotifications]);
+
+  // Reaccionar a nuevo ejercicio creado desde fuera
+  useEffect(() => {
+    if (newExerciseToAdd) {
+      handleAddExtraExercise(newExerciseToAdd);
+      onNewExerciseHandled?.();
+    }
+  }, [newExerciseToAdd]);
 
   const remainingExercises = workoutExercises.filter(
     (e) => !completedExerciseIds.has(e.id)
