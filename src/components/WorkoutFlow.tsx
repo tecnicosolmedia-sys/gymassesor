@@ -465,6 +465,15 @@ export const WorkoutFlow = ({
 
           {/* Botones de acción */}
           <div className="mt-6 pt-6 border-t border-border space-y-3">
+            {availableExtraExercises.length > 0 && (
+              <button
+                onClick={() => setFlowState({ type: 'add-extra-exercise' })}
+                className="w-full py-4 rounded-xl bg-card border border-border text-foreground font-semibold flex items-center justify-center gap-2 hover:border-primary transition-all"
+              >
+                <Dumbbell className="w-5 h-5" />
+                Añadir desde biblioteca
+              </button>
+            )}
             {onCreateExercise && (
               <button
                 onClick={onCreateExercise}
