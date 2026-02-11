@@ -622,10 +622,9 @@ export const WorkoutFlow = ({
           ) : (
             <div className="space-y-3">
               {availableExtraExercises.map((exercise) => (
-                <button
+                <div
                   key={exercise.id}
-                  onClick={() => handleAddExtraExercise(exercise)}
-                  className="w-full p-4 rounded-2xl bg-card border border-border hover:border-primary transition-all flex items-center gap-4 text-left group"
+                  className="w-full p-4 rounded-2xl bg-card border border-border flex items-center gap-4 text-left"
                 >
                   <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
                     {exercise.imageUrl ? (
@@ -655,8 +654,23 @@ export const WorkoutFlow = ({
                     </p>
                   </div>
                   
-                  <Plus className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
-                </button>
+                  <button
+                    onClick={() => {
+                      // Añadir a la rutina permanentemente y empezar el ejercicio
+                      if (routineId && onAddExerciseToRoutine) {
+                        onAddExerciseToRoutine(exercise.id);
+                      }
+                      setWorkoutExercises((prev) => [...prev, exercise]);
+                      setExtraExercises((prev) => [...prev, exercise]);
+                      const newIndex = workoutExercises.length;
+                      setFlowState({ type: 'exercising', exerciseIndex: newIndex });
+                    }}
+                    className="flex-shrink-0 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-sm flex items-center gap-1.5 hover:bg-primary/90 transition-all shadow-energy"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Añadir
+                  </button>
+                </div>
               ))}
             </div>
           )}
