@@ -117,10 +117,10 @@ export const FullscreenTimer = ({
     }
   }, [vibrate]);
 
-  // Función para reproducir triple beep
-  const playTripleBeep = useCallback(() => {
-    // Vibración: 3 pulsos cortos (100ms vibra, 50ms pausa)
-    vibrate([100, 50, 100, 50, 100]);
+  // Función para reproducir beep fuerte de cuenta atrás
+  const playCountdownBeep = useCallback((secondsLeft: number) => {
+    // Vibración rítmica
+    vibrate([120, 60, 120, 60, 120]);
     
     try {
       if (!audioContextRef.current) {
@@ -129,8 +129,8 @@ export const FullscreenTimer = ({
       }
       
       const ctx = audioContextRef.current;
+      const baseFreq = 600 + (10 - secondsLeft) * 80;
       
-      // Reproducir 3 beeps rápidos
       for (let i = 0; i < 3; i++) {
         const oscillator = ctx.createOscillator();
         const gainNode = ctx.createGain();
@@ -138,25 +138,24 @@ export const FullscreenTimer = ({
         oscillator.connect(gainNode);
         gainNode.connect(ctx.destination);
         
-        oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
+        oscillator.frequency.value = baseFreq;
+        oscillator.type = 'square';
         
-        const startTime = ctx.currentTime + (i * 0.15);
-        gainNode.gain.setValueAtTime(0.4, startTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.1);
+        const startTime = ctx.currentTime + (i * 0.12);
+        gainNode.gain.setValueAtTime(0.9, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.08);
         
         oscillator.start(startTime);
-        oscillator.stop(startTime + 0.1);
+        oscillator.stop(startTime + 0.08);
       }
     } catch (e) {
       console.log('Audio not available');
     }
   }, [vibrate]);
 
-  // Función para beep final largo
-  const playFinalBeep = useCallback(() => {
-    // Vibración larga para el final
-    vibrate(500);
+  // Función para campana de ring de boxeo
+  const playBoxingBell = useCallback(() => {
+    vibrate(800);
     
     try {
       if (!audioContextRef.current) {
@@ -165,20 +164,46 @@ export const FullscreenTimer = ({
       }
       
       const ctx = audioContextRef.current;
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
       
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      
-      oscillator.frequency.value = 1000;
-      oscillator.type = 'sine';
-      
-      gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
-      
-      oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + 0.8);
+      for (let hit = 0; hit < 3; hit++) {
+        const hitTime = ctx.currentTime + hit * 0.35;
+        const frequencies = [800, 1200, 1600, 2400, 3200];
+        
+        frequencies.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = freq;
+          osc.type = i < 2 ? 'sine' : 'triangle';
+          const volume = i === 0 ? 0.7 : i === 1 ? 0.5 : 0.25;
+          gain.gain.setValueAtTime(volume, hitTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, hitTime + 0.8);
+          osc.start(hitTime);
+          osc.stop(hitTime + 0.8);
+        });
+        
+        const bufferSize = ctx.sampleRate * 0.3;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let s = 0; s < bufferSize; s++) {
+          output[s] = (Math.random() * 2 - 1) * Math.exp(-s / (ctx.sampleRate * 0.05));
+        }
+        const noiseSource = ctx.createBufferSource();
+        noiseSource.buffer = noiseBuffer;
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.value = 3000;
+        noiseFilter.Q.value = 5;
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.3, hitTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, hitTime + 0.4);
+        noiseSource.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noiseSource.start(hitTime);
+        noiseSource.stop(hitTime + 0.4);
+      }
     } catch (e) {
       console.log('Audio not available');
     }
@@ -202,7 +227,7 @@ export const FullscreenTimer = ({
           // Timer completado
           if (!hasPlayedRef.current.has(0)) {
             hasPlayedRef.current.add(0);
-            playFinalBeep();
+            playBoxingBell();
           }
           setIsComplete(true);
           setIsRunning(false);
@@ -212,10 +237,10 @@ export const FullscreenTimer = ({
         
         const newTime = prev - 1;
         
-        // Triple beep para los últimos 5 segundos
-        if (newTime <= 5 && newTime > 0 && !hasPlayedRef.current.has(newTime)) {
+        // Beep fuerte para los últimos 10 segundos
+        if (newTime <= 10 && newTime > 0 && !hasPlayedRef.current.has(newTime)) {
           hasPlayedRef.current.add(newTime);
-          playTripleBeep();
+          playCountdownBeep(newTime);
         }
         
         return newTime;
@@ -253,7 +278,7 @@ export const FullscreenTimer = ({
   };
 
   const progress = ((initialTime - timeLeft) / initialTime) * 100;
-  const isWarning = timeLeft <= 5 && timeLeft > 0;
+  const isWarning = timeLeft <= 10 && timeLeft > 0;
 
   const handleToggle = () => {
     setIsRunning(!isRunning);
