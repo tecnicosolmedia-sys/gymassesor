@@ -271,22 +271,12 @@ export const WorkoutFlow = ({
       onUpdateSetConfig(exercise.id, updatedConfigs);
     }
     
-    // Continuar con el flujo normal
-    const remaining = workoutExercises.filter(
-      (e) => !completedExerciseIds.has(e.id)
-    );
-    
-    if (remaining.length > 0) {
-      setFlowState({ 
-        type: 'rest-between-exercises', 
-        completedExerciseIndex 
-      });
-    } else if (extraExercises.length > 0) {
-      const nextExtraIndex = workoutExercises.length;
-      setFlowState({ type: 'exercising', exerciseIndex: nextExtraIndex });
-    } else {
-      setFlowState({ type: 'routine-complete' });
-    }
+    // Siempre ir al descanso entre ejercicios y luego al selector
+    // Esto permite al usuario añadir más ejercicios o terminar la sesión
+    setFlowState({ 
+      type: 'rest-between-exercises', 
+      completedExerciseIndex 
+    });
   };
 
   const handleRestComplete = () => {
@@ -407,10 +397,10 @@ export const WorkoutFlow = ({
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="font-display font-bold text-2xl text-gradient-energy">
-                Siguiente Ejercicio
+                {remainingExercises.length > 0 ? 'Siguiente Ejercicio' : '¿Seguimos?'}
               </h2>
               <p className="text-muted-foreground text-sm mt-1">
-                {routineName} · {completedExerciseIds.size}/{workoutExercises.length} completados
+                {routineName} · {completedExerciseIds.size} completado{completedExerciseIds.size !== 1 ? 's' : ''}
               </p>
             </div>
             <button

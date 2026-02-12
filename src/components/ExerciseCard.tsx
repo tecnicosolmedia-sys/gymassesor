@@ -202,7 +202,11 @@ export const ExerciseCard = ({
       exercise.sets
     );
     
-    setCompletedSets((prev) => [...prev, currentSet]);
+    const newCompletedSets = [...completedSets, currentSet];
+    setCompletedSets(newCompletedSets);
+    
+    // Sincronizar estado inmediatamente antes de notificar al padre
+    onSetStateChange?.(exercise.id, currentSet, newCompletedSets);
     
     if (currentSet < exercise.sets) {
       // Hay más series, mostrar temporizador entre series
