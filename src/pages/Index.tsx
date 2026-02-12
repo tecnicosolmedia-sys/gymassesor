@@ -15,7 +15,7 @@ import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useSavedWorkout } from '@/hooks/useSavedWorkout';
 import { Exercise, SetConfig, MuscleGroup, MUSCLE_GROUPS } from '@/types/exercise';
 import { Routine } from '@/types/routine';
-import { Dumbbell, Calendar, Pencil, Trash2 } from 'lucide-react';
+import { Dumbbell, Calendar, Pencil, Trash2, Play } from 'lucide-react';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +60,7 @@ const Index = () => {
   const [libraryMuscleFilter, setLibraryMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
   const [creatingExerciseForWorkout, setCreatingExerciseForWorkout] = useState(false);
   const [newlyCreatedExercise, setNewlyCreatedExercise] = useState<Exercise | null>(null);
+  const [showFreeWorkout, setShowFreeWorkout] = useState(false);
 
   // Manejar restauración de entrenamiento
   const handleResumeWorkout = () => {
@@ -274,9 +275,23 @@ const Index = () => {
               <Calendar className="w-5 h-5 text-primary" />
               <h2 className="font-display font-bold text-xl">Rutinas</h2>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {filteredRoutines.length} rutina{filteredRoutines.length !== 1 ? 's' : ''}
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (!currentSession) {
+                    startSession('free', 'Entrenamiento Libre');
+                  }
+                  setShowFreeWorkout(true);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-primary/20 text-primary text-sm font-semibold flex items-center gap-1.5 hover:bg-primary/30 transition-all"
+              >
+                <Play className="w-3.5 h-3.5" />
+                Libre
+              </button>
+              <span className="text-sm text-muted-foreground">
+                {filteredRoutines.length} rutina{filteredRoutines.length !== 1 ? 's' : ''}
+              </span>
+            </div>
           </div>
           
           {filteredRoutines.length === 0 ? (
@@ -550,6 +565,33 @@ const Index = () => {
           initialFlowState={savedWorkout.flowState as FlowState}
           initialElapsedTime={savedWorkout.elapsedTime}
           initialExerciseSetStates={(savedWorkout.exerciseSetStates || []) as ExerciseSetState[]}
+        />
+      )}
+
+      {/* Free Workout Flow */}
+      {showFreeWorkout && (
+        <WorkoutFlow
+          routineName="Entrenamiento Libre"
+          exercises={[]}
+          allExercises={exercises}
+          onClose={() => {
+            setShowFreeWorkout(false);
+          }}
+          onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
+            logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets);
+          }}
+          onEditExercise={handleEditExercise}
+          onDeleteExercise={handleDeleteExercise}
+          onUpdateSetConfig={handleUpdateSetConfig}
+          onWorkoutComplete={() => {
+            endSession();
+            setShowFreeWorkout(false);
+            setShowHistory(true);
+          }}
+          onCreateExercise={handleCreateExerciseForWorkout}
+          newExerciseToAdd={newlyCreatedExercise}
+          onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
+          initialFlowState={{ type: 'add-extra-exercise' }}
         />
       )}
     </div>
