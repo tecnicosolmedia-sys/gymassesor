@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Exercise, SetConfig } from '@/types/exercise';
+import { Exercise, SetConfig, MUSCLE_GROUPS, MuscleGroup } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
@@ -14,6 +14,7 @@ import { usePersonalData } from '@/hooks/usePersonalData';
 import { calculateAge, calculateCaloriesBurned } from '@/types/personalData';
 
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
+import { cn } from '@/lib/utils';
 
 // Clave para persistencia en localStorage
 const WORKOUT_STATE_KEY = 'gym-tracker-active-workout';
@@ -93,6 +94,7 @@ export const WorkoutFlow = ({
   );
   const [extraExercises, setExtraExercises] = useState<Exercise[]>([]);
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+  const [extraMuscleFilter, setExtraMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
   
   // Estado de series por ejercicio (para persistir y restaurar)
   const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(initialExerciseSetStates);
@@ -596,74 +598,112 @@ export const WorkoutFlow = ({
             </button>
           </div>
 
-          {availableExtraExercises.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Dumbbell className="w-12 h-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                No hay más ejercicios disponibles
-              </p>
+          {/* Filtros por grupo muscular */}
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            <button
+              onClick={() => setExtraMuscleFilter('todos')}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                extraMuscleFilter === 'todos'
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Todos
+            </button>
+            {MUSCLE_GROUPS.map((group) => (
               <button
-                onClick={() => setFlowState({ type: 'routine-complete' })}
-                className="mt-4 px-6 py-3 rounded-xl bg-secondary text-foreground font-medium hover:bg-secondary/80 transition-all"
+                key={group}
+                onClick={() => setExtraMuscleFilter(group)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                  extraMuscleFilter === group
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                )}
               >
-                Volver
+                {group}
               </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {availableExtraExercises.map((exercise) => (
-                <div
-                  key={exercise.id}
-                  className="w-full p-4 rounded-2xl bg-card border border-border flex items-center gap-4 text-left"
-                >
-                  <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {exercise.imageUrl ? (
-                      <img 
-                        src={exercise.imageUrl} 
-                        alt={exercise.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
-                      <img 
-                        src={getMuscleGroupIcon(exercise.muscleGroup)!} 
-                        alt={exercise.muscleGroup}
-                        className="w-12 h-12 object-contain"
-                      />
-                    ) : (
-                      <Dumbbell className="w-6 h-6 text-primary" />
-                    )}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
-                      {exercise.muscleGroup}
-                    </span>
-                    <h3 className="font-display font-bold text-lg mt-1">{exercise.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {exercise.sets} series · {exercise.reps} reps
-                    </p>
-                  </div>
-                  
+            ))}
+          </div>
+
+          {(() => {
+            const filteredExercises = extraMuscleFilter === 'todos' 
+              ? availableExtraExercises 
+              : availableExtraExercises.filter(e => e.muscleGroup === extraMuscleFilter);
+            
+            return filteredExercises.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Dumbbell className="w-12 h-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  {availableExtraExercises.length === 0
+                    ? 'No hay más ejercicios disponibles'
+                    : `No hay ejercicios de ${extraMuscleFilter}`}
+                </p>
+                {availableExtraExercises.length === 0 && (
                   <button
-                    onClick={() => {
-                      // Añadir a la rutina permanentemente y empezar el ejercicio
-                      if (routineId && onAddExerciseToRoutine) {
-                        onAddExerciseToRoutine(exercise.id);
-                      }
-                      setWorkoutExercises((prev) => [...prev, exercise]);
-                      setExtraExercises((prev) => [...prev, exercise]);
-                      const newIndex = workoutExercises.length;
-                      setFlowState({ type: 'exercising', exerciseIndex: newIndex });
-                    }}
-                    className="flex-shrink-0 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-sm flex items-center gap-1.5 hover:bg-primary/90 transition-all shadow-energy"
+                    onClick={() => setFlowState({ type: 'routine-complete' })}
+                    className="mt-4 px-6 py-3 rounded-xl bg-secondary text-foreground font-medium hover:bg-secondary/80 transition-all"
                   >
-                    <Plus className="w-4 h-4" />
-                    Añadir
+                    Volver
                   </button>
-                </div>
-              ))}
-            </div>
-          )}
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredExercises.map((exercise) => (
+                  <div
+                    key={exercise.id}
+                    className="w-full p-4 rounded-2xl bg-card border border-border flex items-center gap-4 text-left"
+                  >
+                    <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {exercise.imageUrl ? (
+                        <img 
+                          src={exercise.imageUrl} 
+                          alt={exercise.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
+                        <img 
+                          src={getMuscleGroupIcon(exercise.muscleGroup)!} 
+                          alt={exercise.muscleGroup}
+                          className="w-12 h-12 object-contain"
+                        />
+                      ) : (
+                        <Dumbbell className="w-6 h-6 text-primary" />
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
+                        {exercise.muscleGroup}
+                      </span>
+                      <h3 className="font-display font-bold text-lg mt-1">{exercise.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {exercise.sets} series · {exercise.reps} reps
+                      </p>
+                    </div>
+                    
+                    <button
+                      onClick={() => {
+                        if (routineId && onAddExerciseToRoutine) {
+                          onAddExerciseToRoutine(exercise.id);
+                        }
+                        setWorkoutExercises((prev) => [...prev, exercise]);
+                        setExtraExercises((prev) => [...prev, exercise]);
+                        const newIndex = workoutExercises.length;
+                        setFlowState({ type: 'exercising', exerciseIndex: newIndex });
+                      }}
+                      className="flex-shrink-0 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-sm flex items-center gap-1.5 hover:bg-primary/90 transition-all shadow-energy"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Añadir
+                    </button>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Botones de acción */}
           <div className="mt-6 pt-6 border-t border-border space-y-3">
