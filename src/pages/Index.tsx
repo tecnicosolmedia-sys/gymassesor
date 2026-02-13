@@ -68,6 +68,29 @@ const Index = () => {
       // Iniciar sesión si no hay una activa
       if (!currentSession && savedWorkout.routineId) {
         startSession(savedWorkout.routineId, savedWorkout.routineName);
+        
+        // Replay de ejercicios completados antes de la interrupción
+        savedWorkout.completedExerciseIds.forEach(exId => {
+          const exercise = exercises.find(e => e.id === exId);
+          const setStateData = savedWorkout.exerciseSetStates?.find(s => s.exerciseId === exId);
+          if (exercise && setStateData) {
+            setStateData.completedSets.forEach((_, idx) => {
+              const setConfig = exercise.setConfigs?.[idx];
+              logCompletedSet(
+                exercise.id,
+                exercise.name,
+                exercise.muscleGroup,
+                {
+                  setNumber: idx + 1,
+                  reps: setConfig?.reps || exercise.reps,
+                  weight: setConfig?.weight || exercise.weight,
+                  restTime: setConfig?.restTime || exercise.restBetweenSets,
+                },
+                exercise.sets
+              );
+            });
+          }
+        });
       }
       setResumingWorkout(true);
     }
