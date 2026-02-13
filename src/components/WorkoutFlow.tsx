@@ -810,7 +810,14 @@ export const WorkoutFlow = ({
                 isActive={true}
                 skipExerciseRestTimer={true}
                 onExerciseComplete={() => handleExerciseComplete(currentExercise.id)}
-                onUpdateSetConfig={onUpdateSetConfig}
+                onUpdateSetConfig={(exerciseId, setConfigs) => {
+                  // Actualizar estado local para que el resumen muestre los datos reales
+                  setWorkoutExercises(prev => prev.map(e => 
+                    e.id === exerciseId ? { ...e, setConfigs } : e
+                  ));
+                  // También notificar al padre para persistencia
+                  onUpdateSetConfig?.(exerciseId, setConfigs);
+                }}
                 initialCurrentSet={savedSetState?.currentSet}
                 initialCompletedSets={savedSetState?.completedSets}
                 onSetStateChange={handleSetStateChange}
