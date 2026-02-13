@@ -346,32 +346,6 @@ const Index = () => {
           )}
         </section>
         
-        {/* Unassigned exercises */}
-        {unassignedExercises.length > 0 && selectedMuscleFilter === 'todas' && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Dumbbell className="w-5 h-5 text-muted-foreground" />
-                <h2 className="font-display font-bold text-xl">Ejercicios sin asignar</h2>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                {unassignedExercises.length} ejercicio{unassignedExercises.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-            
-            <div className="space-y-4">
-              {unassignedExercises.map((exercise) => (
-                <ExerciseCard
-                  key={exercise.id}
-                  exercise={exercise}
-                  onEdit={handleEditExercise}
-                  onDelete={handleDeleteExercise}
-                  onSetComplete={logCompletedSet}
-                />
-              ))}
-            </div>
-          </section>
-        )}
         
         {/* All exercises library */}
         {selectedMuscleFilter === 'todas' && exercises.length > 0 && (
