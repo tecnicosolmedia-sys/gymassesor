@@ -457,6 +457,12 @@ export const FullscreenTimer = ({
               </button>
             </div>
             
+            {nextSetLabel && (
+              <p className="text-sm text-muted-foreground text-center max-w-xs px-4 py-2 rounded-lg bg-secondary/50">
+                {nextSetLabel}
+              </p>
+            )}
+            
             <button
               onClick={handleContinue}
               className="px-6 py-3 rounded-xl bg-primary/20 text-primary font-medium flex items-center gap-2 hover:bg-primary/30 transition-all border border-primary/30"
