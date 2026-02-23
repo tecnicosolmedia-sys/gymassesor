@@ -11,7 +11,10 @@ import {
   Clock,
   FileText,
   CheckCircle,
+  BarChart3,
 } from 'lucide-react';
+import { WorkoutSession } from '@/types/workoutHistory';
+import { ExerciseProgressChart } from './ExerciseProgressChart';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
@@ -42,6 +45,8 @@ interface ExerciseCardProps {
   globalElapsedTime?: number;
   globalIsRunning?: boolean;
   onGlobalToggle?: () => void;
+  // Historial para gráfica de progresión
+  workoutSessions?: WorkoutSession[];
 }
 
 export const ExerciseCard = ({ 
@@ -60,6 +65,7 @@ export const ExerciseCard = ({
   globalElapsedTime,
   globalIsRunning,
   onGlobalToggle,
+  workoutSessions = [],
 }: ExerciseCardProps) => {
   const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
@@ -67,6 +73,8 @@ export const ExerciseCard = ({
   const [timerType, setTimerType] = useState<'set' | 'exercise'>('set');
   const [completedSets, setCompletedSets] = useState<number[]>(initialCompletedSets);
   
+  const [showChart, setShowChart] = useState(false);
+
   // Estado local para las configuraciones editables
   const [localSetConfigs, setLocalSetConfigs] = useState<SetConfig[]>(() => {
     return exercise.setConfigs || Array.from({ length: exercise.sets }, (_, i) => ({
@@ -418,6 +426,18 @@ export const ExerciseCard = ({
               )}
             </div>
             
+            {/* Progresión de peso (gráfica inline) */}
+            {workoutSessions.length > 0 && (
+              <div className="p-3 rounded-xl bg-secondary/30">
+                <ExerciseProgressChart
+                  exerciseId={exercise.id}
+                  exerciseName={exercise.name}
+                  sessions={workoutSessions}
+                  inline
+                />
+              </div>
+            )}
+
             {/* Rest time info */}
             <div className="p-3 rounded-xl bg-secondary/30 flex items-center gap-3">
               <Clock className="w-5 h-5 text-warning" />

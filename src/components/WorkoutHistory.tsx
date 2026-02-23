@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { WorkoutSession } from '@/types/workoutHistory';
+import { ExerciseProgressChart } from './ExerciseProgressChart';
 import { 
   Calendar, 
   Clock, 
@@ -9,7 +10,8 @@ import {
   Trash2,
   TrendingUp,
   X,
-  Weight
+  Weight,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -25,6 +27,7 @@ interface WorkoutHistoryProps {
 export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHistoryProps) => {
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [selectedRoutine, setSelectedRoutine] = useState<string | 'todas'>('todas');
+  const [chartExercise, setChartExercise] = useState<{ id: string; name: string } | null>(null);
 
   // Obtener lista única de rutinas
   const routineNames = useMemo(() => {
@@ -244,9 +247,21 @@ export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHi
                               <p className="text-xs text-muted-foreground">{exercise.muscleGroup}</p>
                             </div>
                           </div>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                            {exercise.completedSets.length} series
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setChartExercise({ id: exercise.exerciseId, name: exercise.exerciseName });
+                              }}
+                              className="p-1 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                              title="Ver progresión"
+                            >
+                              <BarChart3 className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                              {exercise.completedSets.length} series
+                            </span>
+                          </div>
                         </div>
                         
                         {/* Sets grid */}
@@ -295,6 +310,16 @@ export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHi
           </div>
         )}
       </div>
+
+      {/* Chart modal */}
+      {chartExercise && (
+        <ExerciseProgressChart
+          exerciseId={chartExercise.id}
+          exerciseName={chartExercise.name}
+          sessions={sessions}
+          onClose={() => setChartExercise(null)}
+        />
+      )}
     </div>
   );
 };

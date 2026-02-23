@@ -15,9 +15,10 @@ import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useSavedWorkout } from '@/hooks/useSavedWorkout';
 import { Exercise, SetConfig, MuscleGroup, MUSCLE_GROUPS } from '@/types/exercise';
 import { Routine } from '@/types/routine';
-import { Dumbbell, Calendar, Pencil, Trash2, Play } from 'lucide-react';
+import { Dumbbell, Calendar, Pencil, Trash2, Play, BarChart3 } from 'lucide-react';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { cn } from '@/lib/utils';
+import { ExerciseProgressChart } from '@/components/ExerciseProgressChart';
 
 const Index = () => {
   const { 
@@ -61,6 +62,7 @@ const Index = () => {
   const [creatingExerciseForWorkout, setCreatingExerciseForWorkout] = useState(false);
   const [newlyCreatedExercise, setNewlyCreatedExercise] = useState<Exercise | null>(null);
   const [showFreeWorkout, setShowFreeWorkout] = useState(false);
+  const [libraryChartExercise, setLibraryChartExercise] = useState<{ id: string; name: string } | null>(null);
 
   // Manejar restauración de entrenamiento
   const handleResumeWorkout = () => {
@@ -363,6 +365,7 @@ const Index = () => {
                   onCreateExercise={handleCreateExerciseForWorkout}
                   newExerciseToAdd={newlyCreatedExercise}
                   onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
+                  workoutSessions={sessions}
                 />
               ))}
             </div>
@@ -468,6 +471,16 @@ const Index = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              setLibraryChartExercise({ id: exercise.id, name: exercise.name });
+                            }}
+                            className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/20 active:bg-primary/20 transition-colors"
+                            title="Ver progresión"
+                          >
+                            <BarChart3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
                               handleEditExercise(exercise);
                             }}
                             className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/20 active:bg-primary/20 transition-colors"
@@ -528,6 +541,16 @@ const Index = () => {
       {showPersonalData && (
         <PersonalDataForm onClose={() => setShowPersonalData(false)} />
       )}
+
+      {/* Library Chart Modal */}
+      {libraryChartExercise && (
+        <ExerciseProgressChart
+          exerciseId={libraryChartExercise.id}
+          exerciseName={libraryChartExercise.name}
+          sessions={sessions}
+          onClose={() => setLibraryChartExercise(null)}
+        />
+      )}
       
       {/* Workout Flow para restaurar entrenamiento */}
       {resumingWorkout && savedWorkout && savedRoutine && (
@@ -562,6 +585,7 @@ const Index = () => {
           initialFlowState={savedWorkout.flowState as FlowState}
           initialElapsedTime={savedWorkout.elapsedTime}
           initialExerciseSetStates={(savedWorkout.exerciseSetStates || []) as ExerciseSetState[]}
+          workoutSessions={sessions}
         />
       )}
 
@@ -589,6 +613,7 @@ const Index = () => {
           newExerciseToAdd={newlyCreatedExercise}
           onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
           initialFlowState={{ type: 'add-extra-exercise' }}
+          workoutSessions={sessions}
         />
       )}
     </div>

@@ -1,5 +1,6 @@
 import { Routine } from '@/types/routine';
 import { Exercise, SetConfig } from '@/types/exercise';
+import { WorkoutSession } from '@/types/workoutHistory';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutFlow } from './WorkoutFlow';
 import { StartWorkoutSelector } from './StartWorkoutSelector';
@@ -29,6 +30,7 @@ interface RoutineCardProps {
   onCreateExercise?: () => void;
   newExerciseToAdd?: Exercise | null;
   onNewExerciseHandled?: () => void;
+  workoutSessions?: WorkoutSession[];
 }
 
 export const RoutineCard = ({
@@ -46,6 +48,7 @@ export const RoutineCard = ({
   onCreateExercise,
   newExerciseToAdd,
   onNewExerciseHandled,
+  workoutSessions = [],
 }: RoutineCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [showExerciseList, setShowExerciseList] = useState(false);
@@ -219,6 +222,7 @@ export const RoutineCard = ({
                     onEdit={onEditExercise}
                     onDelete={onDeleteExercise}
                     onSetComplete={onSetComplete}
+                    workoutSessions={workoutSessions}
                   />
                 ))}
               </>
@@ -260,6 +264,7 @@ export const RoutineCard = ({
           newExerciseToAdd={newExerciseToAdd}
           onNewExerciseHandled={onNewExerciseHandled}
           initialFlowState={{ type: 'exercising', exerciseIndex: startExerciseIndex }}
+          workoutSessions={workoutSessions}
         />
       )}
     </>
