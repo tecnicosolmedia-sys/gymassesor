@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Exercise, SetConfig, MUSCLE_GROUPS, MuscleGroup } from '@/types/exercise';
+import { WorkoutSession } from '@/types/workoutHistory';
 import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
@@ -52,6 +53,7 @@ interface WorkoutFlowProps {
   initialElapsedTime?: number;
   // Estado inicial de series por ejercicio
   initialExerciseSetStates?: ExerciseSetState[];
+  workoutSessions?: WorkoutSession[];
 }
 
 export type FlowState = 
@@ -81,6 +83,7 @@ export const WorkoutFlow = ({
   initialFlowState,
   initialElapsedTime = 0,
   initialExerciseSetStates = [],
+  workoutSessions = [],
 }: WorkoutFlowProps) => {
   const [workoutExercises, setWorkoutExercises] = useState<Exercise[]>(initialExercises);
   // Estado para el diálogo de guardar ejercicio en rutina
@@ -824,6 +827,7 @@ export const WorkoutFlow = ({
                 globalElapsedTime={elapsedTime}
                 globalIsRunning={isRunning}
                 onGlobalToggle={toggle}
+                workoutSessions={workoutSessions}
               />
             );
           })()}
