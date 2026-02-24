@@ -1,16 +1,15 @@
-import { useState } from 'react';
 import { WorkoutSession } from '@/types/workoutHistory';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { BarChart3, X } from 'lucide-react';
+import { BarChart3, X, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ExerciseProgressChartProps {
   exerciseId: string;
   exerciseName: string;
   sessions: WorkoutSession[];
-  inline?: boolean; // If true, render without modal wrapper
+  inline?: boolean;
   onClose?: () => void;
 }
 
@@ -27,6 +26,12 @@ const SET_COLORS = [
   'hsl(320 70% 50%)',
 ];
 
+interface SetChartData {
+  date: string;
+  fullDate: string;
+  weight: number;
+}
+
 export const ExerciseProgressChart = ({
   exerciseId,
   exerciseName,
@@ -34,33 +39,31 @@ export const ExerciseProgressChart = ({
   inline = false,
   onClose,
 }: ExerciseProgressChartProps) => {
-  // Extract data for this exercise across all sessions
-  const chartData: { date: string; fullDate: string; [key: string]: number | string }[] = [];
-  let maxSets = 0;
-
   // Sort sessions by date ascending
   const sortedSessions = [...sessions]
     .filter(s => s.exercises.some(e => e.exerciseId === exerciseId))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+  // Build per-set data
+  let maxSets = 0;
+  const perSetData: Map<number, SetChartData[]> = new Map();
+
   sortedSessions.forEach(session => {
     const exercise = session.exercises.find(e => e.exerciseId === exerciseId);
     if (!exercise || exercise.completedSets.length === 0) return;
 
-    const entry: { date: string; fullDate: string; [key: string]: number | string } = {
-      date: format(new Date(session.date), 'd MMM', { locale: es }),
-      fullDate: format(new Date(session.date), "EEEE d 'de' MMMM", { locale: es }),
-    };
-
     exercise.completedSets.forEach(set => {
-      entry[`Serie ${set.setNumber}`] = set.weight;
       if (set.setNumber > maxSets) maxSets = set.setNumber;
+      if (!perSetData.has(set.setNumber)) perSetData.set(set.setNumber, []);
+      perSetData.get(set.setNumber)!.push({
+        date: format(new Date(session.date), 'd MMM', { locale: es }),
+        fullDate: format(new Date(session.date), "EEEE d 'de' MMMM", { locale: es }),
+        weight: set.weight,
+      });
     });
-
-    chartData.push(entry);
   });
 
-  if (chartData.length === 0) {
+  if (perSetData.size === 0) {
     const emptyContent = (
       <div className="flex flex-col items-center justify-center py-8 text-center">
         <BarChart3 className="w-10 h-10 text-muted-foreground mb-3" />
@@ -87,7 +90,7 @@ export const ExerciseProgressChart = ({
     );
   }
 
-  const setKeys = Array.from({ length: maxSets }, (_, i) => `Serie ${i + 1}`);
+  const setNumbers = Array.from({ length: maxSets }, (_, i) => i + 1);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -95,50 +98,66 @@ export const ExerciseProgressChart = ({
     return (
       <div className="rounded-xl border border-border bg-background px-3 py-2 shadow-xl text-xs">
         <p className="font-medium mb-1 capitalize">{fullDate}</p>
-        {payload.map((p: any, i: number) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-            <span className="text-muted-foreground">{p.name}:</span>
-            <span className="font-semibold">{p.value}kg</span>
-          </div>
-        ))}
+        <span className="font-semibold">{payload[0].value}kg</span>
       </div>
     );
   };
 
-  const chart = (
-    <div className="w-full">
-      <ResponsiveContainer width="100%" height={220}>
-        <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-          <XAxis
-            dataKey="date"
-            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-            stroke="hsl(var(--border))"
-          />
-          <YAxis
-            tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-            stroke="hsl(var(--border))"
-            unit="kg"
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            wrapperStyle={{ fontSize: '11px' }}
-          />
-          {setKeys.map((key, i) => (
+  const renderSetChart = (setNum: number) => {
+    const data = perSetData.get(setNum) || [];
+    if (data.length === 0) return null;
+    const maxWeight = Math.max(...data.map(d => d.weight));
+    const color = SET_COLORS[(setNum - 1) % SET_COLORS.length];
+
+    return (
+      <div key={setNum} className="rounded-xl border border-border bg-secondary/20 p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+            <span className="text-xs font-semibold">Serie {setNum}</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-primary font-bold">
+            <TrendingUp className="w-3 h-3" />
+            {maxWeight}kg
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={100}>
+          <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+              stroke="hsl(var(--border))"
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+              stroke="hsl(var(--border))"
+              tickLine={false}
+              axisLine={false}
+              width={35}
+              unit="kg"
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <ReferenceLine y={maxWeight} stroke={color} strokeDasharray="3 3" opacity={0.5} />
             <Line
-              key={key}
               type="monotone"
-              dataKey={key}
-              stroke={SET_COLORS[i % SET_COLORS.length]}
+              dataKey="weight"
+              stroke={color}
               strokeWidth={2}
-              dot={{ r: 3, strokeWidth: 2 }}
+              dot={{ r: 3, strokeWidth: 2, fill: 'hsl(var(--background))' }}
               activeDot={{ r: 5 }}
               connectNulls
             />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  };
+
+  const charts = (
+    <div className="space-y-3">
+      {setNumbers.map(renderSetChart)}
     </div>
   );
 
@@ -149,14 +168,14 @@ export const ExerciseProgressChart = ({
           <BarChart3 className="w-4 h-4" />
           Progresión de peso
         </div>
-        {chart}
+        {charts}
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-lg rounded-2xl card-gradient border border-border p-4">
+    <div className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-lg rounded-2xl card-gradient border border-border p-4 my-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-display font-bold text-lg">{exerciseName}</h3>
@@ -168,9 +187,9 @@ export const ExerciseProgressChart = ({
             </button>
           )}
         </div>
-        {chart}
-        <p className="text-xs text-muted-foreground text-center mt-2">
-          {chartData.length} sesión{chartData.length !== 1 ? 'es' : ''} registrada{chartData.length !== 1 ? 's' : ''}
+        {charts}
+        <p className="text-xs text-muted-foreground text-center mt-3">
+          {sortedSessions.length} sesión{sortedSessions.length !== 1 ? 'es' : ''} registrada{sortedSessions.length !== 1 ? 's' : ''}
         </p>
       </div>
     </div>
