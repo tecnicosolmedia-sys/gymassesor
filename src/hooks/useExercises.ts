@@ -1,81 +1,65 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Exercise, SetConfig } from '@/types/exercise';
+import { supabase } from '@/integrations/supabase/client';
 
-const STORAGE_KEY = 'gym-tracker-exercises';
+const LOCAL_STORAGE_KEY = 'gym-tracker-exercises-local';
 
-const defaultExercises: Exercise[] = [
-  {
-    id: '1',
-    name: 'Press de Banca',
-    sets: 4,
-    reps: 10,
-    weight: 60,
-    setConfigs: [
-      { setNumber: 1, reps: 10, weight: 50, restTime: 90 },
-      { setNumber: 2, reps: 10, weight: 60, restTime: 90 },
-      { setNumber: 3, reps: 10, weight: 60, restTime: 90 },
-      { setNumber: 4, reps: 8, weight: 55, restTime: 90 },
-    ],
-    restBetweenSets: 90,
-    restAfterExercise: 180,
-    notes: 'Mantén los codos a 45 grados. Baja la barra hasta el pecho controladamente.',
-    caloriesPerSet: 8,
-    muscleGroup: 'Pecho',
-    createdAt: new Date(),
-  },
-  {
-    id: '2',
-    name: 'Sentadillas',
-    sets: 4,
-    reps: 12,
-    weight: 80,
-    setConfigs: [
-      { setNumber: 1, reps: 12, weight: 60, restTime: 120 },
-      { setNumber: 2, reps: 12, weight: 80, restTime: 120 },
-      { setNumber: 3, reps: 10, weight: 80, restTime: 120 },
-      { setNumber: 4, reps: 10, weight: 70, restTime: 120 },
-    ],
-    restBetweenSets: 120,
-    restAfterExercise: 180,
-    notes: 'Rodillas en línea con los pies. Profundidad paralela o más.',
-    caloriesPerSet: 12,
-    muscleGroup: 'Piernas',
-    createdAt: new Date(),
-  },
-  {
-    id: '3',
-    name: 'Peso Muerto',
-    sets: 3,
-    reps: 8,
-    weight: 100,
-    setConfigs: [
-      { setNumber: 1, reps: 8, weight: 80, restTime: 150 },
-      { setNumber: 2, reps: 8, weight: 100, restTime: 150 },
-      { setNumber: 3, reps: 6, weight: 100, restTime: 150 },
-    ],
-    restBetweenSets: 150,
-    restAfterExercise: 180,
-    notes: 'Espalda recta. Empuja con los talones. Bloquea cadera arriba.',
-    caloriesPerSet: 15,
-    muscleGroup: 'Espalda',
-    createdAt: new Date(),
-  },
-];
+const mapDbToExercise = (row: any): Exercise => ({
+  id: row.id,
+  name: row.name,
+  sets: row.sets,
+  reps: row.reps,
+  weight: Number(row.weight),
+  setConfigs: (row.set_configs as any[]) || [],
+  restBetweenSets: row.rest_between_sets,
+  restAfterExercise: row.rest_after_exercise,
+  notes: row.notes,
+  caloriesPerSet: Number(row.calories_per_set),
+  muscleGroup: row.muscle_group,
+  imageUrl: row.image_url ?? undefined,
+  videoUrl: row.video_url ?? undefined,
+  createdAt: new Date(row.created_at),
+});
+
+const mapExerciseToDb = (e: Omit<Exercise, 'id' | 'createdAt'>) => ({
+  name: e.name,
+  sets: e.sets,
+  reps: e.reps,
+  weight: e.weight,
+  set_configs: JSON.parse(JSON.stringify(e.setConfigs)),
+  rest_between_sets: e.restBetweenSets,
+  rest_after_exercise: e.restAfterExercise,
+  notes: e.notes,
+  calories_per_set: e.caloriesPerSet,
+  muscle_group: e.muscleGroup,
+  image_url: e.imageUrl ?? null,
+  video_url: e.videoUrl ?? null,
+});
 
 export const useExercises = () => {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [cloudExercises, setCloudExercises] = useState<Exercise[]>([]);
+  const [localExercises, setLocalExercises] = useState<Exercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Load local exercises from localStorage (migrate from old key if needed)
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    let stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    // Migrate from old storage key
+    const oldKey = 'gym-tracker-exercises';
+    if (!stored) {
+      const oldStored = localStorage.getItem(oldKey);
+      if (oldStored) {
+        stored = oldStored;
+        localStorage.removeItem(oldKey);
+      }
+    }
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        setExercises(parsed.map((e: any) => ({
+        setLocalExercises(parsed.map((e: any) => ({
           ...e,
           createdAt: new Date(e.createdAt),
-          // Asegurar que setConfigs existe con reps
-          setConfigs: e.setConfigs ? e.setConfigs.map((config: any, i: number) => ({
+          setConfigs: e.setConfigs ? e.setConfigs.map((config: any) => ({
             ...config,
             reps: config.reps || e.reps,
           })) : Array.from({ length: e.sets }, (_, i) => ({
@@ -86,38 +70,93 @@ export const useExercises = () => {
           })),
         })));
       } catch {
-        setExercises(defaultExercises);
+        setLocalExercises([]);
       }
-    } else {
-      setExercises(defaultExercises);
+    }
+  }, []);
+
+  // Persist local exercises
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localExercises));
+    }
+  }, [localExercises, isLoading]);
+
+  // Fetch cloud exercises
+  const fetchCloudExercises = useCallback(async () => {
+    const { data, error } = await supabase.from('exercises').select('*').order('created_at', { ascending: true });
+    if (!error && data) {
+      setCloudExercises(data.map(mapDbToExercise));
     }
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
-    if (!isLoading) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(exercises));
-    }
-  }, [exercises, isLoading]);
+    fetchCloudExercises();
 
-  const addExercise = (exercise: Omit<Exercise, 'id' | 'createdAt'>) => {
-    const newExercise: Exercise = {
+    // Realtime subscription
+    const channel = supabase
+      .channel('exercises-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'exercises' }, () => {
+        fetchCloudExercises();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchCloudExercises]);
+
+  // Merged list: cloud first, then local
+  const exercises = [...cloudExercises, ...localExercises];
+
+  const addExercise = async (exercise: Omit<Exercise, 'id' | 'createdAt'>) => {
+    // Add to cloud so all users can see it
+    const { data, error } = await supabase.from('exercises').insert([mapExerciseToDb(exercise)]).select().single();
+    if (!error && data) {
+      const newExercise = mapDbToExercise(data);
+      setCloudExercises(prev => [...prev, newExercise]);
+      return newExercise;
+    }
+    // Fallback to local if cloud fails
+    const localExercise: Exercise = {
       ...exercise,
       id: crypto.randomUUID(),
       createdAt: new Date(),
     };
-    setExercises((prev) => [...prev, newExercise]);
-    return newExercise;
+    setLocalExercises(prev => [...prev, localExercise]);
+    return localExercise;
   };
 
-  const updateExercise = (id: string, updates: Partial<Exercise>) => {
-    setExercises((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...updates } : e))
-    );
+  const updateExercise = async (id: string, updates: Partial<Exercise>) => {
+    const isCloud = cloudExercises.some(e => e.id === id);
+    if (isCloud) {
+      const dbUpdates: any = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.sets !== undefined) dbUpdates.sets = updates.sets;
+      if (updates.reps !== undefined) dbUpdates.reps = updates.reps;
+      if (updates.weight !== undefined) dbUpdates.weight = updates.weight;
+      if (updates.setConfigs !== undefined) dbUpdates.set_configs = JSON.parse(JSON.stringify(updates.setConfigs));
+      if (updates.restBetweenSets !== undefined) dbUpdates.rest_between_sets = updates.restBetweenSets;
+      if (updates.restAfterExercise !== undefined) dbUpdates.rest_after_exercise = updates.restAfterExercise;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+      if (updates.caloriesPerSet !== undefined) dbUpdates.calories_per_set = updates.caloriesPerSet;
+      if (updates.muscleGroup !== undefined) dbUpdates.muscle_group = updates.muscleGroup;
+      if (updates.imageUrl !== undefined) dbUpdates.image_url = updates.imageUrl;
+      if (updates.videoUrl !== undefined) dbUpdates.video_url = updates.videoUrl;
+      await supabase.from('exercises').update(dbUpdates).eq('id', id);
+      setCloudExercises(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+    } else {
+      setLocalExercises(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+    }
   };
 
-  const deleteExercise = (id: string) => {
-    setExercises((prev) => prev.filter((e) => e.id !== id));
+  const deleteExercise = async (id: string) => {
+    const isCloud = cloudExercises.some(e => e.id === id);
+    if (isCloud) {
+      await supabase.from('exercises').delete().eq('id', id);
+      setCloudExercises(prev => prev.filter(e => e.id !== id));
+    } else {
+      setLocalExercises(prev => prev.filter(e => e.id !== id));
+    }
   };
 
   return {

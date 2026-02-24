@@ -14,7 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      exercises: {
+        Row: {
+          calories_per_set: number
+          created_at: string
+          id: string
+          image_url: string | null
+          muscle_group: string
+          name: string
+          notes: string
+          reps: number
+          rest_after_exercise: number
+          rest_between_sets: number
+          set_configs: Json
+          sets: number
+          video_url: string | null
+          weight: number
+        }
+        Insert: {
+          calories_per_set?: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          muscle_group?: string
+          name: string
+          notes?: string
+          reps?: number
+          rest_after_exercise?: number
+          rest_between_sets?: number
+          set_configs?: Json
+          sets?: number
+          video_url?: string | null
+          weight?: number
+        }
+        Update: {
+          calories_per_set?: number
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          muscle_group?: string
+          name?: string
+          notes?: string
+          reps?: number
+          rest_after_exercise?: number
+          rest_between_sets?: number
+          set_configs?: Json
+          sets?: number
+          video_url?: string | null
+          weight?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

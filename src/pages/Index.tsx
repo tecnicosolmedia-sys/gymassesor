@@ -142,11 +142,11 @@ const Index = () => {
     setShowRoutineForm(true);
   };
 
-  const handleSaveExercise = (data: Omit<Exercise, 'id' | 'createdAt'>) => {
+  const handleSaveExercise = async (data: Omit<Exercise, 'id' | 'createdAt'>) => {
     if (editingExercise) {
-      updateExercise(editingExercise.id, data);
+      await updateExercise(editingExercise.id, data);
     } else {
-      const newExercise = addExercise(data);
+      const newExercise = await addExercise(data);
       if (creatingExerciseForWorkout && newExercise) {
         setNewlyCreatedExercise(newExercise);
       }
