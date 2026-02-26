@@ -421,6 +421,15 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                           : "bg-secondary border border-transparent hover:border-border"
                       )}
                     >
+                      <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {exercise.imageUrl ? (
+                          <img src={exercise.imageUrl} alt={exercise.name} className="w-full h-full object-cover" />
+                        ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
+                          <img src={getMuscleGroupIcon(exercise.muscleGroup)!} alt={exercise.muscleGroup} className="w-7 h-7 object-contain opacity-70" />
+                        ) : (
+                          <span className="text-xs font-bold text-muted-foreground">💪</span>
+                        )}
+                      </div>
                       <div className={cn(
                         "w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0",
                         selectedExercises.includes(exercise.id)
