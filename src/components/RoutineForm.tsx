@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Routine } from '@/types/routine';
-import { Exercise, MuscleGroup, MUSCLE_GROUPS } from '@/types/exercise';
-import { X, Calendar, Plus, Check, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
+import { Exercise, MuscleGroup, MUSCLE_GROUPS, SetConfig } from '@/types/exercise';
+import { X, Calendar, Plus, Check, ChevronUp, ChevronDown, GripVertical, Settings2, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
@@ -9,13 +9,15 @@ interface RoutineFormProps {
   routine?: Routine | null;
   exercises: Exercise[];
   onSave: (routine: Omit<Routine, 'id' | 'createdAt'>) => void;
+  onUpdateExercise?: (id: string, updates: Partial<Exercise>) => void;
   onClose: () => void;
 }
 
-export const RoutineForm = ({ routine, exercises, onSave, onClose }: RoutineFormProps) => {
+export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onClose }: RoutineFormProps) => {
   const [name, setName] = useState(routine?.name || '');
   const [selectedExercises, setSelectedExercises] = useState<string[]>(routine?.exerciseIds || []);
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
+  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
 
   const filteredExercises = useMemo(() => {
     if (muscleFilter === 'todos') return exercises;
@@ -28,6 +30,33 @@ export const RoutineForm = ({ routine, exercises, onSave, onClose }: RoutineForm
       .map(id => exercises.find(e => e.id === id))
       .filter((e): e is Exercise => e !== undefined);
   }, [selectedExercises, exercises]);
+
+  const handleUpdateExerciseField = (exerciseId: string, field: string, delta: number) => {
+    const exercise = exercises.find(e => e.id === exerciseId);
+    if (!exercise || !onUpdateExercise) return;
+
+    if (field === 'sets') {
+      const newSets = Math.max(1, Math.min(10, exercise.sets + delta));
+      const newConfigs = [...exercise.setConfigs];
+      while (newConfigs.length < newSets) {
+        const last = newConfigs[newConfigs.length - 1] || { reps: exercise.reps, weight: exercise.weight, restTime: exercise.restBetweenSets };
+        newConfigs.push({ setNumber: newConfigs.length + 1, reps: last.reps, weight: last.weight, restTime: last.restTime });
+      }
+      onUpdateExercise(exerciseId, { sets: newSets, setConfigs: newConfigs.slice(0, newSets) });
+    } else if (field === 'reps') {
+      const newReps = Math.max(1, exercise.reps + delta);
+      const newConfigs = exercise.setConfigs.map(c => ({ ...c, reps: newReps }));
+      onUpdateExercise(exerciseId, { reps: newReps, setConfigs: newConfigs });
+    } else if (field === 'weight') {
+      const newWeight = Math.max(0, exercise.weight + delta);
+      const newConfigs = exercise.setConfigs.map(c => ({ ...c, weight: newWeight }));
+      onUpdateExercise(exerciseId, { weight: newWeight, setConfigs: newConfigs });
+    } else if (field === 'restBetweenSets') {
+      const newRest = Math.max(0, exercise.restBetweenSets + delta);
+      const newConfigs = exercise.setConfigs.map(c => ({ ...c, restTime: newRest }));
+      onUpdateExercise(exerciseId, { restBetweenSets: newRest, setConfigs: newConfigs });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,51 +130,135 @@ export const RoutineForm = ({ routine, exercises, onSave, onClose }: RoutineForm
                 </label>
                 <div className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border">
                   {orderedSelectedExercises.map((exercise, index) => (
-                    <div
-                      key={exercise.id}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border"
-                    >
-                      <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {getMuscleGroupIcon(exercise.muscleGroup) ? (
-                          <img 
-                            src={getMuscleGroupIcon(exercise.muscleGroup)!} 
-                            alt={exercise.muscleGroup}
-                            className="w-6 h-6 object-contain"
-                          />
-                        ) : (
-                          <span className="text-xs font-bold text-primary">{index + 1}</span>
+                    <div key={exercise.id} className="space-y-0">
+                      <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border">
+                        <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {getMuscleGroupIcon(exercise.muscleGroup) ? (
+                            <img 
+                              src={getMuscleGroupIcon(exercise.muscleGroup)!} 
+                              alt={exercise.muscleGroup}
+                              className="w-6 h-6 object-contain"
+                            />
+                          ) : (
+                            <span className="text-xs font-bold text-primary">{index + 1}</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{exercise.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {exercise.sets}×{exercise.reps} · {exercise.weight}kg · {exercise.restBetweenSets}s
+                          </p>
+                        </div>
+                        {onUpdateExercise && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedExerciseId(expandedExerciseId === exercise.id ? null : exercise.id)}
+                            className={cn(
+                              "p-1.5 rounded-lg transition-colors flex-shrink-0",
+                              expandedExerciseId === exercise.id
+                                ? "bg-primary/20 text-primary"
+                                : "bg-secondary text-muted-foreground hover:text-foreground"
+                            )}
+                            title="Editar configuración"
+                          >
+                            <Settings2 className="w-4 h-4" />
+                          </button>
                         )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{exercise.name}</p>
-                        <p className="text-xs text-muted-foreground">{exercise.muscleGroup}</p>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => moveExercise(index, 'up')}
+                            disabled={index === 0}
+                            className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveExercise(index, 'down')}
+                            disabled={index === orderedSelectedExercises.length - 1}
+                            className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </button>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => moveExercise(index, 'up')}
-                          disabled={index === 0}
-                          className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          onClick={() => toggleExercise(exercise.id)}
+                          className="p-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
                         >
-                          <ChevronUp className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveExercise(index, 'down')}
-                          disabled={index === orderedSelectedExercises.length - 1}
-                          className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <ChevronDown className="w-4 h-4" />
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => toggleExercise(exercise.id)}
-                        className="p-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      
+                      {/* Inline exercise config editor */}
+                      {expandedExerciseId === exercise.id && onUpdateExercise && (
+                        <div className="mx-2 p-3 rounded-b-lg bg-card/50 border border-t-0 border-border animate-fade-in">
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* Series */}
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-xs text-muted-foreground">Series</span>
+                              <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'sets', -1)}
+                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                  <Minus className="w-3.5 h-3.5" />
+                                </button>
+                                <span className="font-lcd text-xl text-primary w-8 text-center">{exercise.sets}</span>
+                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'sets', 1)}
+                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            {/* Repeticiones */}
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-xs text-muted-foreground">Reps</span>
+                              <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'reps', -1)}
+                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                  <Minus className="w-3.5 h-3.5" />
+                                </button>
+                                <span className="font-lcd text-xl text-primary w-8 text-center">{exercise.reps}</span>
+                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'reps', 1)}
+                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            {/* Peso */}
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-xs text-muted-foreground">Peso (kg)</span>
+                              <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'weight', -0.5)}
+                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                  <Minus className="w-3.5 h-3.5" />
+                                </button>
+                                <span className="font-lcd text-xl text-primary w-10 text-center">{exercise.weight}</span>
+                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'weight', 0.5)}
+                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            {/* Descanso */}
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-xs text-muted-foreground">Descanso (s)</span>
+                              <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'restBetweenSets', -5)}
+                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                  <Minus className="w-3.5 h-3.5" />
+                                </button>
+                                <span className="font-lcd text-xl text-primary w-10 text-center">{exercise.restBetweenSets}</span>
+                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'restBetweenSets', 5)}
+                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
