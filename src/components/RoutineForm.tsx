@@ -230,53 +230,51 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                                     </button>
                                   )}
                                 </div>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="flex items-center justify-between gap-1">
                                   {/* Reps */}
-                                  <div className="flex flex-col items-center gap-0.5">
+                                  <div className="flex flex-col items-center flex-1 min-w-0">
                                     <span className="text-[10px] text-muted-foreground">Reps</span>
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center">
                                       <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'reps', -1)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
                                         <Minus className="w-3 h-3" />
                                       </button>
-                                      <span className="font-lcd text-base text-primary w-6 text-center">{setConfig.reps}</span>
+                                      <span className="font-lcd text-sm text-primary min-w-[24px] text-center">{setConfig.reps}</span>
                                       <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'reps', 1)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
                                         <Plus className="w-3 h-3" />
                                       </button>
                                     </div>
                                   </div>
                                   {/* Weight */}
-                                  <div className="flex flex-col items-center gap-0.5">
+                                  <div className="flex flex-col items-center flex-1 min-w-0">
                                     <span className="text-[10px] text-muted-foreground">Peso</span>
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center">
                                       <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'weight', -0.5)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
                                         <Minus className="w-3 h-3" />
                                       </button>
-                                      <span className="font-lcd text-base text-primary w-8 text-center">{setConfig.weight}</span>
+                                      <span className="font-lcd text-sm text-primary min-w-[28px] text-center">{setConfig.weight}<span className="text-[8px] text-muted-foreground">kg</span></span>
                                       <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'weight', 0.5)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
                                         <Plus className="w-3 h-3" />
                                       </button>
                                     </div>
-                                    <span className="text-[9px] text-muted-foreground">kg</span>
                                   </div>
                                   {/* Rest */}
-                                  <div className="flex flex-col items-center gap-0.5">
+                                  <div className="flex flex-col items-center flex-1 min-w-0">
                                     <span className="text-[10px] text-muted-foreground">Desc.</span>
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center">
                                       <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'restTime', -5)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
                                         <Minus className="w-3 h-3" />
                                       </button>
-                                      <span className="font-lcd text-base text-primary w-8 text-center">{setConfig.restTime}</span>
+                                      <span className="font-lcd text-sm text-primary min-w-[28px] text-center">{setConfig.restTime}<span className="text-[8px] text-muted-foreground">s</span></span>
                                       <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'restTime', 5)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
                                         <Plus className="w-3 h-3" />
                                       </button>
                                     </div>
-                                    <span className="text-[9px] text-muted-foreground">seg</span>
                                   </div>
                                 </div>
                               </div>
