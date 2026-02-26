@@ -606,7 +606,7 @@ const Index = () => {
                 {previewExercise.notes && (
                   <div className="p-3 rounded-xl bg-secondary/50">
                     <p className="text-sm font-medium mb-1">Observaciones</p>
-                    <p className="text-sm text-muted-foreground">{previewExercise.notes}</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{previewExercise.notes}</p>
                   </div>
                 )}
 
