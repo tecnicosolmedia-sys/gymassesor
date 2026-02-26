@@ -460,7 +460,7 @@ const Index = () => {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm sm:text-base truncate">{exercise.name}</p>
+                          <p className="font-medium text-sm sm:text-base break-words">{exercise.name}</p>
                           <p className="text-xs text-muted-foreground">
                             {exercise.muscleGroup} · {exercise.sets}x{exercise.reps}
                           </p>

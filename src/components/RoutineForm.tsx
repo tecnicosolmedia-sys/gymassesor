@@ -223,7 +223,7 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{exercise.name}</p>
+                          <p className="text-sm font-medium break-words">{exercise.name}</p>
                           <p className="text-xs text-muted-foreground">
                             {exercise.sets}×{exercise.reps} · {exercise.weight}kg · {exercise.restBetweenSets}s
                           </p>
@@ -441,7 +441,7 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{exercise.name}</p>
+                        <p className="font-medium break-words">{exercise.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {exercise.muscleGroup} · {exercise.sets}x{exercise.reps}
                         </p>
