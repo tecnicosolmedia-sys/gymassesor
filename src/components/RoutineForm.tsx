@@ -31,31 +31,37 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
       .filter((e): e is Exercise => e !== undefined);
   }, [selectedExercises, exercises]);
 
-  const handleUpdateExerciseField = (exerciseId: string, field: string, delta: number) => {
+  const handleUpdateSets = (exerciseId: string, delta: number) => {
     const exercise = exercises.find(e => e.id === exerciseId);
     if (!exercise || !onUpdateExercise) return;
-
-    if (field === 'sets') {
-      const newSets = Math.max(1, Math.min(10, exercise.sets + delta));
-      const newConfigs = [...exercise.setConfigs];
-      while (newConfigs.length < newSets) {
-        const last = newConfigs[newConfigs.length - 1] || { reps: exercise.reps, weight: exercise.weight, restTime: exercise.restBetweenSets };
-        newConfigs.push({ setNumber: newConfigs.length + 1, reps: last.reps, weight: last.weight, restTime: last.restTime });
-      }
-      onUpdateExercise(exerciseId, { sets: newSets, setConfigs: newConfigs.slice(0, newSets) });
-    } else if (field === 'reps') {
-      const newReps = Math.max(1, exercise.reps + delta);
-      const newConfigs = exercise.setConfigs.map(c => ({ ...c, reps: newReps }));
-      onUpdateExercise(exerciseId, { reps: newReps, setConfigs: newConfigs });
-    } else if (field === 'weight') {
-      const newWeight = Math.max(0, exercise.weight + delta);
-      const newConfigs = exercise.setConfigs.map(c => ({ ...c, weight: newWeight }));
-      onUpdateExercise(exerciseId, { weight: newWeight, setConfigs: newConfigs });
-    } else if (field === 'restBetweenSets') {
-      const newRest = Math.max(0, exercise.restBetweenSets + delta);
-      const newConfigs = exercise.setConfigs.map(c => ({ ...c, restTime: newRest }));
-      onUpdateExercise(exerciseId, { restBetweenSets: newRest, setConfigs: newConfigs });
+    const newSets = Math.max(1, Math.min(10, exercise.sets + delta));
+    const newConfigs = [...exercise.setConfigs];
+    while (newConfigs.length < newSets) {
+      const last = newConfigs[newConfigs.length - 1] || { reps: exercise.reps, weight: exercise.weight, restTime: exercise.restBetweenSets };
+      newConfigs.push({ setNumber: newConfigs.length + 1, reps: last.reps, weight: last.weight, restTime: last.restTime });
     }
+    onUpdateExercise(exerciseId, { sets: newSets, setConfigs: newConfigs.slice(0, newSets) });
+  };
+
+  const handleUpdateSetField = (exerciseId: string, setIndex: number, field: 'reps' | 'weight' | 'restTime', delta: number) => {
+    const exercise = exercises.find(e => e.id === exerciseId);
+    if (!exercise || !onUpdateExercise) return;
+    const newConfigs = exercise.setConfigs.map((c, i) => {
+      if (i !== setIndex) return c;
+      const newVal = field === 'weight' ? Math.max(0, c[field] + delta) : Math.max(field === 'reps' ? 1 : 0, c[field] + delta);
+      return { ...c, [field]: newVal };
+    });
+    onUpdateExercise(exerciseId, { setConfigs: newConfigs });
+  };
+
+  const handleCopySetToNext = (exerciseId: string, setIndex: number) => {
+    const exercise = exercises.find(e => e.id === exerciseId);
+    if (!exercise || !onUpdateExercise || setIndex >= exercise.setConfigs.length - 1) return;
+    const source = exercise.setConfigs[setIndex];
+    const newConfigs = exercise.setConfigs.map((c, i) => 
+      i === setIndex + 1 ? { ...c, reps: source.reps, weight: source.weight, restTime: source.restTime } : c
+    );
+    onUpdateExercise(exerciseId, { setConfigs: newConfigs });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -195,67 +201,86 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                       {/* Inline exercise config editor */}
                       {expandedExerciseId === exercise.id && onUpdateExercise && (
                         <div className="mx-2 p-3 rounded-b-lg bg-card/50 border border-t-0 border-border animate-fade-in">
-                          <div className="grid grid-cols-2 gap-3">
-                            {/* Series */}
-                            <div className="flex flex-col items-center gap-1">
-                              <span className="text-xs text-muted-foreground">Series</span>
-                              <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'sets', -1)}
-                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                                  <Minus className="w-3.5 h-3.5" />
-                                </button>
-                                <span className="font-lcd text-xl text-primary w-8 text-center">{exercise.sets}</span>
-                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'sets', 1)}
-                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                                  <Plus className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                          {/* Número de series */}
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-medium text-muted-foreground">Nº de Series</span>
+                            <div className="flex items-center gap-2">
+                              <button type="button" onClick={() => handleUpdateSets(exercise.id, -1)}
+                                className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="font-lcd text-lg text-primary w-6 text-center">{exercise.sets}</span>
+                              <button type="button" onClick={() => handleUpdateSets(exercise.id, 1)}
+                                className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                <Plus className="w-3 h-3" />
+                              </button>
                             </div>
-                            {/* Repeticiones */}
-                            <div className="flex flex-col items-center gap-1">
-                              <span className="text-xs text-muted-foreground">Reps</span>
-                              <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'reps', -1)}
-                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                                  <Minus className="w-3.5 h-3.5" />
-                                </button>
-                                <span className="font-lcd text-xl text-primary w-8 text-center">{exercise.reps}</span>
-                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'reps', 1)}
-                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                                  <Plus className="w-3.5 h-3.5" />
-                                </button>
+                          </div>
+
+                          {/* Per-set config */}
+                          <div className="space-y-2">
+                            {exercise.setConfigs.slice(0, exercise.sets).map((setConfig, si) => (
+                              <div key={si} className="p-2 rounded-lg bg-secondary/50 border border-border">
+                                <div className="flex items-center gap-1 mb-2">
+                                  <span className="text-xs font-semibold text-primary">Serie {si + 1}</span>
+                                  {si < exercise.sets - 1 && (
+                                    <button type="button" onClick={() => handleCopySetToNext(exercise.id, si)}
+                                      className="ml-auto text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+                                      Copiar a sig.
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {/* Reps */}
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <span className="text-[10px] text-muted-foreground">Reps</span>
+                                    <div className="flex items-center gap-1">
+                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'reps', -1)}
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        <Minus className="w-3 h-3" />
+                                      </button>
+                                      <span className="font-lcd text-base text-primary w-6 text-center">{setConfig.reps}</span>
+                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'reps', 1)}
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        <Plus className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {/* Weight */}
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <span className="text-[10px] text-muted-foreground">Peso</span>
+                                    <div className="flex items-center gap-1">
+                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'weight', -0.5)}
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        <Minus className="w-3 h-3" />
+                                      </button>
+                                      <span className="font-lcd text-base text-primary w-8 text-center">{setConfig.weight}</span>
+                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'weight', 0.5)}
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        <Plus className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                    <span className="text-[9px] text-muted-foreground">kg</span>
+                                  </div>
+                                  {/* Rest */}
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <span className="text-[10px] text-muted-foreground">Desc.</span>
+                                    <div className="flex items-center gap-1">
+                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'restTime', -5)}
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        <Minus className="w-3 h-3" />
+                                      </button>
+                                      <span className="font-lcd text-base text-primary w-8 text-center">{setConfig.restTime}</span>
+                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'restTime', 5)}
+                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                                        <Plus className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                    <span className="text-[9px] text-muted-foreground">seg</span>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                            {/* Peso */}
-                            <div className="flex flex-col items-center gap-1">
-                              <span className="text-xs text-muted-foreground">Peso (kg)</span>
-                              <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'weight', -0.5)}
-                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                                  <Minus className="w-3.5 h-3.5" />
-                                </button>
-                                <span className="font-lcd text-xl text-primary w-10 text-center">{exercise.weight}</span>
-                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'weight', 0.5)}
-                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                                  <Plus className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                            {/* Descanso */}
-                            <div className="flex flex-col items-center gap-1">
-                              <span className="text-xs text-muted-foreground">Descanso (s)</span>
-                              <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'restBetweenSets', -5)}
-                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                                  <Minus className="w-3.5 h-3.5" />
-                                </button>
-                                <span className="font-lcd text-xl text-primary w-10 text-center">{exercise.restBetweenSets}</span>
-                                <button type="button" onClick={() => handleUpdateExerciseField(exercise.id, 'restBetweenSets', 5)}
-                                  className="w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                                  <Plus className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
+                            ))}
                           </div>
                         </div>
                       )}
