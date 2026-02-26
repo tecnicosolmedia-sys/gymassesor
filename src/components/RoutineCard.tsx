@@ -183,10 +183,7 @@ export const RoutineCard = ({
                           <span className="text-xs font-bold text-primary">{index + 1}</span>
                         )}
                       </div>
-                      <span 
-                        className={cn("text-sm flex-1 cursor-pointer", expandedNameId === exercise.id ? "whitespace-normal" : "truncate")}
-                        onClick={() => setExpandedNameId(expandedNameId === exercise.id ? null : exercise.id)}
-                      >{exercise.name}</span>
+                      <span className="text-sm flex-1 break-words">{exercise.name}</span>
                       <span className="text-xs text-muted-foreground">
                         {exercise.muscleGroup}
                       </span>
