@@ -55,6 +55,7 @@ export const RoutineCard = ({
   const [showWorkoutFlow, setShowWorkoutFlow] = useState(false);
   const [showStartSelector, setShowStartSelector] = useState(false);
   const [startExerciseIndex, setStartExerciseIndex] = useState(0);
+  const [expandedNameId, setExpandedNameId] = useState<string | null>(null);
   
   // Ordenar ejercicios según el orden en exerciseIds
   const routineExercises = routine.exerciseIds
@@ -182,7 +183,10 @@ export const RoutineCard = ({
                           <span className="text-xs font-bold text-primary">{index + 1}</span>
                         )}
                       </div>
-                      <span className="text-sm truncate flex-1">{exercise.name}</span>
+                      <span 
+                        className={cn("text-sm flex-1 cursor-pointer", expandedNameId === exercise.id ? "whitespace-normal" : "truncate")}
+                        onClick={() => setExpandedNameId(expandedNameId === exercise.id ? null : exercise.id)}
+                      >{exercise.name}</span>
                       <span className="text-xs text-muted-foreground">
                         {exercise.muscleGroup}
                       </span>
