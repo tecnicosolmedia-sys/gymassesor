@@ -64,6 +64,16 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     onUpdateExercise(exerciseId, { setConfigs: newConfigs });
   };
 
+  const handleCopyFromPrevious = (exerciseId: string, setIndex: number) => {
+    const exercise = exercises.find(e => e.id === exerciseId);
+    if (!exercise || !onUpdateExercise || setIndex <= 0) return;
+    const source = exercise.setConfigs[setIndex - 1];
+    const newConfigs = exercise.setConfigs.map((c, i) => 
+      i === setIndex ? { ...c, reps: source.reps, weight: source.weight, restTime: source.restTime } : c
+    );
+    onUpdateExercise(exerciseId, { setConfigs: newConfigs });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
@@ -221,14 +231,22 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                           <div className="space-y-2">
                             {exercise.setConfigs.slice(0, exercise.sets).map((setConfig, si) => (
                               <div key={si} className="p-2 rounded-lg bg-secondary/50 border border-border">
-                                <div className="flex items-center gap-1 mb-2">
+                                <div className="flex items-center gap-1 mb-2 flex-wrap">
                                   <span className="text-xs font-semibold text-primary">Serie {si + 1}</span>
-                                  {si < exercise.sets - 1 && (
-                                    <button type="button" onClick={() => handleCopySetToNext(exercise.id, si)}
-                                      className="ml-auto text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground hover:text-foreground transition-colors">
-                                      Copiar a sig.
-                                    </button>
-                                  )}
+                                  <div className="ml-auto flex items-center gap-1">
+                                    {si > 0 && (
+                                      <button type="button" onClick={() => handleCopyFromPrevious(exercise.id, si)}
+                                        className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+                                        ← Copiar ant.
+                                      </button>
+                                    )}
+                                    {si < exercise.sets - 1 && (
+                                      <button type="button" onClick={() => handleCopySetToNext(exercise.id, si)}
+                                        className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+                                        Copiar a sig. →
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="flex items-center justify-between gap-1">
                                   {/* Reps */}
