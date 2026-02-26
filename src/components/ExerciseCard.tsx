@@ -321,7 +321,7 @@ export const ExerciseCard = ({
                   {exercise.muscleGroup}
                 </span>
               </div>
-              <h3 className="font-display font-bold text-lg truncate">{exercise.name}</h3>
+              <h3 className="font-display font-bold text-lg break-words">{exercise.name}</h3>
               <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Dumbbell className="w-3.5 h-3.5" />

@@ -74,7 +74,7 @@ export const StartWorkoutSelector = ({
                       <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
                         {index + 1}
                       </span>
-                      <p className="font-medium truncate">{exercise.name}</p>
+                      <p className="font-medium break-words">{exercise.name}</p>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {exercise.muscleGroup} · {exercise.sets} series
