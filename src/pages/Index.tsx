@@ -526,6 +526,7 @@ const Index = () => {
           routine={editingRoutine}
           exercises={exercises}
           onSave={handleSaveRoutine}
+          onUpdateExercise={(id, updates) => updateExercise(id, updates)}
           onClose={() => setShowRoutineForm(false)}
         />
       )}
