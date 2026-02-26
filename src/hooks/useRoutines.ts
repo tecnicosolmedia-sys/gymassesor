@@ -92,6 +92,15 @@ export const useRoutines = () => {
     );
   };
 
+  const reorderRoutines = (fromIndex: number, toIndex: number) => {
+    setRoutines((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      return updated;
+    });
+  };
+
   return {
     routines,
     isLoading,
@@ -100,5 +109,6 @@ export const useRoutines = () => {
     deleteRoutine,
     addExerciseToRoutine,
     removeExerciseFromRoutine,
+    reorderRoutines,
   };
 };
