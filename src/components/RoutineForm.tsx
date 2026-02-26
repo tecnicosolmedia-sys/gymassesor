@@ -1,9 +1,71 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Routine } from '@/types/routine';
 import { Exercise, MuscleGroup, MUSCLE_GROUPS, SetConfig } from '@/types/exercise';
 import { X, Calendar, Plus, Check, ChevronUp, ChevronDown, GripVertical, Settings2, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
+
+// Dropdown selector component for numeric values
+const ValueDropdown = ({ 
+  value, unit, options, onChange 
+}: { 
+  value: number; unit: string; options: number[]; onChange: (v: number) => void 
+}) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  useEffect(() => {
+    if (open && listRef.current) {
+      const activeEl = listRef.current.querySelector('[data-active="true"]');
+      if (activeEl) activeEl.scrollIntoView({ block: 'center' });
+    }
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="font-lcd text-sm text-primary min-w-[32px] text-center px-1 py-0.5 rounded-md bg-background border border-border hover:border-primary transition-colors cursor-pointer"
+      >
+        {value}<span className="text-[8px] text-muted-foreground">{unit}</span>
+      </button>
+      {open && (
+        <div 
+          ref={listRef}
+          className="absolute z-50 bottom-full mb-1 left-1/2 -translate-x-1/2 w-16 max-h-40 overflow-y-auto rounded-lg border border-border bg-popover shadow-lg"
+        >
+          {options.map(opt => (
+            <button
+              key={opt}
+              type="button"
+              data-active={opt === value}
+              onClick={() => { onChange(opt); setOpen(false); }}
+              className={cn(
+                "w-full px-2 py-1.5 text-sm text-center transition-colors",
+                opt === value 
+                  ? "bg-primary text-primary-foreground font-bold" 
+                  : "hover:bg-accent text-foreground"
+              )}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface RoutineFormProps {
   routine?: Routine | null;
@@ -248,51 +310,45 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                                     )}
                                   </div>
                                 </div>
-                                <div className="flex items-center justify-between gap-1">
+                                <div className="flex items-center justify-between gap-2">
                                   {/* Reps */}
                                   <div className="flex flex-col items-center flex-1 min-w-0">
-                                    <span className="text-[10px] text-muted-foreground">Reps</span>
-                                    <div className="flex items-center">
-                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'reps', -1)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
-                                        <Minus className="w-3 h-3" />
-                                      </button>
-                                      <span className="font-lcd text-sm text-primary min-w-[24px] text-center">{setConfig.reps}</span>
-                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'reps', 1)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
-                                        <Plus className="w-3 h-3" />
-                                      </button>
-                                    </div>
+                                    <span className="text-[10px] text-muted-foreground mb-0.5">Reps</span>
+                                    <ValueDropdown
+                                      value={setConfig.reps}
+                                      unit=""
+                                      options={Array.from({ length: 50 }, (_, i) => i + 1)}
+                                      onChange={(v) => {
+                                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, reps: v } : c);
+                                        onUpdateExercise!(exercise.id, { setConfigs: newConfigs });
+                                      }}
+                                    />
                                   </div>
                                   {/* Weight */}
                                   <div className="flex flex-col items-center flex-1 min-w-0">
-                                    <span className="text-[10px] text-muted-foreground">Peso</span>
-                                    <div className="flex items-center">
-                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'weight', -0.5)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
-                                        <Minus className="w-3 h-3" />
-                                      </button>
-                                      <span className="font-lcd text-sm text-primary min-w-[28px] text-center">{setConfig.weight}<span className="text-[8px] text-muted-foreground">kg</span></span>
-                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'weight', 0.5)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
-                                        <Plus className="w-3 h-3" />
-                                      </button>
-                                    </div>
+                                    <span className="text-[10px] text-muted-foreground mb-0.5">Peso</span>
+                                    <ValueDropdown
+                                      value={setConfig.weight}
+                                      unit="kg"
+                                      options={Array.from({ length: 201 }, (_, i) => i * 0.5)}
+                                      onChange={(v) => {
+                                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, weight: v } : c);
+                                        onUpdateExercise!(exercise.id, { setConfigs: newConfigs });
+                                      }}
+                                    />
                                   </div>
                                   {/* Rest */}
                                   <div className="flex flex-col items-center flex-1 min-w-0">
-                                    <span className="text-[10px] text-muted-foreground">Desc.</span>
-                                    <div className="flex items-center">
-                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'restTime', -5)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
-                                        <Minus className="w-3 h-3" />
-                                      </button>
-                                      <span className="font-lcd text-sm text-primary min-w-[28px] text-center">{setConfig.restTime}<span className="text-[8px] text-muted-foreground">s</span></span>
-                                      <button type="button" onClick={() => handleUpdateSetField(exercise.id, si, 'restTime', 5)}
-                                        className="w-6 h-6 rounded bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
-                                        <Plus className="w-3 h-3" />
-                                      </button>
-                                    </div>
+                                    <span className="text-[10px] text-muted-foreground mb-0.5">Desc.</span>
+                                    <ValueDropdown
+                                      value={setConfig.restTime}
+                                      unit="s"
+                                      options={[0, 5, 10, 15, 20, 25, 30, 45, 60, 90, 120, 150, 180, 240, 300]}
+                                      onChange={(v) => {
+                                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, restTime: v } : c);
+                                        onUpdateExercise!(exercise.id, { setConfigs: newConfigs });
+                                      }}
+                                    />
                                   </div>
                                 </div>
                               </div>
