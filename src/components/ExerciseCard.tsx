@@ -370,7 +370,7 @@ export const ExerciseCard = ({
                   <FileText className="w-4 h-4" />
                   Observaciones
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {exercise.notes}
                 </p>
               </div>
