@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Exercise, SetConfig } from '@/types/exercise';
-import { X, Image, Save, Dumbbell, ChevronDown, Copy } from 'lucide-react';
+import { X, Image, Save, Dumbbell, ChevronDown, Copy, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExerciseFormProps {
   exercise?: Exercise | null;
@@ -269,14 +270,39 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
     onClose();
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `exercises/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('exercise-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('exercise-images')
+        .getPublicUrl(filePath);
+
+      setFormData((prev) => ({ ...prev, imageUrl: publicUrl }));
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      // Fallback to base64
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData((prev) => ({ ...prev, imageUrl: reader.result as string }));
       };
       reader.readAsDataURL(file);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -350,7 +376,12 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
             {/* Image upload - square full width */}
             <div>
               <label className="block text-sm font-medium mb-2">Imagen del ejercicio</label>
-              <label className="flex flex-col items-center justify-center w-full aspect-square rounded-xl bg-secondary border-2 border-dashed border-border hover:border-primary cursor-pointer transition-colors overflow-hidden">
+              <label className="flex flex-col items-center justify-center w-full aspect-square rounded-xl bg-secondary border-2 border-dashed border-border hover:border-primary cursor-pointer transition-colors overflow-hidden relative">
+                {isUploadingImage && (
+                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center z-10">
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                  </div>
+                )}
                 {formData.imageUrl ? (
                   <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-contain" />
                 ) : (
