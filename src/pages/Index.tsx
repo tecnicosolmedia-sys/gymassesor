@@ -63,6 +63,7 @@ const Index = () => {
   const [newlyCreatedExercise, setNewlyCreatedExercise] = useState<Exercise | null>(null);
   const [showFreeWorkout, setShowFreeWorkout] = useState(false);
   const [libraryChartExercise, setLibraryChartExercise] = useState<{ id: string; name: string } | null>(null);
+  const [previewExercise, setPreviewExercise] = useState<Exercise | null>(null);
 
   // Manejar restauración de entrenamiento
   const handleResumeWorkout = () => {
@@ -427,7 +428,8 @@ const Index = () => {
                   return (
                     <div
                       key={exercise.id}
-                      className="p-3 sm:p-4 rounded-xl card-gradient border border-border hover:border-primary/50 transition-all group"
+                      className="p-3 sm:p-4 rounded-xl card-gradient border border-border hover:border-primary/50 transition-all group cursor-pointer"
+                      onClick={() => setPreviewExercise(exercise)}
                     >
                       <div className="flex items-center gap-2 sm:gap-3">
                         {/* Icono del grupo muscular - SIEMPRE visible */}
@@ -540,6 +542,97 @@ const Index = () => {
       {/* Personal Data Form Modal */}
       {showPersonalData && (
         <PersonalDataForm onClose={() => setShowPersonalData(false)} />
+      )}
+
+      {/* Exercise Preview Modal */}
+      {previewExercise && (
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] overflow-y-auto" onClick={() => setPreviewExercise(null)}>
+          <div className="min-h-screen p-4 flex items-start justify-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-2xl animate-scale-in my-8 overflow-hidden">
+              {/* Image */}
+              {previewExercise.imageUrl && (
+                <div className="w-full aspect-square bg-secondary">
+                  <img 
+                    src={previewExercise.imageUrl} 
+                    alt={previewExercise.name}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              )}
+              
+              <div className="p-4 space-y-4">
+                {/* Header */}
+                <div>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
+                    {previewExercise.muscleGroup}
+                  </span>
+                  <h2 className="font-display font-bold text-2xl mt-2">{previewExercise.name}</h2>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl bg-secondary text-center">
+                    <p className="text-xs text-muted-foreground">Series</p>
+                    <p className="font-bold text-lg">{previewExercise.sets}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-secondary text-center">
+                    <p className="text-xs text-muted-foreground">Reps</p>
+                    <p className="font-bold text-lg">{previewExercise.reps}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-secondary text-center">
+                    <p className="text-xs text-muted-foreground">Peso</p>
+                    <p className="font-bold text-lg">{previewExercise.weight}kg</p>
+                  </div>
+                </div>
+
+                {/* Set configs */}
+                {previewExercise.setConfigs && previewExercise.setConfigs.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium">Detalle por serie</p>
+                    {previewExercise.setConfigs.map((config, i) => (
+                      <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-secondary/50 text-sm">
+                        <span className="w-6 h-6 rounded-md bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                        <span>{config.reps} reps</span>
+                        <span>·</span>
+                        <span>{config.weight}kg</span>
+                        <span>·</span>
+                        <span className="text-muted-foreground">{config.restTime}s</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Notes */}
+                {previewExercise.notes && (
+                  <div className="p-3 rounded-xl bg-secondary/50">
+                    <p className="text-sm font-medium mb-1">Observaciones</p>
+                    <p className="text-sm text-muted-foreground">{previewExercise.notes}</p>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => {
+                      setPreviewExercise(null);
+                      handleEditExercise(previewExercise);
+                    }}
+                    className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => setPreviewExercise(null)}
+                    className="flex-1 py-3 rounded-xl bg-secondary text-foreground font-semibold"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Library Chart Modal */}

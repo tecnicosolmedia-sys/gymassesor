@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Exercise, SetConfig } from '@/types/exercise';
-import { X, Image, Video, Save, Dumbbell, ChevronDown, Copy } from 'lucide-react';
+import { X, Image, Save, Dumbbell, ChevronDown, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ExerciseFormProps {
@@ -347,37 +347,29 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
               </div>
             </div>
 
-            {/* Media uploads */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-2">Imagen</label>
-                <label className="flex flex-col items-center justify-center w-full h-28 rounded-xl bg-secondary border-2 border-dashed border-border hover:border-primary cursor-pointer transition-colors overflow-hidden">
-                  {formData.imageUrl ? (
-                    <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <>
-                      <Image className="w-6 h-6 text-muted-foreground mb-1" />
-                      <span className="text-xs text-muted-foreground">Subir imagen</span>
-                    </>
-                  )}
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                </label>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Video</label>
-                <label className="flex flex-col items-center justify-center w-full h-28 rounded-xl bg-secondary border-2 border-dashed border-border hover:border-primary cursor-pointer transition-colors overflow-hidden">
-                  {formData.videoUrl ? (
-                    <video src={formData.videoUrl} className="w-full h-full object-cover" />
-                  ) : (
-                    <>
-                      <Video className="w-6 h-6 text-muted-foreground mb-1" />
-                      <span className="text-xs text-muted-foreground">Subir video</span>
-                    </>
-                  )}
-                  <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
-                </label>
-              </div>
+            {/* Image upload - square full width */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Imagen del ejercicio</label>
+              <label className="flex flex-col items-center justify-center w-full aspect-square rounded-xl bg-secondary border-2 border-dashed border-border hover:border-primary cursor-pointer transition-colors overflow-hidden">
+                {formData.imageUrl ? (
+                  <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-contain" />
+                ) : (
+                  <>
+                    <Image className="w-10 h-10 text-muted-foreground mb-2" />
+                    <span className="text-sm text-muted-foreground">Toca para subir imagen</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              </label>
+              {formData.imageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, imageUrl: '' }))}
+                  className="mt-2 text-xs text-destructive hover:underline"
+                >
+                  Eliminar imagen
+                </button>
+              )}
             </div>
 
             {/* Sets with +/- buttons */}
