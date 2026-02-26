@@ -15,7 +15,7 @@ import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useSavedWorkout } from '@/hooks/useSavedWorkout';
 import { Exercise, SetConfig, MuscleGroup, MUSCLE_GROUPS } from '@/types/exercise';
 import { Routine } from '@/types/routine';
-import { Dumbbell, Calendar, Pencil, Trash2, Play, BarChart3 } from 'lucide-react';
+import { Dumbbell, Calendar, Pencil, Trash2, Play, BarChart3, ChevronUp, ChevronDown } from 'lucide-react';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { cn } from '@/lib/utils';
 import { ExerciseProgressChart } from '@/components/ExerciseProgressChart';
@@ -36,6 +36,7 @@ const Index = () => {
     updateRoutine,
     deleteRoutine,
     addExerciseToRoutine,
+    reorderRoutines,
   } = useRoutines();
   
   const {
@@ -340,35 +341,56 @@ const Index = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredRoutines.map((routine) => (
-                <RoutineCard
-                  key={routine.id}
-                  routine={routine}
-                  exercises={exercises}
-                  allExercises={exercises}
-                  onEdit={handleEditRoutine}
-                  onDelete={handleDeleteRoutine}
-                  onEditExercise={handleEditExercise}
-                  onDeleteExercise={handleDeleteExercise}
-                  onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
-                    // Iniciar sesión si no hay una activa
-                    if (!currentSession) {
-                      startSession(routine.id, routine.name);
-                    }
-                    logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets);
-                  }}
-                  onUpdateSetConfig={handleUpdateSetConfig}
-                  onWorkoutComplete={() => {
-                    endSession();
-                    setShowHistory(true);
-                  }}
-                  onAddExerciseToRoutine={addExerciseToRoutine}
-                  onCreateExercise={handleCreateExerciseForWorkout}
-                  newExerciseToAdd={newlyCreatedExercise}
-                  onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
-                  workoutSessions={sessions}
-                />
-              ))}
+              {filteredRoutines.map((routine, index) => {
+                const globalIndex = routines.findIndex(r => r.id === routine.id);
+                return (
+                  <div key={routine.id} className="flex items-start gap-1">
+                    <div className="flex flex-col gap-0.5 pt-3">
+                      <button
+                        onClick={() => reorderRoutines(globalIndex, globalIndex - 1)}
+                        disabled={globalIndex === 0}
+                        className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => reorderRoutines(globalIndex, globalIndex + 1)}
+                        disabled={globalIndex === routines.length - 1}
+                        className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <RoutineCard
+                        routine={routine}
+                        exercises={exercises}
+                        allExercises={exercises}
+                        onEdit={handleEditRoutine}
+                        onDelete={handleDeleteRoutine}
+                        onEditExercise={handleEditExercise}
+                        onDeleteExercise={handleDeleteExercise}
+                        onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
+                          if (!currentSession) {
+                            startSession(routine.id, routine.name);
+                          }
+                          logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets);
+                        }}
+                        onUpdateSetConfig={handleUpdateSetConfig}
+                        onWorkoutComplete={() => {
+                          endSession();
+                          setShowHistory(true);
+                        }}
+                        onAddExerciseToRoutine={addExerciseToRoutine}
+                        onCreateExercise={handleCreateExerciseForWorkout}
+                        newExerciseToAdd={newlyCreatedExercise}
+                        onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
+                        workoutSessions={sessions}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
