@@ -301,7 +301,7 @@ export const ExerciseCard = ({
                 <img 
                   src={exercise.imageUrl} 
                   alt={exercise.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain p-1"
                 />
               ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
                 <img 
@@ -340,6 +340,17 @@ export const ExerciseCard = ({
         {/* Expanded content */}
         {expanded && (
           <div className="px-4 pb-4 space-y-4 animate-fade-in">
+        {/* Image preview */}
+            {exercise.imageUrl && !exercise.videoUrl && (
+              <div className="rounded-xl bg-secondary overflow-hidden">
+                <img 
+                  src={exercise.imageUrl} 
+                  alt={exercise.name}
+                  className="w-full max-h-64 object-contain"
+                />
+              </div>
+            )}
+            
             {/* Video preview */}
             {exercise.videoUrl && (
               <div className="aspect-video rounded-xl bg-secondary overflow-hidden">
