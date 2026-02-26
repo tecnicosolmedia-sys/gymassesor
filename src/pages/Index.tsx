@@ -559,15 +559,23 @@ const Index = () => {
                 </div>
 
                 {/* Image after title */}
-                {previewExercise.imageUrl && (
-                  <div className="w-full aspect-square rounded-xl bg-secondary overflow-hidden">
+                <div className="w-full aspect-square rounded-xl bg-secondary overflow-hidden flex items-center justify-center">
+                  {previewExercise.imageUrl ? (
                     <img 
                       src={previewExercise.imageUrl} 
                       alt={previewExercise.name}
                       className="w-full h-full object-contain"
                     />
-                  </div>
-                )}
+                  ) : getMuscleGroupIcon(previewExercise.muscleGroup) ? (
+                    <img 
+                      src={getMuscleGroupIcon(previewExercise.muscleGroup)!} 
+                      alt={previewExercise.muscleGroup}
+                      className="w-2/3 h-2/3 object-contain opacity-60"
+                    />
+                  ) : (
+                    <Dumbbell className="w-16 h-16 text-muted-foreground opacity-40" />
+                  )}
+                </div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-3">
