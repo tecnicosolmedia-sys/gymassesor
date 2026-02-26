@@ -330,7 +330,7 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                                     <ValueDropdown
                                       value={setConfig.weight}
                                       unit="kg"
-                                      options={Array.from({ length: 201 }, (_, i) => i * 0.5)}
+                                      options={Array.from({ length: 501 }, (_, i) => i * 0.5)}
                                       onChange={(v) => {
                                         const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, weight: v } : c);
                                         onUpdateExercise!(exercise.id, { setConfigs: newConfigs });
