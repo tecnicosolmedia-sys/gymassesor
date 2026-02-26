@@ -40,6 +40,20 @@ const App = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
+  // Disable Android back button (browser back navigation)
+  useEffect(() => {
+    // Push an initial state so there's always something to "go back" to
+    window.history.pushState(null, '', window.location.href);
+
+    const handlePopState = () => {
+      // Re-push state to prevent leaving the app
+      window.history.pushState(null, '', window.location.href);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
