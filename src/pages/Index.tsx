@@ -549,17 +549,6 @@ const Index = () => {
         <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] overflow-y-auto" onClick={() => setPreviewExercise(null)}>
           <div className="min-h-screen p-4 flex items-start justify-center" onClick={(e) => e.stopPropagation()}>
             <div className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-2xl animate-scale-in my-8 overflow-hidden">
-              {/* Image */}
-              {previewExercise.imageUrl && (
-                <div className="w-full aspect-square bg-secondary">
-                  <img 
-                    src={previewExercise.imageUrl} 
-                    alt={previewExercise.name}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              )}
-              
               <div className="p-4 space-y-4">
                 {/* Header */}
                 <div>
@@ -568,6 +557,17 @@ const Index = () => {
                   </span>
                   <h2 className="font-display font-bold text-2xl mt-2">{previewExercise.name}</h2>
                 </div>
+
+                {/* Image after title */}
+                {previewExercise.imageUrl && (
+                  <div className="w-full aspect-square rounded-xl bg-secondary overflow-hidden">
+                    <img 
+                      src={previewExercise.imageUrl} 
+                      alt={previewExercise.name}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-3">
