@@ -5,7 +5,7 @@ import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
 import { AddExerciseDuringWorkoutDialog } from './AddExerciseDuringWorkoutDialog';
-import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff, Flame, Weight } from 'lucide-react';
+import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff, Flame, Weight, RefreshCw } from 'lucide-react';
 import { ExerciseSummary } from './ExerciseSummary';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,7 @@ interface WorkoutFlowProps {
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
   onWorkoutComplete?: (elapsedTime?: number) => void;
   onAddExerciseToRoutine?: (exerciseId: string) => void;
+  onRemoveExerciseFromRoutine?: (exerciseId: string) => void;
   onCreateExercise?: () => void;
   newExerciseToAdd?: Exercise | null;
   onNewExerciseHandled?: () => void;
@@ -62,7 +63,8 @@ export type FlowState =
   | { type: 'rest-between-exercises'; completedExerciseIndex: number }
   | { type: 'select-next-exercise'; completedExerciseIndex: number }
   | { type: 'routine-complete' }
-  | { type: 'add-extra-exercise' };
+  | { type: 'add-extra-exercise' }
+  | { type: 'substitute-exercise'; substituteIndex: number };
 
 export const WorkoutFlow = ({
   routineId,
@@ -76,6 +78,7 @@ export const WorkoutFlow = ({
   onUpdateSetConfig,
   onWorkoutComplete,
   onAddExerciseToRoutine,
+  onRemoveExerciseFromRoutine,
   onCreateExercise,
   newExerciseToAdd,
   onNewExerciseHandled,
@@ -98,6 +101,8 @@ export const WorkoutFlow = ({
   const [extraExercises, setExtraExercises] = useState<Exercise[]>([]);
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   const [extraMuscleFilter, setExtraMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
+  const [substituteMuscleFilter, setSubstituteMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
+  const [substituteOriginalIndex, setSubstituteOriginalIndex] = useState<number | null>(null);
   
   // Estado de series por ejercicio (para persistir y restaurar)
   const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(initialExerciseSetStates);
@@ -305,20 +310,47 @@ export const WorkoutFlow = ({
     setShowSaveToRoutineDialog(true);
   };
 
+
   const handleConfirmAddExercise = (saveToRoutine: boolean) => {
     if (!pendingExerciseToAdd) return;
     
-    setWorkoutExercises((prev) => [...prev, pendingExerciseToAdd]);
-    setExtraExercises((prev) => [...prev, pendingExerciseToAdd]);
-    const newIndex = workoutExercises.length;
-    
-    if (saveToRoutine && routineId && onAddExerciseToRoutine) {
-      onAddExerciseToRoutine(pendingExerciseToAdd.id);
+    if (substituteOriginalIndex !== null) {
+      // Sustitución: reemplazar el ejercicio en la posición original
+      const oldExercise = workoutExercises[substituteOriginalIndex];
+      setWorkoutExercises((prev) => {
+        const updated = [...prev];
+        updated[substituteOriginalIndex] = pendingExerciseToAdd;
+        return updated;
+      });
+      
+      if (saveToRoutine && routineId) {
+        // Eliminar el viejo de la rutina y añadir el nuevo
+        if (onRemoveExerciseFromRoutine) {
+          onRemoveExerciseFromRoutine(oldExercise.id);
+        }
+        if (onAddExerciseToRoutine) {
+          onAddExerciseToRoutine(pendingExerciseToAdd.id);
+        }
+      }
+      
+      setShowSaveToRoutineDialog(false);
+      setPendingExerciseToAdd(null);
+      setSubstituteOriginalIndex(null);
+      setFlowState({ type: 'exercising', exerciseIndex: substituteOriginalIndex });
+    } else {
+      // Añadir extra (flujo original)
+      setWorkoutExercises((prev) => [...prev, pendingExerciseToAdd]);
+      setExtraExercises((prev) => [...prev, pendingExerciseToAdd]);
+      const newIndex = workoutExercises.length;
+      
+      if (saveToRoutine && routineId && onAddExerciseToRoutine) {
+        onAddExerciseToRoutine(pendingExerciseToAdd.id);
+      }
+      
+      setShowSaveToRoutineDialog(false);
+      setPendingExerciseToAdd(null);
+      setFlowState({ type: 'exercising', exerciseIndex: newIndex });
     }
-    
-    setShowSaveToRoutineDialog(false);
-    setPendingExerciseToAdd(null);
-    setFlowState({ type: 'exercising', exerciseIndex: newIndex });
   };
 
   const handleSkipRest = () => {
@@ -732,6 +764,158 @@ export const WorkoutFlow = ({
     );
   }
 
+  // Renderizar selector de sustitución de ejercicio
+  if (flowState.type === 'substitute-exercise') {
+    const exerciseBeingSubstituted = workoutExercises[flowState.substituteIndex];
+    const availableForSubstitution = allExercises.filter(
+      (e) => e.id !== exerciseBeingSubstituted?.id && !completedExerciseIds.has(e.id)
+    );
+    const filteredSubstitutes = substituteMuscleFilter === 'todos'
+      ? availableForSubstitution
+      : availableForSubstitution.filter(e => e.muscleGroup === substituteMuscleFilter);
+
+    return (
+      <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
+        <div className="min-h-screen p-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="font-display font-bold text-2xl text-gradient-energy">
+                Sustituir Ejercicio
+              </h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                Sustituyendo: <strong>{exerciseBeingSubstituted?.name}</strong>
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setSubstituteOriginalIndex(null);
+                setFlowState({ type: 'exercising', exerciseIndex: flowState.substituteIndex });
+              }}
+              className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Filtros por grupo muscular */}
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            <button
+              onClick={() => setSubstituteMuscleFilter('todos')}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                substituteMuscleFilter === 'todos'
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Todos
+            </button>
+            {MUSCLE_GROUPS.map((group) => (
+              <button
+                key={group}
+                onClick={() => setSubstituteMuscleFilter(group)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                  substituteMuscleFilter === group
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {group}
+              </button>
+            ))}
+          </div>
+
+          {filteredSubstitutes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Dumbbell className="w-12 h-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {availableForSubstitution.length === 0
+                  ? 'No hay ejercicios disponibles para sustituir'
+                  : `No hay ejercicios de ${substituteMuscleFilter}`}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredSubstitutes.map((exercise) => (
+                <div
+                  key={exercise.id}
+                  className="w-full p-4 rounded-2xl bg-card border border-border flex items-center gap-4 text-left"
+                >
+                  <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {exercise.imageUrl ? (
+                      <img 
+                        src={exercise.imageUrl} 
+                        alt={exercise.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
+                      <img 
+                        src={getMuscleGroupIcon(exercise.muscleGroup)!} 
+                        alt={exercise.muscleGroup}
+                        className="w-12 h-12 object-contain"
+                      />
+                    ) : (
+                      <Dumbbell className="w-6 h-6 text-primary" />
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
+                      {exercise.muscleGroup}
+                    </span>
+                    <h3 className="font-display font-bold text-lg mt-1 break-words">{exercise.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {exercise.sets} series · {exercise.reps} reps
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      setPendingExerciseToAdd(exercise);
+                      setShowSaveToRoutineDialog(true);
+                    }}
+                    className="flex-shrink-0 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-sm flex items-center gap-1.5 hover:bg-primary/90 transition-all shadow-energy"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Sustituir
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Botón volver */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <button
+              onClick={() => {
+                setSubstituteOriginalIndex(null);
+                setFlowState({ type: 'exercising', exerciseIndex: flowState.substituteIndex });
+              }}
+              className="w-full py-3 rounded-xl bg-secondary text-muted-foreground font-medium flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all"
+            >
+              <X className="w-5 h-5" />
+              Cancelar
+            </button>
+          </div>
+        </div>
+
+        {/* Diálogo para guardar sustitución en rutina */}
+        <AddExerciseDuringWorkoutDialog
+          open={showSaveToRoutineDialog}
+          onOpenChange={setShowSaveToRoutineDialog}
+          exercise={pendingExerciseToAdd}
+          routineName={routineName}
+          onSaveToRoutine={() => handleConfirmAddExercise(true)}
+          onJustThisTime={() => handleConfirmAddExercise(false)}
+          isSubstitution={true}
+          originalExerciseName={workoutExercises[flowState.substituteIndex]?.name}
+        />
+      </div>
+    );
+  }
+
   // Renderizar ejercicio actual
   if (currentExercise && flowState.type === 'exercising') {
     return (
@@ -834,6 +1018,19 @@ export const WorkoutFlow = ({
 
           {/* Botones de acciones */}
           <div className="mt-8 pt-6 border-t border-border space-y-3">
+            {/* Botón para sustituir ejercicio */}
+            <button
+              onClick={() => {
+                setSubstituteMuscleFilter('todos');
+                setSubstituteOriginalIndex(flowState.exerciseIndex);
+                setFlowState({ type: 'substitute-exercise', substituteIndex: flowState.exerciseIndex });
+              }}
+              className="w-full py-3 rounded-xl bg-accent/50 text-accent-foreground font-medium flex items-center justify-center gap-2 hover:bg-accent transition-all border border-border"
+            >
+              <RefreshCw className="w-5 h-5" />
+              Sustituir ejercicio
+            </button>
+            
             {/* Botón para añadir ejercicio */}
             <button
               onClick={() => setFlowState({ type: 'add-extra-exercise' })}

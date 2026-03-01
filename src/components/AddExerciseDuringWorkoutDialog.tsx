@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Save, Dumbbell } from 'lucide-react';
+import { Save, Dumbbell, RefreshCw } from 'lucide-react';
 import { Exercise } from '@/types/exercise';
 
 interface AddExerciseDuringWorkoutDialogProps {
@@ -10,6 +10,8 @@ interface AddExerciseDuringWorkoutDialogProps {
   routineName: string;
   onSaveToRoutine: () => void;
   onJustThisTime: () => void;
+  isSubstitution?: boolean;
+  originalExerciseName?: string;
 }
 
 export const AddExerciseDuringWorkoutDialog = ({
@@ -19,6 +21,8 @@ export const AddExerciseDuringWorkoutDialog = ({
   routineName,
   onSaveToRoutine,
   onJustThisTime,
+  isSubstitution = false,
+  originalExerciseName,
 }: AddExerciseDuringWorkoutDialogProps) => {
   if (!exercise) return null;
 
@@ -27,17 +31,34 @@ export const AddExerciseDuringWorkoutDialog = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Save className="w-5 h-5 text-primary" />
-            ¿Guardar en la rutina?
+            {isSubstitution ? (
+              <>
+                <RefreshCw className="w-5 h-5 text-primary" />
+                ¿Guardar sustitución?
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5 text-primary" />
+                ¿Guardar en la rutina?
+              </>
+            )}
           </DialogTitle>
           <DialogDescription>
-            Has añadido <strong>{exercise.name}</strong> a tu entrenamiento.
+            {isSubstitution ? (
+              <>Vas a sustituir <strong>{originalExerciseName}</strong> por <strong>{exercise.name}</strong>.</>
+            ) : (
+              <>Has añadido <strong>{exercise.name}</strong> a tu entrenamiento.</>
+            )}
           </DialogDescription>
         </DialogHeader>
         
         <div className="p-4 rounded-xl bg-secondary/50 my-2">
           <p className="text-sm text-muted-foreground">
-            ¿Quieres guardar este ejercicio permanentemente en la rutina <strong>"{routineName}"</strong>?
+            {isSubstitution ? (
+              <>¿Quieres que esta sustitución sea permanente en la rutina <strong>"{routineName}"</strong>?</>
+            ) : (
+              <>¿Quieres guardar este ejercicio permanentemente en la rutina <strong>"{routineName}"</strong>?</>
+            )}
           </p>
         </div>
 
@@ -54,8 +75,17 @@ export const AddExerciseDuringWorkoutDialog = ({
             onClick={onSaveToRoutine} 
             className="w-full sm:w-auto gap-2"
           >
-            <Save className="w-4 h-4" />
-            Guardar en rutina
+            {isSubstitution ? (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                Sustituir en rutina
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Guardar en rutina
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

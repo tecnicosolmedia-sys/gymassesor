@@ -14,7 +14,7 @@ export interface SavedWorkoutState {
   workoutExerciseIds: string[];
   completedExerciseIds: string[];
   flowState: {
-    type: 'exercising' | 'rest-between-exercises' | 'select-next-exercise' | 'routine-complete' | 'add-extra-exercise';
+    type: 'exercising' | 'rest-between-exercises' | 'select-next-exercise' | 'routine-complete' | 'add-extra-exercise' | 'substitute-exercise';
     exerciseIndex?: number;
     completedExerciseIndex?: number;
   };

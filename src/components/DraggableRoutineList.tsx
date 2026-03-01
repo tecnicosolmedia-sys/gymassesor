@@ -19,6 +19,7 @@ interface DraggableRoutineListProps {
   onUpdateSetConfig: (exerciseId: string, setConfigs: SetConfig[]) => void;
   onWorkoutComplete: () => void;
   onAddExerciseToRoutine: (routineId: string, exerciseId: string) => void;
+  onRemoveExerciseFromRoutine: (routineId: string, exerciseId: string) => void;
   onCreateExercise: () => void;
   newExerciseToAdd?: Exercise | null;
   onNewExerciseHandled: () => void;
@@ -29,7 +30,7 @@ export const DraggableRoutineList = ({
   routines, allRoutines, reorderRoutines, exercises,
   onEdit, onDelete, onEditExercise, onDeleteExercise,
   onSetComplete, onUpdateSetConfig, onWorkoutComplete,
-  onAddExerciseToRoutine, onCreateExercise, newExerciseToAdd, onNewExerciseHandled,
+  onAddExerciseToRoutine, onRemoveExerciseFromRoutine, onCreateExercise, newExerciseToAdd, onNewExerciseHandled,
   workoutSessions,
 }: DraggableRoutineListProps) => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -158,6 +159,7 @@ export const DraggableRoutineList = ({
                 onUpdateSetConfig={onUpdateSetConfig}
                 onWorkoutComplete={onWorkoutComplete}
                 onAddExerciseToRoutine={onAddExerciseToRoutine}
+                onRemoveExerciseFromRoutine={onRemoveExerciseFromRoutine}
                 onCreateExercise={onCreateExercise}
                 newExerciseToAdd={newExerciseToAdd}
                 onNewExerciseHandled={onNewExerciseHandled}
