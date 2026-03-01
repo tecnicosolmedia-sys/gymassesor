@@ -20,6 +20,7 @@ import { Dumbbell, Calendar, Pencil, Trash2, Play, BarChart3, ChevronUp, Chevron
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { cn } from '@/lib/utils';
 import { ExerciseProgressChart } from '@/components/ExerciseProgressChart';
+import { FloatingBackButton } from '@/components/FloatingBackButton';
 
 const Index = () => {
   const { 
@@ -720,6 +721,25 @@ const Index = () => {
           workoutSessions={sessions}
         />
       )}
+
+      {/* Floating Back Button */}
+      <FloatingBackButton
+        visible={
+          showExerciseForm || showRoutineForm || showHistory || showPersonalData ||
+          !!previewExercise || !!libraryChartExercise || resumingWorkout || showFreeWorkout
+        }
+        onClick={() => {
+          // Close topmost overlay in priority order
+          if (showExerciseForm) { setShowExerciseForm(false); return; }
+          if (showRoutineForm) { setShowRoutineForm(false); return; }
+          if (previewExercise) { setPreviewExercise(null); return; }
+          if (libraryChartExercise) { setLibraryChartExercise(null); return; }
+          if (showHistory) { setShowHistory(false); return; }
+          if (showPersonalData) { setShowPersonalData(false); return; }
+          if (resumingWorkout) { setResumingWorkout(false); clearSavedWorkout(); return; }
+          if (showFreeWorkout) { setShowFreeWorkout(false); return; }
+        }}
+      />
     </div>
   );
 };
