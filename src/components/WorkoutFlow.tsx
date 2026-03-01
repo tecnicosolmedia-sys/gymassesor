@@ -315,22 +315,16 @@ export const WorkoutFlow = ({
     if (!pendingExerciseToAdd) return;
     
     if (substituteOriginalIndex !== null) {
-      // Sustitución: reemplazar el ejercicio en la posición original
-      const oldExercise = workoutExercises[substituteOriginalIndex];
+      // Sustitución: reemplazar el ejercicio solo en la sesión actual
       setWorkoutExercises((prev) => {
         const updated = [...prev];
         updated[substituteOriginalIndex] = pendingExerciseToAdd;
         return updated;
       });
       
-      if (saveToRoutine && routineId) {
-        // Eliminar el viejo de la rutina y añadir el nuevo
-        if (onRemoveExerciseFromRoutine) {
-          onRemoveExerciseFromRoutine(oldExercise.id);
-        }
-        if (onAddExerciseToRoutine) {
-          onAddExerciseToRoutine(pendingExerciseToAdd.id);
-        }
+      if (saveToRoutine && routineId && onAddExerciseToRoutine) {
+        // Añadir el nuevo a la rutina SIN eliminar el original
+        onAddExerciseToRoutine(pendingExerciseToAdd.id);
       }
       
       setShowSaveToRoutineDialog(false);
@@ -781,10 +775,10 @@ export const WorkoutFlow = ({
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="font-display font-bold text-2xl text-gradient-energy">
-                Sustituir Ejercicio
+                Realizar en su lugar
               </h2>
               <p className="text-muted-foreground text-sm mt-1">
-                Sustituyendo: <strong>{exerciseBeingSubstituted?.name}</strong>
+                En lugar de: <strong>{exerciseBeingSubstituted?.name}</strong>
               </p>
             </div>
             <button
@@ -879,7 +873,7 @@ export const WorkoutFlow = ({
                     className="flex-shrink-0 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-sm flex items-center gap-1.5 hover:bg-primary/90 transition-all shadow-energy"
                   >
                     <RefreshCw className="w-4 h-4" />
-                    Sustituir
+                    Elegir
                   </button>
                 </div>
               ))}
@@ -1028,7 +1022,7 @@ export const WorkoutFlow = ({
               className="w-full py-3 rounded-xl bg-accent/50 text-accent-foreground font-medium flex items-center justify-center gap-2 hover:bg-accent transition-all border border-border"
             >
               <RefreshCw className="w-5 h-5" />
-              Sustituir ejercicio
+              Realizar otro en su lugar
             </button>
             
             {/* Botón para añadir ejercicio */}
