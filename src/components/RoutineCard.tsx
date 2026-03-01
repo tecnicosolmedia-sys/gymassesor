@@ -27,6 +27,7 @@ interface RoutineCardProps {
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
   onWorkoutComplete?: (elapsedTime?: number) => void;
   onAddExerciseToRoutine?: (routineId: string, exerciseId: string) => void;
+  onRemoveExerciseFromRoutine?: (routineId: string, exerciseId: string) => void;
   onCreateExercise?: () => void;
   newExerciseToAdd?: Exercise | null;
   onNewExerciseHandled?: () => void;
@@ -45,6 +46,7 @@ export const RoutineCard = ({
   onUpdateSetConfig,
   onWorkoutComplete,
   onAddExerciseToRoutine,
+  onRemoveExerciseFromRoutine,
   onCreateExercise,
   newExerciseToAdd,
   onNewExerciseHandled,
@@ -260,6 +262,9 @@ export const RoutineCard = ({
           }}
           onAddExerciseToRoutine={(exerciseId) => {
             onAddExerciseToRoutine?.(routine.id, exerciseId);
+          }}
+          onRemoveExerciseFromRoutine={(exerciseId) => {
+            onRemoveExerciseFromRoutine?.(routine.id, exerciseId);
           }}
           onCreateExercise={onCreateExercise}
           newExerciseToAdd={newExerciseToAdd}

@@ -37,6 +37,7 @@ const Index = () => {
     updateRoutine,
     deleteRoutine,
     addExerciseToRoutine,
+    removeExerciseFromRoutine,
     reorderRoutines,
   } = useRoutines();
   
@@ -362,6 +363,7 @@ const Index = () => {
                 setShowHistory(true);
               }}
               onAddExerciseToRoutine={addExerciseToRoutine}
+              onRemoveExerciseFromRoutine={(routineId, exerciseId) => removeExerciseFromRoutine(routineId, exerciseId)}
               onCreateExercise={handleCreateExerciseForWorkout}
               newExerciseToAdd={newlyCreatedExercise}
               onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
@@ -676,6 +678,9 @@ const Index = () => {
           }}
            onAddExerciseToRoutine={(exerciseId) => {
              addExerciseToRoutine(savedRoutine.id, exerciseId);
+           }}
+           onRemoveExerciseFromRoutine={(exerciseId) => {
+             removeExerciseFromRoutine(savedRoutine.id, exerciseId);
            }}
            onCreateExercise={handleCreateExerciseForWorkout}
            newExerciseToAdd={newlyCreatedExercise}
