@@ -34,7 +34,7 @@ export const AddExerciseDuringWorkoutDialog = ({
             {isSubstitution ? (
               <>
                 <RefreshCw className="w-5 h-5 text-primary" />
-                ¿Guardar sustitución?
+                ¿Realizar en su lugar?
               </>
             ) : (
               <>
@@ -45,7 +45,7 @@ export const AddExerciseDuringWorkoutDialog = ({
           </DialogTitle>
           <DialogDescription>
             {isSubstitution ? (
-              <>Vas a sustituir <strong>{originalExerciseName}</strong> por <strong>{exercise.name}</strong>.</>
+              <>Vas a realizar <strong>{exercise.name}</strong> en lugar de <strong>{originalExerciseName}</strong> en esta sesión.</>
             ) : (
               <>Has añadido <strong>{exercise.name}</strong> a tu entrenamiento.</>
             )}
@@ -55,7 +55,7 @@ export const AddExerciseDuringWorkoutDialog = ({
         <div className="p-4 rounded-xl bg-secondary/50 my-2">
           <p className="text-sm text-muted-foreground">
             {isSubstitution ? (
-              <>¿Quieres que esta sustitución sea permanente en la rutina <strong>"{routineName}"</strong>?</>
+              <>¿Quieres añadir también <strong>{exercise.name}</strong> a la rutina <strong>"{routineName}"</strong> para futuras sesiones? El ejercicio original se mantiene.</>
             ) : (
               <>¿Quieres guardar este ejercicio permanentemente en la rutina <strong>"{routineName}"</strong>?</>
             )}
@@ -77,8 +77,8 @@ export const AddExerciseDuringWorkoutDialog = ({
           >
             {isSubstitution ? (
               <>
-                <RefreshCw className="w-4 h-4" />
-                Sustituir en rutina
+                <Save className="w-4 h-4" />
+                Añadir a la rutina
               </>
             ) : (
               <>
