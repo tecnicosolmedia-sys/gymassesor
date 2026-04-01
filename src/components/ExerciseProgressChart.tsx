@@ -107,6 +107,7 @@ export const ExerciseProgressChart = ({
     const data = perSetData.get(setNum) || [];
     if (data.length === 0) return null;
     const weights = data.map(d => d.weight);
+    const uniqueWeights = [...new Set(weights)].sort((a, b) => a - b);
     const maxWeight = Math.max(...weights);
     const minWeight = Math.min(...weights);
     const color = SET_COLORS[(setNum - 1) % SET_COLORS.length];
@@ -146,6 +147,7 @@ export const ExerciseProgressChart = ({
               width={35}
               unit="kg"
               domain={[yMin, yMax]}
+              ticks={uniqueWeights}
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={maxWeight} stroke={color} strokeDasharray="3 3" opacity={0.5} />
