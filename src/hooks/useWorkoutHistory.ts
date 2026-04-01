@@ -1,49 +1,86 @@
 import { useState, useEffect, useCallback } from 'react';
 import { WorkoutSession, ExerciseSession, CompletedSet, WorkoutStats } from '@/types/workoutHistory';
-
-const STORAGE_KEY = 'gym-tracker-workout-history';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useWorkoutHistory = () => {
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar historial del localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setSessions(parsed.map((s: any) => ({
-          ...s,
-          date: new Date(s.date),
-          startedAt: new Date(s.startedAt),
-          completedAt: s.completedAt ? new Date(s.completedAt) : undefined,
-          exercises: s.exercises.map((e: any) => ({
-            ...e,
-            startedAt: new Date(e.startedAt),
-            completedAt: e.completedAt ? new Date(e.completedAt) : undefined,
-            completedSets: e.completedSets.map((set: any) => ({
-              ...set,
-              completedAt: new Date(set.completedAt),
-            })),
+  // Fetch sessions from DB
+  const fetchSessions = useCallback(async () => {
+    if (!user) { setIsLoading(false); return; }
+
+    const { data: sessionsData, error } = await supabase
+      .from('workout_sessions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false });
+
+    if (error || !sessionsData) { setIsLoading(false); return; }
+
+    // Fetch exercises + sets for all sessions
+    const sessionIds = sessionsData.map(s => s.id);
+    if (sessionIds.length === 0) { setSessions([]); setIsLoading(false); return; }
+
+    const { data: exercisesData } = await supabase
+      .from('workout_session_exercises')
+      .select('*')
+      .in('session_id', sessionIds);
+
+    const exerciseIds = (exercisesData || []).map(e => e.id);
+    let setsData: any[] = [];
+    if (exerciseIds.length > 0) {
+      const { data } = await supabase
+        .from('workout_completed_sets')
+        .select('*')
+        .in('exercise_session_id', exerciseIds);
+      setsData = data || [];
+    }
+
+    // Build sessions
+    const builtSessions: WorkoutSession[] = sessionsData.map(s => {
+      const exs = (exercisesData || []).filter(e => e.session_id === s.id);
+      const exercises: ExerciseSession[] = exs.map(e => {
+        const sets = setsData.filter(set => set.exercise_session_id === e.id);
+        return {
+          exerciseId: e.exercise_id,
+          exerciseName: e.exercise_name,
+          muscleGroup: e.muscle_group,
+          completedSets: sets.map(set => ({
+            setNumber: set.set_number,
+            reps: set.reps,
+            weight: Number(set.weight),
+            restTime: set.rest_time,
+            completedAt: new Date(set.completed_at),
           })),
-        })));
-      } catch {
-        setSessions([]);
-      }
-    }
+          totalSets: e.total_sets,
+          startedAt: new Date(e.started_at),
+          completedAt: e.completed_at ? new Date(e.completed_at) : undefined,
+        };
+      });
+
+      return {
+        id: s.id,
+        date: new Date(s.date),
+        routineId: s.routine_id ?? undefined,
+        routineName: s.routine_name ?? undefined,
+        exercises,
+        totalDuration: s.total_duration,
+        startedAt: new Date(s.started_at),
+        completedAt: s.completed_at ? new Date(s.completed_at) : undefined,
+        isComplete: s.is_complete,
+      };
+    });
+
+    setSessions(builtSessions);
     setIsLoading(false);
-  }, []);
+  }, [user]);
 
-  // Guardar en localStorage
-  useEffect(() => {
-    if (!isLoading) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-    }
-  }, [sessions, isLoading]);
+  useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
-  // Iniciar nueva sesión de entrenamiento
   const startSession = useCallback((routineId?: string, routineName?: string) => {
     const newSession: WorkoutSession = {
       id: crypto.randomUUID(),
@@ -59,7 +96,6 @@ export const useWorkoutHistory = () => {
     return newSession;
   }, []);
 
-  // Registrar serie completada
   const logCompletedSet = useCallback((
     exerciseId: string,
     exerciseName: string,
@@ -67,106 +103,118 @@ export const useWorkoutHistory = () => {
     setData: Omit<CompletedSet, 'completedAt'>,
     totalSets: number
   ) => {
-    const completedSet: CompletedSet = {
-      ...setData,
-      completedAt: new Date(),
-    };
+    const completedSet: CompletedSet = { ...setData, completedAt: new Date() };
 
     setCurrentSession(prev => {
       if (!prev) {
-        // Si no hay sesión, crear una nueva
-        const newSession: WorkoutSession = {
+        return {
           id: crypto.randomUUID(),
           date: new Date(),
           exercises: [{
-            exerciseId,
-            exerciseName,
-            muscleGroup,
-            completedSets: [completedSet],
-            totalSets,
-            startedAt: new Date(),
+            exerciseId, exerciseName, muscleGroup,
+            completedSets: [completedSet], totalSets, startedAt: new Date(),
           }],
-          totalDuration: 0,
-          startedAt: new Date(),
-          isComplete: false,
+          totalDuration: 0, startedAt: new Date(), isComplete: false,
         };
-        return newSession;
       }
 
-      // Buscar si el ejercicio ya existe en la sesión
-      const existingExerciseIndex = prev.exercises.findIndex(e => e.exerciseId === exerciseId);
-      
-      if (existingExerciseIndex >= 0) {
-        // Añadir set al ejercicio existente
-        const updatedExercises = [...prev.exercises];
-        updatedExercises[existingExerciseIndex] = {
-          ...updatedExercises[existingExerciseIndex],
-          completedSets: [...updatedExercises[existingExerciseIndex].completedSets, completedSet],
+      const idx = prev.exercises.findIndex(e => e.exerciseId === exerciseId);
+      if (idx >= 0) {
+        const updated = [...prev.exercises];
+        updated[idx] = {
+          ...updated[idx],
+          completedSets: [...updated[idx].completedSets, completedSet],
+          ...(updated[idx].completedSets.length + 1 >= totalSets ? { completedAt: new Date() } : {}),
         };
-        
-        // Marcar como completado si se completaron todas las series
-        if (updatedExercises[existingExerciseIndex].completedSets.length >= totalSets) {
-          updatedExercises[existingExerciseIndex].completedAt = new Date();
-        }
-        
-        return { ...prev, exercises: updatedExercises };
-      } else {
-        // Nuevo ejercicio en la sesión
-        const newExercise: ExerciseSession = {
-          exerciseId,
-          exerciseName,
-          muscleGroup,
-          completedSets: [completedSet],
-          totalSets,
-          startedAt: new Date(),
-        };
-        return { ...prev, exercises: [...prev.exercises, newExercise] };
+        return { ...prev, exercises: updated };
       }
+
+      return {
+        ...prev,
+        exercises: [...prev.exercises, {
+          exerciseId, exerciseName, muscleGroup,
+          completedSets: [completedSet], totalSets, startedAt: new Date(),
+        }],
+      };
     });
   }, []);
 
-  // Finalizar sesión
-  const endSession = useCallback(() => {
-    if (currentSession && currentSession.exercises.length > 0) {
-      const completedSession: WorkoutSession = {
-        ...currentSession,
-        completedAt: new Date(),
-        isComplete: true,
-        totalDuration: Math.floor((new Date().getTime() - currentSession.startedAt.getTime()) / 1000),
-      };
-      
-      setSessions(prev => [completedSession, ...prev]);
+  const endSession = useCallback(async () => {
+    if (!currentSession || currentSession.exercises.length === 0 || !user) {
       setCurrentSession(null);
-      return completedSession;
+      return null;
     }
-    setCurrentSession(null);
-    return null;
-  }, [currentSession]);
 
-  // Obtener historial de un ejercicio específico
+    const completedSession: WorkoutSession = {
+      ...currentSession,
+      completedAt: new Date(),
+      isComplete: true,
+      totalDuration: Math.floor((Date.now() - currentSession.startedAt.getTime()) / 1000),
+    };
+
+    // Save to DB
+    const { data: sessionRow, error: sessionErr } = await supabase
+      .from('workout_sessions')
+      .insert([{
+        id: completedSession.id,
+        user_id: user.id,
+        date: completedSession.date.toISOString(),
+        routine_id: completedSession.routineId || null,
+        routine_name: completedSession.routineName || null,
+        total_duration: completedSession.totalDuration,
+        started_at: completedSession.startedAt.toISOString(),
+        completed_at: completedSession.completedAt!.toISOString(),
+        is_complete: true,
+      }])
+      .select()
+      .single();
+
+    if (!sessionErr && sessionRow) {
+      for (const ex of completedSession.exercises) {
+        const { data: exRow } = await supabase
+          .from('workout_session_exercises')
+          .insert([{
+            session_id: sessionRow.id,
+            exercise_id: ex.exerciseId,
+            exercise_name: ex.exerciseName,
+            muscle_group: ex.muscleGroup,
+            total_sets: ex.totalSets,
+            started_at: ex.startedAt.toISOString(),
+            completed_at: ex.completedAt?.toISOString() || null,
+          }])
+          .select()
+          .single();
+
+        if (exRow) {
+          const setsToInsert = ex.completedSets.map(s => ({
+            exercise_session_id: exRow.id,
+            set_number: s.setNumber,
+            reps: s.reps,
+            weight: s.weight,
+            rest_time: s.restTime,
+            completed_at: s.completedAt.toISOString(),
+          }));
+          await supabase.from('workout_completed_sets').insert(setsToInsert);
+        }
+      }
+    }
+
+    setSessions(prev => [completedSession, ...prev]);
+    setCurrentSession(null);
+    return completedSession;
+  }, [currentSession, user]);
+
   const getExerciseHistory = useCallback((exerciseId: string): ExerciseSession[] => {
     const history: ExerciseSession[] = [];
-    
     sessions.forEach(session => {
-      const exerciseInSession = session.exercises.find(e => e.exerciseId === exerciseId);
-      if (exerciseInSession) {
-        history.push({
-          ...exerciseInSession,
-          startedAt: session.date,
-        });
-      }
+      const ex = session.exercises.find(e => e.exerciseId === exerciseId);
+      if (ex) history.push({ ...ex, startedAt: session.date });
     });
-    
     return history.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
   }, [sessions]);
 
-  // Obtener estadísticas generales
   const getStats = useCallback((): WorkoutStats => {
-    let totalSets = 0;
-    let totalWeight = 0;
-    let totalDuration = 0;
-    let totalExercises = 0;
-
+    let totalSets = 0, totalWeight = 0, totalDuration = 0, totalExercises = 0;
     sessions.forEach(session => {
       totalDuration += session.totalDuration;
       session.exercises.forEach(exercise => {
@@ -177,37 +225,27 @@ export const useWorkoutHistory = () => {
         });
       });
     });
-
     return {
-      totalWorkouts: sessions.length,
-      totalExercises,
-      totalSets,
-      totalWeight,
+      totalWorkouts: sessions.length, totalExercises, totalSets, totalWeight,
       averageWorkoutDuration: sessions.length > 0 ? totalDuration / sessions.length : 0,
     };
   }, [sessions]);
 
-  // Eliminar sesión
-  const deleteSession = useCallback((sessionId: string) => {
+  const deleteSession = useCallback(async (sessionId: string) => {
+    await supabase.from('workout_sessions').delete().eq('id', sessionId);
     setSessions(prev => prev.filter(s => s.id !== sessionId));
   }, []);
 
-  // Limpiar todo el historial
-  const clearHistory = useCallback(() => {
+  const clearHistory = useCallback(async () => {
+    if (!user) return;
+    // Delete all user sessions (cascade will handle exercises and sets)
+    await supabase.from('workout_sessions').delete().eq('user_id', user.id);
     setSessions([]);
     setCurrentSession(null);
-  }, []);
+  }, [user]);
 
   return {
-    sessions,
-    currentSession,
-    isLoading,
-    startSession,
-    logCompletedSet,
-    endSession,
-    getExerciseHistory,
-    getStats,
-    deleteSession,
-    clearHistory,
+    sessions, currentSession, isLoading, startSession, logCompletedSet,
+    endSession, getExerciseHistory, getStats, deleteSession, clearHistory,
   };
 };
