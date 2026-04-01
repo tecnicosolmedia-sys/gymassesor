@@ -51,8 +51,11 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
   const [viewMode, setViewMode] = useState<ViewMode>('routines');
   const [chartExercise, setChartExercise] = useState<{ id: string; name: string } | null>(null);
 
-  // Obtener lista única de rutinas
+  // Usar rutinas existentes si se proporcionan, si no extraer de sesiones
   const routineNames = useMemo(() => {
+    if (externalRoutineNames && externalRoutineNames.length > 0) {
+      return externalRoutineNames;
+    }
     const names = new Set<string>();
     sessions.forEach(session => {
       if (session.routineName) {
@@ -60,7 +63,7 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
       }
     });
     return Array.from(names);
-  }, [sessions]);
+  }, [sessions, externalRoutineNames]);
 
   // Filtrar sesiones por rutina y músculo
   const filteredSessions = useMemo(() => {
