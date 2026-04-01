@@ -130,7 +130,7 @@ export const ExerciseProgressChart = ({
           </div>
         </div>
         <ResponsiveContainer width="100%" height={100}>
-          <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
             <XAxis
               dataKey="date"
