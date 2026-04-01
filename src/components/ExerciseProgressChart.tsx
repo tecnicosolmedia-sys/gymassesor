@@ -131,23 +131,23 @@ export const ExerciseProgressChart = ({
           </div>
         </div>
         <ResponsiveContainer width="100%" height={100}>
-          <LineChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }}
               stroke="hsl(var(--border))"
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }}
               stroke="hsl(var(--border))"
               tickLine={false}
               axisLine={false}
-              width={35}
-              unit="kg"
+              width={30}
               domain={[yMin, yMax]}
               ticks={uniqueWeights}
+              tickFormatter={(val) => `${val}`}
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={maxWeight} stroke={color} strokeDasharray="3 3" opacity={0.5} />
