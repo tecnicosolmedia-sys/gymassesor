@@ -24,6 +24,7 @@ import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
 interface WorkoutHistoryProps {
   sessions: WorkoutSession[];
+  routineNames?: string[];
   onDeleteSession: (id: string) => void;
   onClose: () => void;
 }
