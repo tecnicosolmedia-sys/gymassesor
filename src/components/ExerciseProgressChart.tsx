@@ -165,7 +165,7 @@ export const ExerciseProgressChart = ({
   };
 
   const charts = (
-    <div className="space-y-3">
+    <div className="grid grid-cols-2 gap-2">
       {setNumbers.map(renderSetChart)}
     </div>
   );
