@@ -109,7 +109,7 @@ export const SetCard = ({
             isCompleted
               ? "bg-primary/20 border border-primary"
               : isCurrent
-                ? "bg-secondary border border-primary/50"
+                ? "bg-secondary neon-border-trace"
                 : "bg-secondary/50 border border-transparent"
           )}
         >
