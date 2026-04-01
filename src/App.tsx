@@ -31,7 +31,7 @@ const GlubProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppContent = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, migrating } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
@@ -57,10 +57,11 @@ const AppContent = () => {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
 
-  if (loading) {
+  if (loading || migrating) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        {migrating && <p className="text-sm text-muted-foreground">Sincronizando datos...</p>}
       </div>
     );
   }
