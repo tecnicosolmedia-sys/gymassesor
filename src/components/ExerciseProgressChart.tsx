@@ -106,8 +106,16 @@ export const ExerciseProgressChart = ({
   const renderSetChart = (setNum: number) => {
     const data = perSetData.get(setNum) || [];
     if (data.length === 0) return null;
-    const maxWeight = Math.max(...data.map(d => d.weight));
+    const weights = data.map(d => d.weight);
+    const maxWeight = Math.max(...weights);
+    const minWeight = Math.min(...weights);
     const color = SET_COLORS[(setNum - 1) % SET_COLORS.length];
+
+    // Tighten Y-axis to make progressions more visible
+    const range = maxWeight - minWeight;
+    const padding = range > 0 ? Math.max(range * 0.2, 1) : Math.max(maxWeight * 0.1, 2.5);
+    const yMin = Math.max(0, Math.floor((minWeight - padding) * 2) / 2);
+    const yMax = Math.ceil((maxWeight + padding) * 2) / 2;
 
     return (
       <div key={setNum} className="rounded-xl border border-border bg-secondary/20 p-3">
@@ -137,6 +145,7 @@ export const ExerciseProgressChart = ({
               axisLine={false}
               width={35}
               unit="kg"
+              domain={[yMin, yMax]}
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={maxWeight} stroke={color} strokeDasharray="3 3" opacity={0.5} />
