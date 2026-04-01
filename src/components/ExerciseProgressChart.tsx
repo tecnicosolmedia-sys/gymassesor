@@ -147,6 +147,7 @@ export const ExerciseProgressChart = ({
               width={35}
               unit="kg"
               domain={[yMin, yMax]}
+              ticks={uniqueWeights}
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={maxWeight} stroke={color} strokeDasharray="3 3" opacity={0.5} />
