@@ -535,6 +535,7 @@ const Index = () => {
       {showHistory && (
         <WorkoutHistory
           sessions={sessions}
+          routineNames={routines.map(r => r.name)}
           onDeleteSession={deleteSession}
           onClose={() => setShowHistory(false)}
         />
