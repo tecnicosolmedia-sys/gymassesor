@@ -170,14 +170,36 @@ export const ExerciseSummary = ({
           })}
         </div>
 
-        {/* Continue button */}
-        <button
-          onClick={() => onContinue(localConfigs)}
-          className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
-        >
-          Continuar
-          <ArrowRight className="w-5 h-5" />
-        </button>
+        {/* Progress chart */}
+        {historySessions.length > 0 && (
+          <div className="mb-6">
+            <ExerciseProgressChart
+              exerciseId={exerciseId}
+              exerciseName={exerciseName}
+              sessions={historySessions}
+              inline
+            />
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex gap-3">
+          {onGoBack && (
+            <button
+              onClick={onGoBack}
+              className="flex-shrink-0 py-4 px-5 rounded-xl bg-secondary text-foreground font-semibold flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all"
+            >
+              <Undo2 className="w-5 h-5" />
+            </button>
+          )}
+          <button
+            onClick={() => onContinue(localConfigs)}
+            className="flex-1 py-4 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
+          >
+            Continuar
+            <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Direct edit dialog */}
