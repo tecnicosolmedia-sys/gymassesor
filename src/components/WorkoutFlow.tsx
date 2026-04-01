@@ -364,6 +364,17 @@ export const WorkoutFlow = ({
     return 120;
   };
 
+  // Volver atrás desde el resumen al ejercicio
+  const handleSummaryGoBack = (exerciseIndex: number, exerciseId: string) => {
+    // Quitar de completados para poder volver a ejercitarse
+    setCompletedExerciseIds((prev) => {
+      const next = new Set(prev);
+      next.delete(exerciseId);
+      return next;
+    });
+    setFlowState({ type: 'exercising', exerciseIndex });
+  };
+
   // Renderizar resumen del ejercicio completado
   if (flowState.type === 'exercise-summary') {
     const summaryExercise = workoutExercises[flowState.completedExerciseIndex];
@@ -380,10 +391,13 @@ export const WorkoutFlow = ({
       return (
         <ExerciseSummary
           exerciseName={summaryExercise.name}
+          exerciseId={summaryExercise.id}
           muscleGroup={summaryExercise.muscleGroup}
           setConfigs={configs}
           completedSets={savedSetState?.completedSets || []}
           onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
+          onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.id)}
+          historySessions={workoutSessions}
         />
       );
     }

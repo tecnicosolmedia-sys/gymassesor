@@ -1,25 +1,33 @@
 import { useState } from 'react';
 import { SetConfig } from '@/types/exercise';
-import { CheckCircle, Edit2, Dumbbell, Clock, ArrowRight, Minus, Plus } from 'lucide-react';
+import { CheckCircle, Edit2, Dumbbell, Clock, ArrowRight, Minus, Plus, Undo2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ExerciseProgressChart } from '@/components/ExerciseProgressChart';
+import { WorkoutSession } from '@/types/workoutHistory';
 
 interface ExerciseSummaryProps {
   exerciseName: string;
+  exerciseId: string;
   muscleGroup: string;
   setConfigs: SetConfig[];
   completedSets: number[]; // indices of completed sets (1-based)
   onContinue: (updatedConfigs: SetConfig[]) => void;
+  onGoBack?: () => void;
+  historySessions?: WorkoutSession[];
 }
 
 export const ExerciseSummary = ({
   exerciseName,
+  exerciseId,
   muscleGroup,
   setConfigs,
   completedSets,
   onContinue,
+  onGoBack,
+  historySessions = [],
 }: ExerciseSummaryProps) => {
   const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);
   const [localConfigs, setLocalConfigs] = useState<SetConfig[]>([...setConfigs]);
@@ -162,14 +170,36 @@ export const ExerciseSummary = ({
           })}
         </div>
 
-        {/* Continue button */}
-        <button
-          onClick={() => onContinue(localConfigs)}
-          className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
-        >
-          Continuar
-          <ArrowRight className="w-5 h-5" />
-        </button>
+        {/* Progress chart */}
+        {historySessions.length > 0 && (
+          <div className="mb-6">
+            <ExerciseProgressChart
+              exerciseId={exerciseId}
+              exerciseName={exerciseName}
+              sessions={historySessions}
+              inline
+            />
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex gap-3">
+          {onGoBack && (
+            <button
+              onClick={onGoBack}
+              className="flex-shrink-0 py-4 px-5 rounded-xl bg-secondary text-foreground font-semibold flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all"
+            >
+              <Undo2 className="w-5 h-5" />
+            </button>
+          )}
+          <button
+            onClick={() => onContinue(localConfigs)}
+            className="flex-1 py-4 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
+          >
+            Continuar
+            <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Direct edit dialog */}
