@@ -21,10 +21,13 @@ interface ExerciseSummaryProps {
 
 export const ExerciseSummary = ({
   exerciseName,
+  exerciseId,
   muscleGroup,
   setConfigs,
   completedSets,
   onContinue,
+  onGoBack,
+  historySessions = [],
 }: ExerciseSummaryProps) => {
   const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);
   const [localConfigs, setLocalConfigs] = useState<SetConfig[]>([...setConfigs]);
