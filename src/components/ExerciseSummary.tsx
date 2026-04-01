@@ -1,17 +1,22 @@
 import { useState } from 'react';
 import { SetConfig } from '@/types/exercise';
-import { CheckCircle, Edit2, Dumbbell, Clock, ArrowRight, Minus, Plus } from 'lucide-react';
+import { CheckCircle, Edit2, Dumbbell, Clock, ArrowRight, Minus, Plus, Undo2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ExerciseProgressChart } from '@/components/ExerciseProgressChart';
+import { WorkoutSession } from '@/types/workoutHistory';
 
 interface ExerciseSummaryProps {
   exerciseName: string;
+  exerciseId: string;
   muscleGroup: string;
   setConfigs: SetConfig[];
   completedSets: number[]; // indices of completed sets (1-based)
   onContinue: (updatedConfigs: SetConfig[]) => void;
+  onGoBack?: () => void;
+  historySessions?: WorkoutSession[];
 }
 
 export const ExerciseSummary = ({
