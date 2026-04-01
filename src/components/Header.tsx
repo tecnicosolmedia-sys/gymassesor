@@ -1,5 +1,6 @@
-import { Plus, Calendar, TrendingUp, User } from 'lucide-react';
+import { Plus, Calendar, TrendingUp, User, LogOut } from 'lucide-react';
 import logo from '@/assets/logo.png';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
   onAddExercise: () => void;
@@ -9,6 +10,7 @@ interface HeaderProps {
 }
 
 export const Header = ({ onAddExercise, onAddRoutine, onShowHistory, onShowPersonalData }: HeaderProps) => {
+  const { user, signOut } = useAuth();
   return (
     <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border safe-area-top">
       <div className="w-full px-3 sm:px-4 py-3 sm:py-4">
