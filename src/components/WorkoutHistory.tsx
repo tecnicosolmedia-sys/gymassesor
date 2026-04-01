@@ -24,6 +24,7 @@ import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
 interface WorkoutHistoryProps {
   sessions: WorkoutSession[];
+  routineNames?: string[];
   onDeleteSession: (id: string) => void;
   onClose: () => void;
 }
@@ -42,7 +43,7 @@ interface ExerciseHistoryEntry {
   }[];
 }
 
-export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHistoryProps) => {
+export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, onDeleteSession, onClose }: WorkoutHistoryProps) => {
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [selectedRoutine, setSelectedRoutine] = useState<string | 'todas'>('todas');
@@ -50,8 +51,11 @@ export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHi
   const [viewMode, setViewMode] = useState<ViewMode>('routines');
   const [chartExercise, setChartExercise] = useState<{ id: string; name: string } | null>(null);
 
-  // Obtener lista única de rutinas
+  // Usar rutinas existentes si se proporcionan, si no extraer de sesiones
   const routineNames = useMemo(() => {
+    if (externalRoutineNames && externalRoutineNames.length > 0) {
+      return externalRoutineNames;
+    }
     const names = new Set<string>();
     sessions.forEach(session => {
       if (session.routineName) {
@@ -59,7 +63,7 @@ export const WorkoutHistory = ({ sessions, onDeleteSession, onClose }: WorkoutHi
       }
     });
     return Array.from(names);
-  }, [sessions]);
+  }, [sessions, externalRoutineNames]);
 
   // Filtrar sesiones por rutina y músculo
   const filteredSessions = useMemo(() => {
