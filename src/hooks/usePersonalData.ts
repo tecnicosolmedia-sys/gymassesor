@@ -1,31 +1,55 @@
 import { useState, useEffect } from 'react';
 import { PersonalData } from '@/types/personalData';
-
-const STORAGE_KEY = 'gym-assessor-personal-data';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const usePersonalData = () => {
+  const { user } = useAuth();
   const [personalData, setPersonalData] = useState<PersonalData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setPersonalData(JSON.parse(stored));
-      } catch (e) {
-        console.error('Error parsing personal data:', e);
-      }
-    }
-    setIsLoading(false);
-  }, []);
+    const fetchData = async () => {
+      if (!user) { setIsLoading(false); return; }
+      const { data, error } = await supabase
+        .from('personal_data')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-  const savePersonalData = (data: PersonalData) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      if (!error && data) {
+        setPersonalData({
+          birthDate: data.birth_date || '',
+          height: Number(data.height) || 0,
+          weight: Number(data.weight) || 0,
+          sex: (data.sex as PersonalData['sex']) || 'masculino',
+        });
+      }
+      setIsLoading(false);
+    };
+    fetchData();
+  }, [user]);
+
+  const savePersonalData = async (data: PersonalData) => {
+    if (!user) return;
     setPersonalData(data);
+
+    const dbData = {
+      user_id: user.id,
+      birth_date: data.birthDate || null,
+      height: data.height,
+      weight: data.weight,
+      sex: data.sex,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Upsert
+    await supabase.from('personal_data').upsert(dbData, { onConflict: 'user_id' });
   };
 
-  const clearPersonalData = () => {
-    localStorage.removeItem(STORAGE_KEY);
+  const clearPersonalData = async () => {
+    if (!user) return;
+    await supabase.from('personal_data').delete().eq('user_id', user.id);
     setPersonalData(null);
   };
 

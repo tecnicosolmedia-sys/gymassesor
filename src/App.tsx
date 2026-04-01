@@ -6,7 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SplashScreen } from "@/components/SplashScreen";
 import { useGlubSound } from "@/hooks/useGlubSound";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,7 +30,8 @@ const GlubProvider = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const App = () => {
+const AppContent = () => {
+  const { user, loading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
@@ -40,39 +43,53 @@ const App = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
-  // Disable Android back button (browser back navigation)
+  // Disable Android back button
   useEffect(() => {
-    // Push an initial state so there's always something to "go back" to
     window.history.pushState(null, '', window.location.href);
-
     const handlePopState = () => {
-      // Re-push state to prevent leaving the app
       window.history.pushState(null, '', window.location.href);
     };
-
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <GlubProvider>
-          <Toaster />
-          <Sonner />
-          
-          {showSplash && (
-            <SplashScreen onComplete={() => setShowSplash(false)} />
-          )}
-          
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </GlubProvider>
+        <AuthProvider>
+          <GlubProvider>
+            <Toaster />
+            <Sonner />
+            <AppContent />
+          </GlubProvider>
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

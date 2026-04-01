@@ -1,5 +1,6 @@
-import { Plus, Calendar, TrendingUp, User } from 'lucide-react';
+import { Plus, Calendar, TrendingUp, User, LogOut } from 'lucide-react';
 import logo from '@/assets/logo.png';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
   onAddExercise: () => void;
@@ -9,6 +10,7 @@ interface HeaderProps {
 }
 
 export const Header = ({ onAddExercise, onAddRoutine, onShowHistory, onShowPersonalData }: HeaderProps) => {
+  const { user, signOut } = useAuth();
   return (
     <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border safe-area-top">
       <div className="w-full px-3 sm:px-4 py-3 sm:py-4">
@@ -33,7 +35,11 @@ export const Header = ({ onAddExercise, onAddRoutine, onShowHistory, onShowPerso
               className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2.5 rounded-xl bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
               title="Datos personales"
             >
-              <User className="w-4 h-4" />
+              {user?.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="" className="w-5 h-5 rounded-full" />
+              ) : (
+                <User className="w-4 h-4" />
+              )}
               <span className="hidden sm:inline sm:ml-2">Perfil</span>
             </button>
             <button
@@ -59,6 +65,13 @@ export const Header = ({ onAddExercise, onAddRoutine, onShowHistory, onShowPerso
             >
               <Plus className="w-5 h-5" />
               <span className="hidden sm:inline sm:ml-2">Ejercicio</span>
+            </button>
+            <button
+              onClick={signOut}
+              className="flex items-center justify-center w-9 h-9 rounded-xl bg-secondary/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+              title="Cerrar sesión"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
