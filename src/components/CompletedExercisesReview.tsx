@@ -65,14 +65,11 @@ export const CompletedExercisesReview = ({
                   className="w-full flex items-center gap-3 p-3 hover:bg-secondary/30 transition-colors"
                 >
                   <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center overflow-hidden">
-                    {(() => {
-                      const icon = getMuscleGroupIcon(exercise.muscleGroup);
-                      return icon ? (
-                        <img src={icon} alt={exercise.muscleGroup} className="w-6 h-6 object-contain" />
-                      ) : (
-                        <Dumbbell className="w-5 h-5 text-primary" />
-                      );
-                    })()}
+                    {muscleIcon ? (
+                      <img src={muscleIcon} alt={exercise.muscleGroup} className="w-6 h-6 object-contain" />
+                    ) : (
+                      <Dumbbell className="w-5 h-5 text-primary" />
+                    )}
                   </div>
                   <div className="flex-1 text-left">
                     <p className="font-semibold text-sm">{exercise.name}</p>
