@@ -437,17 +437,51 @@ export const ExerciseCard = ({
               )}
             </div>
             
-            {/* Progresión de peso (gráfica inline) */}
-            {workoutSessions.length > 0 && (
-              <div className="p-3 rounded-xl bg-secondary/30">
-                <ExerciseProgressChart
-                  exerciseId={exercise.id}
-                  exerciseName={exercise.name}
-                  sessions={workoutSessions}
-                  inline
-                />
-              </div>
-            )}
+            {/* Progresión de peso (gráfica inline) — incluye sesión actual en vivo */}
+            {(() => {
+              // Build a virtual session from current completed sets
+              const currentCompletedSetObjects = completedSets.map(setNum => {
+                const cfg = localSetConfigs[setNum - 1];
+                return cfg ? {
+                  setNumber: setNum,
+                  reps: cfg.reps,
+                  weight: cfg.weight,
+                  restTime: cfg.restTime,
+                  completedAt: new Date(),
+                } : null;
+              }).filter(Boolean);
+
+              const liveSession: WorkoutSession | null = currentCompletedSetObjects.length > 0 ? {
+                id: 'live-session',
+                date: new Date(),
+                exercises: [{
+                  exerciseId: exercise.id,
+                  exerciseName: exercise.name,
+                  muscleGroup: exercise.muscleGroup,
+                  completedSets: currentCompletedSetObjects as any,
+                  totalSets: exercise.sets,
+                  startedAt: new Date(),
+                }],
+                totalDuration: 0,
+                startedAt: new Date(),
+                isComplete: false,
+              } : null;
+
+              const sessionsWithLive = liveSession
+                ? [...(workoutSessions || []), liveSession]
+                : (workoutSessions || []);
+
+              return sessionsWithLive.length > 0 ? (
+                <div className="p-3 rounded-xl bg-secondary/30">
+                  <ExerciseProgressChart
+                    exerciseId={exercise.id}
+                    exerciseName={exercise.name}
+                    sessions={sessionsWithLive}
+                    inline
+                  />
+                </div>
+              ) : null;
+            })()}
 
             {/* Rest time info */}
             <div className="p-3 rounded-xl bg-secondary/30 flex items-center gap-3">
