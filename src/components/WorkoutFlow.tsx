@@ -500,6 +500,17 @@ export const WorkoutFlow = ({
             ))}
           </div>
 
+          {/* Ejercicios completados */}
+          {completedExerciseIds.size > 0 && (
+            <button
+              onClick={() => setShowCompletedReview(true)}
+              className="w-full mt-4 py-3 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold flex items-center justify-center gap-2 hover:bg-primary/20 transition-all"
+            >
+              <ClipboardList className="w-5 h-5" />
+              Ver ejercicios completados ({completedExerciseIds.size})
+            </button>
+          )}
+
           {/* Botones de acción */}
           <div className="mt-6 pt-6 border-t border-border space-y-3">
             {availableExtraExercises.length > 0 && (
@@ -529,6 +540,23 @@ export const WorkoutFlow = ({
             </button>
           </div>
         </div>
+
+        {/* Review completed exercises */}
+        <CompletedExercisesReview
+          open={showCompletedReview}
+          onOpenChange={setShowCompletedReview}
+          exercises={workoutExercises}
+          completedExerciseIds={completedExerciseIds}
+          exerciseSetStates={exerciseSetStates}
+          onGoToExercise={(exIndex, exId) => {
+            setCompletedExerciseIds((prev) => {
+              const next = new Set(prev);
+              next.delete(exId);
+              return next;
+            });
+            setFlowState({ type: 'exercising', exerciseIndex: exIndex });
+          }}
+        />
       </div>
     );
   }
