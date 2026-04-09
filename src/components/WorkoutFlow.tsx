@@ -540,6 +540,23 @@ export const WorkoutFlow = ({
             </button>
           </div>
         </div>
+
+        {/* Review completed exercises */}
+        <CompletedExercisesReview
+          open={showCompletedReview}
+          onOpenChange={setShowCompletedReview}
+          exercises={workoutExercises}
+          completedExerciseIds={completedExerciseIds}
+          exerciseSetStates={exerciseSetStates}
+          onGoToExercise={(exIndex, exId) => {
+            setCompletedExerciseIds((prev) => {
+              const next = new Set(prev);
+              next.delete(exId);
+              return next;
+            });
+            setFlowState({ type: 'exercising', exerciseIndex: exIndex });
+          }}
+        />
       </div>
     );
   }
