@@ -74,7 +74,6 @@ export const CompletedExercisesReview = ({
                       );
                     })()}
                   </div>
-                  </div>
                   <div className="flex-1 text-left">
                     <p className="font-semibold text-sm">{exercise.name}</p>
                     <p className="text-xs text-muted-foreground">
