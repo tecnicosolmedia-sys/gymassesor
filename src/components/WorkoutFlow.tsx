@@ -5,7 +5,8 @@ import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
 import { AddExerciseDuringWorkoutDialog } from './AddExerciseDuringWorkoutDialog';
-import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff, Flame, Weight, RefreshCw } from 'lucide-react';
+import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff, Flame, Weight, RefreshCw, ClipboardList } from 'lucide-react';
+import { CompletedExercisesReview } from './CompletedExercisesReview';
 import { ExerciseSummary } from './ExerciseSummary';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -103,6 +104,7 @@ export const WorkoutFlow = ({
   const [extraMuscleFilter, setExtraMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
   const [substituteMuscleFilter, setSubstituteMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
   const [substituteOriginalIndex, setSubstituteOriginalIndex] = useState<number | null>(null);
+  const [showCompletedReview, setShowCompletedReview] = useState(false);
   
   // Estado de series por ejercicio (para persistir y restaurar)
   const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(initialExerciseSetStates);
@@ -975,7 +977,7 @@ export const WorkoutFlow = ({
           </div>
 
           {/* Progress bar */}
-          <div className="w-full h-2 bg-secondary rounded-full mb-6 overflow-hidden">
+          <div className="w-full h-2 bg-secondary rounded-full mb-3 overflow-hidden">
             <div 
               className="h-full bg-primary rounded-full transition-all duration-500"
               style={{ 
@@ -983,6 +985,17 @@ export const WorkoutFlow = ({
               }}
             />
           </div>
+
+          {/* Completed exercises review button */}
+          {completedExerciseIds.size > 0 && (
+            <button
+              onClick={() => setShowCompletedReview(true)}
+              className="w-full mb-4 py-2 px-3 rounded-xl bg-secondary/50 border border-border text-sm font-medium flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
+              <ClipboardList className="w-4 h-4" />
+              Ver ejercicios completados ({completedExerciseIds.size})
+            </button>
+          )}
 
           {/* Exercise card con props para flujo de entrenamiento */}
           {(() => {
@@ -1066,6 +1079,24 @@ export const WorkoutFlow = ({
             routineName={routineName}
             onSaveToRoutine={() => handleConfirmAddExercise(true)}
             onJustThisTime={() => handleConfirmAddExercise(false)}
+          />
+
+          {/* Review completed exercises */}
+          <CompletedExercisesReview
+            open={showCompletedReview}
+            onOpenChange={setShowCompletedReview}
+            exercises={workoutExercises}
+            completedExerciseIds={completedExerciseIds}
+            exerciseSetStates={exerciseSetStates}
+            onGoToExercise={(exIndex, exId) => {
+              // Re-open the exercise summary for editing
+              setCompletedExerciseIds((prev) => {
+                const next = new Set(prev);
+                next.delete(exId);
+                return next;
+              });
+              setFlowState({ type: 'exercising', exerciseIndex: exIndex });
+            }}
           />
         </div>
       </div>
