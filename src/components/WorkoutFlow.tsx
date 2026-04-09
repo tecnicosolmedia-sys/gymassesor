@@ -104,6 +104,7 @@ export const WorkoutFlow = ({
   const [extraMuscleFilter, setExtraMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
   const [substituteMuscleFilter, setSubstituteMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
   const [substituteOriginalIndex, setSubstituteOriginalIndex] = useState<number | null>(null);
+  const [showCompletedReview, setShowCompletedReview] = useState(false);
   
   // Estado de series por ejercicio (para persistir y restaurar)
   const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(initialExerciseSetStates);
