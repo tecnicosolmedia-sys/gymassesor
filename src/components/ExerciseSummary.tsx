@@ -170,17 +170,50 @@ export const ExerciseSummary = ({
           })}
         </div>
 
-        {/* Progress chart */}
-        {historySessions.length > 0 && (
-          <div className="mb-6">
-            <ExerciseProgressChart
-              exerciseId={exerciseId}
-              exerciseName={exerciseName}
-              sessions={historySessions}
-              inline
-            />
-          </div>
-        )}
+        {/* Progress chart — includes current session data */}
+        {(() => {
+          const currentCompletedSetObjects = completedSets.map(setNum => {
+            const cfg = localConfigs[setNum - 1];
+            return cfg ? {
+              setNumber: setNum,
+              reps: cfg.reps,
+              weight: cfg.weight,
+              restTime: cfg.restTime,
+              completedAt: new Date(),
+            } : null;
+          }).filter(Boolean);
+
+          const liveSession: WorkoutSession | null = currentCompletedSetObjects.length > 0 ? {
+            id: 'live-session',
+            date: new Date(),
+            exercises: [{
+              exerciseId,
+              exerciseName,
+              muscleGroup,
+              completedSets: currentCompletedSetObjects as any,
+              totalSets: localConfigs.length,
+              startedAt: new Date(),
+            }],
+            totalDuration: 0,
+            startedAt: new Date(),
+            isComplete: false,
+          } : null;
+
+          const sessionsWithLive = liveSession
+            ? [...historySessions, liveSession]
+            : historySessions;
+
+          return sessionsWithLive.length > 0 ? (
+            <div className="mb-6">
+              <ExerciseProgressChart
+                exerciseId={exerciseId}
+                exerciseName={exerciseName}
+                sessions={sessionsWithLive}
+                inline
+              />
+            </div>
+          ) : null;
+        })()}
 
         {/* Action buttons */}
         <div className="flex gap-3">
