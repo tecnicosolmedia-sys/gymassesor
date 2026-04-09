@@ -51,7 +51,7 @@ export const CompletedExercisesReview = ({
             }));
             const completedSetNums = setState?.completedSets || [];
             const isExpanded = expandedId === exercise.id;
-            const MuscleIcon = getMuscleGroupIcon(exercise.muscleGroup);
+            const muscleIcon = getMuscleGroupIcon(exercise.muscleGroup);
             const totalKg = completedSetNums.reduce((sum, setNum) => {
               const cfg = configs[setNum - 1];
               return cfg ? sum + cfg.weight * cfg.reps : sum;
