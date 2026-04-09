@@ -977,7 +977,7 @@ export const WorkoutFlow = ({
           </div>
 
           {/* Progress bar */}
-          <div className="w-full h-2 bg-secondary rounded-full mb-6 overflow-hidden">
+          <div className="w-full h-2 bg-secondary rounded-full mb-3 overflow-hidden">
             <div 
               className="h-full bg-primary rounded-full transition-all duration-500"
               style={{ 
@@ -985,6 +985,17 @@ export const WorkoutFlow = ({
               }}
             />
           </div>
+
+          {/* Completed exercises review button */}
+          {completedExerciseIds.size > 0 && (
+            <button
+              onClick={() => setShowCompletedReview(true)}
+              className="w-full mb-4 py-2 px-3 rounded-xl bg-secondary/50 border border-border text-sm font-medium flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
+              <ClipboardList className="w-4 h-4" />
+              Ver ejercicios completados ({completedExerciseIds.size})
+            </button>
+          )}
 
           {/* Exercise card con props para flujo de entrenamiento */}
           {(() => {
