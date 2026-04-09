@@ -1080,6 +1080,24 @@ export const WorkoutFlow = ({
             onSaveToRoutine={() => handleConfirmAddExercise(true)}
             onJustThisTime={() => handleConfirmAddExercise(false)}
           />
+
+          {/* Review completed exercises */}
+          <CompletedExercisesReview
+            open={showCompletedReview}
+            onOpenChange={setShowCompletedReview}
+            exercises={workoutExercises}
+            completedExerciseIds={completedExerciseIds}
+            exerciseSetStates={exerciseSetStates}
+            onGoToExercise={(exIndex, exId) => {
+              // Re-open the exercise summary for editing
+              setCompletedExerciseIds((prev) => {
+                const next = new Set(prev);
+                next.delete(exId);
+                return next;
+              });
+              setFlowState({ type: 'exercising', exerciseIndex: exIndex });
+            }}
+          />
         </div>
       </div>
     );
