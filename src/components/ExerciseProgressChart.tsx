@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { WorkoutSession } from '@/types/workoutHistory';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { BarChart3, X, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ExerciseProgressChartProps {
   exerciseId: string;
@@ -26,10 +28,13 @@ const SET_COLORS = [
   'hsl(320 70% 50%)',
 ];
 
+type MetricMode = 'weight' | 'reps';
+
 interface SetChartData {
   date: string;
   fullDate: string;
   weight: number;
+  reps: number;
 }
 
 export const ExerciseProgressChart = ({
@@ -39,6 +44,8 @@ export const ExerciseProgressChart = ({
   inline = false,
   onClose,
 }: ExerciseProgressChartProps) => {
+  const [metric, setMetric] = useState<MetricMode>('weight');
+
   // Sort sessions by date ascending
   const sortedSessions = [...sessions]
     .filter(s => s.exercises.some(e => e.exerciseId === exerciseId))
@@ -59,6 +66,7 @@ export const ExerciseProgressChart = ({
         date: format(new Date(session.date), 'd MMM', { locale: es }),
         fullDate: format(new Date(session.date), "EEEE d 'de' MMMM", { locale: es }),
         weight: set.weight,
+        reps: set.reps,
       });
     });
   });
@@ -91,6 +99,7 @@ export const ExerciseProgressChart = ({
   }
 
   const setNumbers = Array.from({ length: maxSets }, (_, i) => i + 1);
+  const unit = metric === 'weight' ? 'kg' : 'reps';
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -98,25 +107,43 @@ export const ExerciseProgressChart = ({
     return (
       <div className="rounded-xl border border-border bg-background px-3 py-2 shadow-xl text-xs">
         <p className="font-medium mb-1 capitalize">{fullDate}</p>
-        <span className="font-semibold">{payload[0].value}kg</span>
+        <span className="font-semibold">{payload[0].value}{unit}</span>
       </div>
     );
   };
 
+  const metricToggle = (
+    <div className="flex items-center gap-3 mb-2">
+      <label
+        className="flex items-center gap-1.5 cursor-pointer"
+        onClick={() => setMetric('weight')}
+      >
+        <Checkbox checked={metric === 'weight'} onCheckedChange={() => setMetric('weight')} />
+        <span className={cn("text-xs font-medium", metric === 'weight' ? 'text-foreground' : 'text-muted-foreground')}>Peso</span>
+      </label>
+      <label
+        className="flex items-center gap-1.5 cursor-pointer"
+        onClick={() => setMetric('reps')}
+      >
+        <Checkbox checked={metric === 'reps'} onCheckedChange={() => setMetric('reps')} />
+        <span className={cn("text-xs font-medium", metric === 'reps' ? 'text-foreground' : 'text-muted-foreground')}>Repeticiones</span>
+      </label>
+    </div>
+  );
+
   const renderSetChart = (setNum: number) => {
     const data = perSetData.get(setNum) || [];
     if (data.length === 0) return null;
-    const weights = data.map(d => d.weight);
-    const uniqueWeights = [...new Set(weights)].sort((a, b) => a - b);
-    const maxWeight = Math.max(...weights);
-    const minWeight = Math.min(...weights);
+    const values = data.map(d => d[metric]);
+    const uniqueValues = [...new Set(values)].sort((a, b) => a - b);
+    const maxVal = Math.max(...values);
+    const minVal = Math.min(...values);
     const color = SET_COLORS[(setNum - 1) % SET_COLORS.length];
 
-    // Tighten Y-axis to make progressions more visible
-    const range = maxWeight - minWeight;
-    const padding = range > 0 ? Math.max(range * 0.2, 1) : Math.max(maxWeight * 0.1, 2.5);
-    const yMin = Math.max(0, Math.floor((minWeight - padding) * 2) / 2);
-    const yMax = Math.ceil((maxWeight + padding) * 2) / 2;
+    const range = maxVal - minVal;
+    const padding = range > 0 ? Math.max(range * 0.2, 1) : Math.max(maxVal * 0.1, 2.5);
+    const yMin = Math.max(0, Math.floor((minVal - padding) * 2) / 2);
+    const yMax = Math.ceil((maxVal + padding) * 2) / 2;
 
     return (
       <div key={setNum} className="rounded-xl border border-border bg-secondary/20 p-3">
@@ -127,7 +154,7 @@ export const ExerciseProgressChart = ({
           </div>
           <div className="flex items-center gap-1 text-xs text-primary font-bold">
             <TrendingUp className="w-3 h-3" />
-            {maxWeight}kg
+            {maxVal}{unit}
           </div>
         </div>
         <ResponsiveContainer width="100%" height={100}>
@@ -146,14 +173,14 @@ export const ExerciseProgressChart = ({
               axisLine={false}
               width={30}
               domain={[yMin, yMax]}
-              ticks={uniqueWeights}
+              ticks={uniqueValues}
               tickFormatter={(val) => `${val}`}
             />
             <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine y={maxWeight} stroke={color} strokeDasharray="3 3" opacity={0.5} />
+            <ReferenceLine y={maxVal} stroke={color} strokeDasharray="3 3" opacity={0.5} />
             <Line
               type="monotone"
-              dataKey="weight"
+              dataKey={metric}
               stroke={color}
               strokeWidth={2}
               dot={{ r: 3, strokeWidth: 2, fill: 'hsl(var(--background))' }}
@@ -175,9 +202,12 @@ export const ExerciseProgressChart = ({
   if (inline) {
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-primary">
-          <BarChart3 className="w-4 h-4" />
-          Progresión de peso
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-primary">
+            <BarChart3 className="w-4 h-4" />
+            Progresión
+          </div>
+          {metricToggle}
         </div>
         {charts}
       </div>
@@ -190,7 +220,7 @@ export const ExerciseProgressChart = ({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-display font-bold text-lg">{exerciseName}</h3>
-            <p className="text-xs text-muted-foreground">Progresión de peso por serie</p>
+            <p className="text-xs text-muted-foreground">Progresión por serie</p>
           </div>
           {onClose && (
             <button onClick={onClose} className="p-2 rounded-full bg-secondary/50 text-muted-foreground hover:text-foreground">
@@ -198,6 +228,7 @@ export const ExerciseProgressChart = ({
             </button>
           )}
         </div>
+        {metricToggle}
         {charts}
         <p className="text-xs text-muted-foreground text-center mt-3">
           {sortedSessions.length} sesión{sortedSessions.length !== 1 ? 'es' : ''} registrada{sortedSessions.length !== 1 ? 's' : ''}
