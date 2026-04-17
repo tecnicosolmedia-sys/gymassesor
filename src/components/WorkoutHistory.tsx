@@ -521,6 +521,11 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
           exerciseName={chartExercise.name}
           sessions={sessions}
           onClose={() => setChartExercise(null)}
+          onDeleteSet={
+            onDeleteCompletedSet
+              ? (sessionId, setNumber) => onDeleteCompletedSet(sessionId, chartExercise.id, setNumber)
+              : undefined
+          }
         />
       )}
     </div>
