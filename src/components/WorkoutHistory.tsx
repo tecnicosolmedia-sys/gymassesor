@@ -26,6 +26,7 @@ interface WorkoutHistoryProps {
   sessions: WorkoutSession[];
   routineNames?: string[];
   onDeleteSession: (id: string) => void;
+  onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -43,7 +44,7 @@ interface ExerciseHistoryEntry {
   }[];
 }
 
-export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, onDeleteSession, onClose }: WorkoutHistoryProps) => {
+export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, onDeleteSession, onDeleteCompletedSet, onClose }: WorkoutHistoryProps) => {
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [selectedRoutine, setSelectedRoutine] = useState<string | 'todas'>('todas');
@@ -520,6 +521,11 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
           exerciseName={chartExercise.name}
           sessions={sessions}
           onClose={() => setChartExercise(null)}
+          onDeleteSet={
+            onDeleteCompletedSet
+              ? (sessionId, setNumber) => onDeleteCompletedSet(sessionId, chartExercise.id, setNumber)
+              : undefined
+          }
         />
       )}
     </div>

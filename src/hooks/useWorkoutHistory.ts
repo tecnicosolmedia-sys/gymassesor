@@ -236,6 +236,44 @@ export const useWorkoutHistory = () => {
     setSessions(prev => prev.filter(s => s.id !== sessionId));
   }, []);
 
+  // Delete a single completed set from a historical session, by sessionId + exerciseId + setNumber
+  const deleteCompletedSet = useCallback(async (
+    sessionId: string,
+    exerciseId: string,
+    setNumber: number,
+  ) => {
+    // Find the exercise_session row id in DB
+    const { data: exRows } = await supabase
+      .from('workout_session_exercises')
+      .select('id')
+      .eq('session_id', sessionId)
+      .eq('exercise_id', exerciseId)
+      .limit(1);
+    const exSessionId = exRows?.[0]?.id;
+    if (!exSessionId) return;
+
+    await supabase
+      .from('workout_completed_sets')
+      .delete()
+      .eq('exercise_session_id', exSessionId)
+      .eq('set_number', setNumber);
+
+    // Update local state
+    setSessions(prev => prev.map(s => {
+      if (s.id !== sessionId) return s;
+      return {
+        ...s,
+        exercises: s.exercises.map(e => {
+          if (e.exerciseId !== exerciseId) return e;
+          return {
+            ...e,
+            completedSets: e.completedSets.filter(set => set.setNumber !== setNumber),
+          };
+        }).filter(e => e.completedSets.length > 0),
+      };
+    }).filter(s => s.exercises.length > 0));
+  }, []);
+
   const clearHistory = useCallback(async () => {
     if (!user) return;
     // Delete all user sessions (cascade will handle exercises and sets)
@@ -246,6 +284,6 @@ export const useWorkoutHistory = () => {
 
   return {
     sessions, currentSession, isLoading, startSession, logCompletedSet,
-    endSession, getExerciseHistory, getStats, deleteSession, clearHistory,
+    endSession, getExerciseHistory, getStats, deleteSession, deleteCompletedSet, clearHistory,
   };
 };

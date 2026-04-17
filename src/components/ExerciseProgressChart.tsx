@@ -3,7 +3,7 @@ import { WorkoutSession } from '@/types/workoutHistory';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { BarChart3, X, TrendingUp } from 'lucide-react';
+import { BarChart3, X, TrendingUp, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -13,6 +13,8 @@ interface ExerciseProgressChartProps {
   sessions: WorkoutSession[];
   inline?: boolean;
   onClose?: () => void;
+  /** When provided, the tooltip shows a delete button to remove that specific set from history. */
+  onDeleteSet?: (sessionId: string, setNumber: number) => void | Promise<void>;
 }
 
 const SET_COLORS = [
@@ -35,6 +37,8 @@ interface SetChartData {
   fullDate: string;
   weight: number;
   reps: number;
+  sessionId: string;
+  setNumber: number;
 }
 
 export const ExerciseProgressChart = ({
@@ -43,8 +47,10 @@ export const ExerciseProgressChart = ({
   sessions,
   inline = false,
   onClose,
+  onDeleteSet,
 }: ExerciseProgressChartProps) => {
   const [metric, setMetric] = useState<MetricMode>('weight');
+  const [selectedPoint, setSelectedPoint] = useState<{ setNum: number; index: number } | null>(null);
 
   // Sort sessions by date ascending
   const sortedSessions = [...sessions]
@@ -67,6 +73,8 @@ export const ExerciseProgressChart = ({
         fullDate: format(new Date(session.date), "EEEE d 'de' MMMM", { locale: es }),
         weight: set.weight,
         reps: set.reps,
+        sessionId: session.id,
+        setNumber: set.setNumber,
       });
     });
   });
@@ -102,15 +110,24 @@ export const ExerciseProgressChart = ({
   const unit = metric === 'weight' ? 'kg' : 'reps';
 
   const CustomTooltip = ({ active, payload, label }: any) => {
+    // Hide hover tooltip when a point is selected (we show our own modal popover instead)
+    if (selectedPoint) return null;
     if (!active || !payload?.length) return null;
     const fullDate = payload[0]?.payload?.fullDate || label;
     return (
       <div className="rounded-xl border border-border bg-background px-3 py-2 shadow-xl text-xs">
         <p className="font-medium mb-1 capitalize">{fullDate}</p>
         <span className="font-semibold">{payload[0].value}{unit}</span>
+        {onDeleteSet && (
+          <p className="text-[9px] text-muted-foreground mt-1">Toca el punto para opciones</p>
+        )}
       </div>
     );
   };
+
+  const selectedData = selectedPoint
+    ? perSetData.get(selectedPoint.setNum)?.[selectedPoint.index]
+    : null;
 
   const metricToggle = (
     <div className="flex items-center gap-3 mb-2">
@@ -183,8 +200,16 @@ export const ExerciseProgressChart = ({
               dataKey={metric}
               stroke={color}
               strokeWidth={2}
-              dot={{ r: 3, strokeWidth: 2, fill: 'hsl(var(--background))' }}
-              activeDot={{ r: 5 }}
+              dot={{ r: 4, strokeWidth: 2, fill: 'hsl(var(--background))', stroke: color, cursor: 'pointer' } as any}
+              activeDot={{
+                r: 6,
+                cursor: 'pointer',
+                onClick: (_: any, payload: any) => {
+                  // Recharts passes the dot's index via payload.index
+                  const idx = payload?.index ?? 0;
+                  setSelectedPoint({ setNum, index: idx });
+                },
+              }}
               connectNulls
             />
           </LineChart>
@@ -199,6 +224,51 @@ export const ExerciseProgressChart = ({
     </div>
   );
 
+  const pointPopover = selectedData && (
+    <div
+      className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={() => setSelectedPoint(null)}
+    >
+      <div
+        className="w-full max-w-xs rounded-2xl border border-border bg-background p-4 shadow-2xl space-y-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-muted-foreground">Serie {selectedData.setNumber}</span>
+          <button
+            onClick={() => setSelectedPoint(null)}
+            className="p-1 rounded-full hover:bg-secondary/50 text-muted-foreground"
+            aria-label="Cerrar"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground capitalize">{selectedData.fullDate}</p>
+          <p className="text-2xl font-bold mt-1">
+            {selectedData[metric]}
+            <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {selectedData.weight}kg · {selectedData.reps} reps
+          </p>
+        </div>
+        {onDeleteSet && (
+          <button
+            onClick={async () => {
+              await onDeleteSet(selectedData.sessionId, selectedData.setNumber);
+              setSelectedPoint(null);
+            }}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-destructive/15 hover:bg-destructive/25 text-destructive py-2 text-sm font-semibold transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Eliminar este registro
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   if (inline) {
     return (
       <div className="space-y-2">
@@ -210,6 +280,7 @@ export const ExerciseProgressChart = ({
           {metricToggle}
         </div>
         {charts}
+        {pointPopover}
       </div>
     );
   }
@@ -234,6 +305,7 @@ export const ExerciseProgressChart = ({
           {sortedSessions.length} sesión{sortedSessions.length !== 1 ? 'es' : ''} registrada{sortedSessions.length !== 1 ? 's' : ''}
         </p>
       </div>
+      {pointPopover}
     </div>
   );
 };

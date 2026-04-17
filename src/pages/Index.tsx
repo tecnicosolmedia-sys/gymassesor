@@ -49,6 +49,7 @@ const Index = () => {
     logCompletedSet,
     endSession,
     deleteSession,
+    deleteCompletedSet,
   } = useWorkoutHistory();
   
   // Estado de entrenamiento guardado
@@ -537,6 +538,7 @@ const Index = () => {
           sessions={sessions}
           routineNames={routines.map(r => r.name)}
           onDeleteSession={deleteSession}
+          onDeleteCompletedSet={deleteCompletedSet}
           onClose={() => setShowHistory(false)}
         />
       )}
@@ -652,6 +654,9 @@ const Index = () => {
           exerciseName={libraryChartExercise.name}
           sessions={sessions}
           onClose={() => setLibraryChartExercise(null)}
+          onDeleteSet={(sessionId, setNumber) =>
+            deleteCompletedSet(sessionId, libraryChartExercise.id, setNumber)
+          }
         />
       )}
       
