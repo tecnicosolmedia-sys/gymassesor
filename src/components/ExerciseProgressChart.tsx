@@ -224,6 +224,51 @@ export const ExerciseProgressChart = ({
     </div>
   );
 
+  const pointPopover = selectedData && (
+    <div
+      className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={() => setSelectedPoint(null)}
+    >
+      <div
+        className="w-full max-w-xs rounded-2xl border border-border bg-background p-4 shadow-2xl space-y-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-muted-foreground">Serie {selectedData.setNumber}</span>
+          <button
+            onClick={() => setSelectedPoint(null)}
+            className="p-1 rounded-full hover:bg-secondary/50 text-muted-foreground"
+            aria-label="Cerrar"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground capitalize">{selectedData.fullDate}</p>
+          <p className="text-2xl font-bold mt-1">
+            {selectedData[metric]}
+            <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {selectedData.weight}kg · {selectedData.reps} reps
+          </p>
+        </div>
+        {onDeleteSet && (
+          <button
+            onClick={async () => {
+              await onDeleteSet(selectedData.sessionId, selectedData.setNumber);
+              setSelectedPoint(null);
+            }}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-destructive/15 hover:bg-destructive/25 text-destructive py-2 text-sm font-semibold transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Eliminar este registro
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   if (inline) {
     return (
       <div className="space-y-2">
@@ -235,6 +280,7 @@ export const ExerciseProgressChart = ({
           {metricToggle}
         </div>
         {charts}
+        {pointPopover}
       </div>
     );
   }
@@ -259,6 +305,7 @@ export const ExerciseProgressChart = ({
           {sortedSessions.length} sesión{sortedSessions.length !== 1 ? 'es' : ''} registrada{sortedSessions.length !== 1 ? 's' : ''}
         </p>
       </div>
+      {pointPopover}
     </div>
   );
 };
