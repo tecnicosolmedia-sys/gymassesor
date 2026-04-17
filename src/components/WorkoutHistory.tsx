@@ -26,6 +26,7 @@ interface WorkoutHistoryProps {
   sessions: WorkoutSession[];
   routineNames?: string[];
   onDeleteSession: (id: string) => void;
+  onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
   onClose: () => void;
 }
 
