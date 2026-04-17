@@ -37,6 +37,8 @@ interface SetChartData {
   fullDate: string;
   weight: number;
   reps: number;
+  sessionId: string;
+  setNumber: number;
 }
 
 export const ExerciseProgressChart = ({
@@ -45,8 +47,10 @@ export const ExerciseProgressChart = ({
   sessions,
   inline = false,
   onClose,
+  onDeleteSet,
 }: ExerciseProgressChartProps) => {
   const [metric, setMetric] = useState<MetricMode>('weight');
+  const [selectedPoint, setSelectedPoint] = useState<{ setNum: number; index: number } | null>(null);
 
   // Sort sessions by date ascending
   const sortedSessions = [...sessions]
