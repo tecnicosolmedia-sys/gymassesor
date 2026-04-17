@@ -73,6 +73,8 @@ export const ExerciseProgressChart = ({
         fullDate: format(new Date(session.date), "EEEE d 'de' MMMM", { locale: es }),
         weight: set.weight,
         reps: set.reps,
+        sessionId: session.id,
+        setNumber: set.setNumber,
       });
     });
   });
