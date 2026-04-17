@@ -653,6 +653,9 @@ const Index = () => {
           exerciseName={libraryChartExercise.name}
           sessions={sessions}
           onClose={() => setLibraryChartExercise(null)}
+          onDeleteSet={(sessionId, setNumber) =>
+            deleteCompletedSet(sessionId, libraryChartExercise.id, setNumber)
+          }
         />
       )}
       
