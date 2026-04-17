@@ -3,7 +3,7 @@ import { WorkoutSession } from '@/types/workoutHistory';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { BarChart3, X, TrendingUp } from 'lucide-react';
+import { BarChart3, X, TrendingUp, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -13,6 +13,8 @@ interface ExerciseProgressChartProps {
   sessions: WorkoutSession[];
   inline?: boolean;
   onClose?: () => void;
+  /** When provided, the tooltip shows a delete button to remove that specific set from history. */
+  onDeleteSet?: (sessionId: string, setNumber: number) => void | Promise<void>;
 }
 
 const SET_COLORS = [
