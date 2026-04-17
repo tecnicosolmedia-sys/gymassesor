@@ -200,8 +200,16 @@ export const ExerciseProgressChart = ({
               dataKey={metric}
               stroke={color}
               strokeWidth={2}
-              dot={{ r: 3, strokeWidth: 2, fill: 'hsl(var(--background))' }}
-              activeDot={{ r: 5 }}
+              dot={{ r: 4, strokeWidth: 2, fill: 'hsl(var(--background))', stroke: color, cursor: 'pointer' } as any}
+              activeDot={{
+                r: 6,
+                cursor: 'pointer',
+                onClick: (_: any, payload: any) => {
+                  // Recharts passes the dot's index via payload.index
+                  const idx = payload?.index ?? 0;
+                  setSelectedPoint({ setNum, index: idx });
+                },
+              }}
               connectNulls
             />
           </LineChart>
