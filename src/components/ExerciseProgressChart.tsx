@@ -110,15 +110,24 @@ export const ExerciseProgressChart = ({
   const unit = metric === 'weight' ? 'kg' : 'reps';
 
   const CustomTooltip = ({ active, payload, label }: any) => {
+    // Hide hover tooltip when a point is selected (we show our own modal popover instead)
+    if (selectedPoint) return null;
     if (!active || !payload?.length) return null;
     const fullDate = payload[0]?.payload?.fullDate || label;
     return (
       <div className="rounded-xl border border-border bg-background px-3 py-2 shadow-xl text-xs">
         <p className="font-medium mb-1 capitalize">{fullDate}</p>
         <span className="font-semibold">{payload[0].value}{unit}</span>
+        {onDeleteSet && (
+          <p className="text-[9px] text-muted-foreground mt-1">Toca el punto para opciones</p>
+        )}
       </div>
     );
   };
+
+  const selectedData = selectedPoint
+    ? perSetData.get(selectedPoint.setNum)?.[selectedPoint.index]
+    : null;
 
   const metricToggle = (
     <div className="flex items-center gap-3 mb-2">
