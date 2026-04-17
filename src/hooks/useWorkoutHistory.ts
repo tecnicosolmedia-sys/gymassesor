@@ -284,6 +284,6 @@ export const useWorkoutHistory = () => {
 
   return {
     sessions, currentSession, isLoading, startSession, logCompletedSet,
-    endSession, getExerciseHistory, getStats, deleteSession, clearHistory,
+    endSession, getExerciseHistory, getStats, deleteSession, deleteCompletedSet, clearHistory,
   };
 };
