@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Exercise, SetConfig } from '@/types/exercise';
-import { X, Image, Save, Dumbbell, ChevronDown, Copy, Loader2 } from 'lucide-react';
+import { X, Image, Save, Dumbbell, ChevronDown, Copy, Loader2, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -137,6 +137,7 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
   const [formData, setFormData] = useState({
     name: '',
     imageUrl: '',
+    imageUrls: [] as string[],
     videoUrl: '',
     sets: 3,
     reps: 10,
@@ -156,9 +157,13 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
   // Inicializar configuración de series - usar la última configuración guardada del ejercicio
   useEffect(() => {
     if (exercise) {
+      const initialImageUrls = exercise.imageUrls && exercise.imageUrls.length > 0
+        ? exercise.imageUrls
+        : (exercise.imageUrl ? [exercise.imageUrl] : []);
       setFormData({
         name: exercise.name,
-        imageUrl: exercise.imageUrl || '',
+        imageUrl: initialImageUrls[0] || '',
+        imageUrls: initialImageUrls,
         videoUrl: exercise.videoUrl || '',
         sets: exercise.sets,
         reps: exercise.reps,
@@ -273,37 +278,79 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     setIsUploadingImage(true);
+    const uploadedUrls: string[] = [];
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `exercises/${fileName}`;
+      for (const file of files) {
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${crypto.randomUUID()}.${fileExt}`;
+          const filePath = `exercises/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('exercise-images')
-        .upload(filePath, file);
+          const { error: uploadError } = await supabase.storage
+            .from('exercise-images')
+            .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('exercise-images')
-        .getPublicUrl(filePath);
+          const { data: { publicUrl } } = supabase.storage
+            .from('exercise-images')
+            .getPublicUrl(filePath);
 
-      setFormData((prev) => ({ ...prev, imageUrl: publicUrl }));
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      // Fallback to base64
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, imageUrl: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+          uploadedUrls.push(publicUrl);
+        } catch (error) {
+          console.error('Error uploading image, fallback to base64:', error);
+          // Fallback to base64
+          const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+          uploadedUrls.push(dataUrl);
+        }
+      }
+
+      setFormData((prev) => {
+        const newUrls = [...prev.imageUrls, ...uploadedUrls];
+        return {
+          ...prev,
+          imageUrls: newUrls,
+          imageUrl: newUrls[0] || '',
+        };
+      });
     } finally {
       setIsUploadingImage(false);
+      // Reset input para permitir re-subir el mismo archivo
+      e.target.value = '';
     }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData((prev) => {
+      const newUrls = prev.imageUrls.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        imageUrls: newUrls,
+        imageUrl: newUrls[0] || '',
+      };
+    });
+  };
+
+  const moveImage = (index: number, direction: -1 | 1) => {
+    setFormData((prev) => {
+      const newUrls = [...prev.imageUrls];
+      const target = index + direction;
+      if (target < 0 || target >= newUrls.length) return prev;
+      [newUrls[index], newUrls[target]] = [newUrls[target], newUrls[index]];
+      return {
+        ...prev,
+        imageUrls: newUrls,
+        imageUrl: newUrls[0] || '',
+      };
+    });
   };
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
