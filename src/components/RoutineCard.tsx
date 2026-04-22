@@ -198,7 +198,8 @@ export const RoutineCard = ({
                         {exercise.muscleGroup}
                       </span>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </div>
