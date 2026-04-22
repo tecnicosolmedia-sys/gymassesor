@@ -529,3 +529,88 @@ export const ExerciseCard = ({
     </>
   );
 };
+
+// Carrusel de imágenes para la ficha de ejercicio
+const ExerciseImagesCarousel = ({ exercise }: { exercise: Exercise }) => {
+  const images = useMemo(() => {
+    if (exercise.imageUrls && exercise.imageUrls.length > 0) return exercise.imageUrls;
+    if (exercise.imageUrl) return [exercise.imageUrl];
+    return [];
+  }, [exercise.imageUrls, exercise.imageUrl]);
+
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!api) return;
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap());
+    const onSelect = () => setCurrent(api.selectedScrollSnap());
+    api.on('select', onSelect);
+    api.on('reInit', onSelect);
+    return () => {
+      api.off('select', onSelect);
+    };
+  }, [api]);
+
+  if (images.length === 0) return null;
+
+  // Una sola imagen: render simple sin controles de carrusel
+  if (images.length === 1) {
+    return (
+      <div className="w-full aspect-square rounded-xl bg-secondary overflow-hidden">
+        <img
+          src={images[0]}
+          alt={exercise.name}
+          className="w-full h-full object-contain"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <Carousel setApi={setApi} opts={{ loop: true, align: 'start' }} className="w-full">
+        <CarouselContent className="-ml-0">
+          {images.map((url, idx) => (
+            <CarouselItem key={`${url}-${idx}`} className="pl-0 basis-full">
+              <div className="w-full aspect-square rounded-xl bg-secondary overflow-hidden">
+                <img
+                  src={url}
+                  alt={`${exercise.name} ${idx + 1}`}
+                  className="w-full h-full object-contain"
+                  draggable={false}
+                />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious
+          type="button"
+          className="left-2 top-1/2 -translate-y-1/2 bg-background/70 backdrop-blur-sm border-border hover:bg-background"
+        />
+        <CarouselNext
+          type="button"
+          className="right-2 top-1/2 -translate-y-1/2 bg-background/70 backdrop-blur-sm border-border hover:bg-background"
+        />
+      </Carousel>
+
+      {/* Indicadores (puntos) */}
+      <div className="flex items-center justify-center gap-1.5">
+        {Array.from({ length: count }).map((_, idx) => (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => api?.scrollTo(idx)}
+            aria-label={`Ir a imagen ${idx + 1}`}
+            className={cn(
+              'h-1.5 rounded-full transition-all',
+              idx === current ? 'w-5 bg-primary' : 'w-1.5 bg-muted-foreground/40 hover:bg-muted-foreground/70'
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
