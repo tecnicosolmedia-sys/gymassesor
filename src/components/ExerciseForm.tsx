@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Exercise, SetConfig } from '@/types/exercise';
-import { X, Image, Save, Dumbbell, ChevronDown, Copy, Loader2 } from 'lucide-react';
+import { X, Image, Save, Dumbbell, ChevronDown, Copy, Loader2, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -137,6 +137,7 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
   const [formData, setFormData] = useState({
     name: '',
     imageUrl: '',
+    imageUrls: [] as string[],
     videoUrl: '',
     sets: 3,
     reps: 10,
@@ -156,9 +157,13 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
   // Inicializar configuración de series - usar la última configuración guardada del ejercicio
   useEffect(() => {
     if (exercise) {
+      const initialImageUrls = exercise.imageUrls && exercise.imageUrls.length > 0
+        ? exercise.imageUrls
+        : (exercise.imageUrl ? [exercise.imageUrl] : []);
       setFormData({
         name: exercise.name,
-        imageUrl: exercise.imageUrl || '',
+        imageUrl: initialImageUrls[0] || '',
+        imageUrls: initialImageUrls,
         videoUrl: exercise.videoUrl || '',
         sets: exercise.sets,
         reps: exercise.reps,
@@ -273,37 +278,79 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     setIsUploadingImage(true);
+    const uploadedUrls: string[] = [];
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `exercises/${fileName}`;
+      for (const file of files) {
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${crypto.randomUUID()}.${fileExt}`;
+          const filePath = `exercises/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('exercise-images')
-        .upload(filePath, file);
+          const { error: uploadError } = await supabase.storage
+            .from('exercise-images')
+            .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('exercise-images')
-        .getPublicUrl(filePath);
+          const { data: { publicUrl } } = supabase.storage
+            .from('exercise-images')
+            .getPublicUrl(filePath);
 
-      setFormData((prev) => ({ ...prev, imageUrl: publicUrl }));
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      // Fallback to base64
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, imageUrl: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+          uploadedUrls.push(publicUrl);
+        } catch (error) {
+          console.error('Error uploading image, fallback to base64:', error);
+          // Fallback to base64
+          const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+          uploadedUrls.push(dataUrl);
+        }
+      }
+
+      setFormData((prev) => {
+        const newUrls = [...prev.imageUrls, ...uploadedUrls];
+        return {
+          ...prev,
+          imageUrls: newUrls,
+          imageUrl: newUrls[0] || '',
+        };
+      });
     } finally {
       setIsUploadingImage(false);
+      // Reset input para permitir re-subir el mismo archivo
+      e.target.value = '';
     }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData((prev) => {
+      const newUrls = prev.imageUrls.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        imageUrls: newUrls,
+        imageUrl: newUrls[0] || '',
+      };
+    });
+  };
+
+  const moveImage = (index: number, direction: -1 | 1) => {
+    setFormData((prev) => {
+      const newUrls = [...prev.imageUrls];
+      const target = index + direction;
+      if (target < 0 || target >= newUrls.length) return prev;
+      [newUrls[index], newUrls[target]] = [newUrls[target], newUrls[index]];
+      return {
+        ...prev,
+        imageUrls: newUrls,
+        imageUrl: newUrls[0] || '',
+      };
+    });
   };
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -373,34 +420,91 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
               </div>
             </div>
 
-            {/* Image upload - square full width */}
+            {/* Multiple images upload */}
             <div>
-              <label className="block text-sm font-medium mb-2">Imagen del ejercicio</label>
-              <label className="flex flex-col items-center justify-center w-full aspect-square rounded-xl bg-secondary border-2 border-dashed border-border hover:border-primary cursor-pointer transition-colors overflow-hidden relative">
-                {isUploadingImage && (
-                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center z-10">
-                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium">
+                  Imágenes del ejercicio
+                  {formData.imageUrls.length > 0 && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      ({formData.imageUrls.length})
+                    </span>
+                  )}
+                </label>
+                {formData.imageUrls.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    Desliza en la ficha para verlas
+                  </span>
+                )}
+              </div>
+
+              {/* Grid de miniaturas + botón añadir */}
+              <div className="grid grid-cols-3 gap-2">
+                {formData.imageUrls.map((url, idx) => (
+                  <div
+                    key={`${url}-${idx}`}
+                    className="relative aspect-square rounded-xl bg-secondary border border-border overflow-hidden group"
+                  >
+                    <img src={url} alt={`Imagen ${idx + 1}`} className="w-full h-full object-contain" />
+                    {idx === 0 && (
+                      <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">
+                        Principal
+                      </span>
+                    )}
+                    {/* Controles */}
+                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-background/80 backdrop-blur-sm px-1 py-1">
+                      <button
+                        type="button"
+                        onClick={() => moveImage(idx, -1)}
+                        disabled={idx === 0}
+                        className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
+                        aria-label="Mover atrás"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="w-6 h-6 rounded flex items-center justify-center text-destructive hover:bg-destructive/20"
+                        aria-label="Eliminar"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveImage(idx, 1)}
+                        disabled={idx === formData.imageUrls.length - 1}
+                        className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
+                        aria-label="Mover adelante"
+                      >
+                        ›
+                      </button>
+                    </div>
                   </div>
-                )}
-                {formData.imageUrl ? (
-                  <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-contain" />
-                ) : (
-                  <>
-                    <Image className="w-10 h-10 text-muted-foreground mb-2" />
-                    <span className="text-sm text-muted-foreground">Toca para subir imagen</span>
-                  </>
-                )}
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-              </label>
-              {formData.imageUrl && (
-                <button
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, imageUrl: '' }))}
-                  className="mt-2 text-xs text-destructive hover:underline"
-                >
-                  Eliminar imagen
-                </button>
-              )}
+                ))}
+
+                {/* Botón añadir */}
+                <label className="relative flex flex-col items-center justify-center aspect-square rounded-xl bg-secondary border-2 border-dashed border-border hover:border-primary cursor-pointer transition-colors overflow-hidden">
+                  {isUploadingImage ? (
+                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="w-6 h-6 text-muted-foreground mb-1" />
+                      <span className="text-[11px] text-muted-foreground text-center px-1">
+                        {formData.imageUrls.length === 0 ? 'Subir imágenes' : 'Añadir más'}
+                      </span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={isUploadingImage}
+                  />
+                </label>
+              </div>
             </div>
 
             {/* Sets with +/- buttons */}

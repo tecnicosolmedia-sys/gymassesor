@@ -20,7 +20,8 @@ export interface SetConfig {
 export interface Exercise {
   id: string;
   name: string;
-  imageUrl?: string;
+  imageUrl?: string; // imagen principal (deprecated, ahora es la primera de imageUrls)
+  imageUrls?: string[]; // múltiples imágenes para mostrar en carrusel
   videoUrl?: string;
   sets: number;
   reps: number;
