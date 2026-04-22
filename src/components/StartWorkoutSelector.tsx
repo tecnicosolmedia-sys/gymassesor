@@ -48,7 +48,9 @@ export const StartWorkoutSelector = ({
             </p>
 
             <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-              {exercises.map((exercise, index) => (
+              {exercises.map((exercise, index) => {
+                const primaryImage = exercise.imageUrls?.[0] || exercise.imageUrl;
+                return (
                 <button
                   key={exercise.id}
                   onClick={() => setSelectedIndex(index)}
@@ -59,9 +61,15 @@ export const StartWorkoutSelector = ({
                   }`}
                 >
                   <div className="w-10 h-10 rounded-lg bg-card flex items-center justify-center overflow-hidden flex-shrink-0 border border-border">
-                    {getMuscleGroupIcon(exercise.muscleGroup) ? (
-                      <img 
-                        src={getMuscleGroupIcon(exercise.muscleGroup)!} 
+                    {primaryImage ? (
+                      <img
+                        src={primaryImage}
+                        alt={exercise.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
+                      <img
+                        src={getMuscleGroupIcon(exercise.muscleGroup)!}
                         alt={exercise.muscleGroup}
                         className="w-8 h-8 object-contain"
                       />
@@ -84,7 +92,8 @@ export const StartWorkoutSelector = ({
                     <ChevronRight className="w-5 h-5 text-primary flex-shrink-0" />
                   )}
                 </button>
-              ))}
+                );
+              })}
             </div>
 
             {/* Actions */}
