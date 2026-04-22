@@ -1,7 +1,7 @@
 import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
 import { SetCard } from './SetCard';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Trash2, 
   Edit2, 
@@ -17,6 +17,14 @@ import { WorkoutSession } from '@/types/workoutHistory';
 import { ExerciseProgressChart } from './ExerciseProgressChart';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+  type CarouselApi,
+} from '@/components/ui/carousel';
 
 interface ExerciseCardProps {
   exercise: Exercise;
