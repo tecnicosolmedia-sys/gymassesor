@@ -172,12 +172,20 @@ export const RoutineCard = ({
                 <p className="text-sm text-muted-foreground italic">Sin ejercicios</p>
               ) : (
                 <ul className="space-y-2">
-                  {routineExercises.map((exercise, index) => (
+                  {routineExercises.map((exercise, index) => {
+                    const primaryImage = exercise.imageUrls?.[0] || exercise.imageUrl;
+                    return (
                     <li key={exercise.id} className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {getMuscleGroupIcon(exercise.muscleGroup) ? (
-                          <img 
-                            src={getMuscleGroupIcon(exercise.muscleGroup)!} 
+                        {primaryImage ? (
+                          <img
+                            src={primaryImage}
+                            alt={exercise.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
+                          <img
+                            src={getMuscleGroupIcon(exercise.muscleGroup)!}
                             alt={exercise.muscleGroup}
                             className="w-5 h-5 object-contain"
                           />
