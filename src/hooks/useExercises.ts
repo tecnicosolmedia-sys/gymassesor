@@ -16,6 +16,9 @@ const mapDbToExercise = (row: any): Exercise => ({
   caloriesPerSet: Number(row.calories_per_set),
   muscleGroup: row.muscle_group,
   imageUrl: row.image_url ?? undefined,
+  imageUrls: Array.isArray(row.image_urls) && row.image_urls.length > 0
+    ? row.image_urls
+    : (row.image_url ? [row.image_url] : []),
   videoUrl: row.video_url ?? undefined,
   createdAt: new Date(row.created_at),
 });
@@ -31,7 +34,8 @@ const mapExerciseToDb = (e: Omit<Exercise, 'id' | 'createdAt'>, userId?: string)
   notes: e.notes,
   calories_per_set: e.caloriesPerSet,
   muscle_group: e.muscleGroup,
-  image_url: e.imageUrl ?? null,
+  image_url: e.imageUrls?.[0] ?? e.imageUrl ?? null,
+  image_urls: JSON.parse(JSON.stringify(e.imageUrls ?? (e.imageUrl ? [e.imageUrl] : []))),
   video_url: e.videoUrl ?? null,
   user_id: userId ?? null,
 });
@@ -102,6 +106,11 @@ export const useExercises = () => {
     if (updates.caloriesPerSet !== undefined) dbUpdates.calories_per_set = updates.caloriesPerSet;
     if (updates.muscleGroup !== undefined) dbUpdates.muscle_group = updates.muscleGroup;
     if (updates.imageUrl !== undefined) dbUpdates.image_url = updates.imageUrl;
+    if (updates.imageUrls !== undefined) {
+      dbUpdates.image_urls = JSON.parse(JSON.stringify(updates.imageUrls));
+      // mantener image_url como la primera para compatibilidad
+      dbUpdates.image_url = updates.imageUrls[0] ?? null;
+    }
     if (updates.videoUrl !== undefined) dbUpdates.video_url = updates.videoUrl;
 
     await supabase.from('exercises').update(dbUpdates).eq('id', id);
