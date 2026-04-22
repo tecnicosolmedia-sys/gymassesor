@@ -420,34 +420,91 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
               </div>
             </div>
 
-            {/* Image upload - square full width */}
+            {/* Multiple images upload */}
             <div>
-              <label className="block text-sm font-medium mb-2">Imagen del ejercicio</label>
-              <label className="flex flex-col items-center justify-center w-full aspect-square rounded-xl bg-secondary border-2 border-dashed border-border hover:border-primary cursor-pointer transition-colors overflow-hidden relative">
-                {isUploadingImage && (
-                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center z-10">
-                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium">
+                  Imágenes del ejercicio
+                  {formData.imageUrls.length > 0 && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      ({formData.imageUrls.length})
+                    </span>
+                  )}
+                </label>
+                {formData.imageUrls.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    Desliza en la ficha para verlas
+                  </span>
+                )}
+              </div>
+
+              {/* Grid de miniaturas + botón añadir */}
+              <div className="grid grid-cols-3 gap-2">
+                {formData.imageUrls.map((url, idx) => (
+                  <div
+                    key={`${url}-${idx}`}
+                    className="relative aspect-square rounded-xl bg-secondary border border-border overflow-hidden group"
+                  >
+                    <img src={url} alt={`Imagen ${idx + 1}`} className="w-full h-full object-contain" />
+                    {idx === 0 && (
+                      <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-bold">
+                        Principal
+                      </span>
+                    )}
+                    {/* Controles */}
+                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-background/80 backdrop-blur-sm px-1 py-1">
+                      <button
+                        type="button"
+                        onClick={() => moveImage(idx, -1)}
+                        disabled={idx === 0}
+                        className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
+                        aria-label="Mover atrás"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="w-6 h-6 rounded flex items-center justify-center text-destructive hover:bg-destructive/20"
+                        aria-label="Eliminar"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveImage(idx, 1)}
+                        disabled={idx === formData.imageUrls.length - 1}
+                        className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
+                        aria-label="Mover adelante"
+                      >
+                        ›
+                      </button>
+                    </div>
                   </div>
-                )}
-                {formData.imageUrl ? (
-                  <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-contain" />
-                ) : (
-                  <>
-                    <Image className="w-10 h-10 text-muted-foreground mb-2" />
-                    <span className="text-sm text-muted-foreground">Toca para subir imagen</span>
-                  </>
-                )}
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-              </label>
-              {formData.imageUrl && (
-                <button
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, imageUrl: '' }))}
-                  className="mt-2 text-xs text-destructive hover:underline"
-                >
-                  Eliminar imagen
-                </button>
-              )}
+                ))}
+
+                {/* Botón añadir */}
+                <label className="relative flex flex-col items-center justify-center aspect-square rounded-xl bg-secondary border-2 border-dashed border-border hover:border-primary cursor-pointer transition-colors overflow-hidden">
+                  {isUploadingImage ? (
+                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="w-6 h-6 text-muted-foreground mb-1" />
+                      <span className="text-[11px] text-muted-foreground text-center px-1">
+                        {formData.imageUrls.length === 0 ? 'Subir imágenes' : 'Añadir más'}
+                      </span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={isUploadingImage}
+                  />
+                </label>
+              </div>
             </div>
 
             {/* Sets with +/- buttons */}
