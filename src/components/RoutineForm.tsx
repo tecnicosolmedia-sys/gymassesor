@@ -260,11 +260,35 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                 <label className="block text-sm font-medium mb-2">
                   Orden de ejercicios ({orderedSelectedExercises.length})
                 </label>
-                <div className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border">
+                <div
+                  ref={orderedListRef}
+                  className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border"
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                >
                   {orderedSelectedExercises.map((exercise, index) => (
-                    <div key={exercise.id} className="space-y-0">
+                    <div
+                      key={exercise.id}
+                      data-routine-exercise-item
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(index, e)}
+                      onDrop={() => handleDrop(index)}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        "space-y-0 transition-all",
+                        dragIndex === index && "opacity-50",
+                        overIndex === index && dragIndex !== null && dragIndex !== index && "border-t-2 border-primary rounded-t-lg"
+                      )}
+                    >
                       <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border">
-                        <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <div
+                          className="p-1 -m-1 cursor-grab active:cursor-grabbing touch-none text-muted-foreground flex-shrink-0"
+                          onTouchStart={() => handleTouchStart(index)}
+                          title="Arrastra para reordenar"
+                        >
+                          <GripVertical className="w-4 h-4" />
+                        </div>
                         <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
                           {getMuscleGroupIcon(exercise.muscleGroup) ? (
                             <img 
