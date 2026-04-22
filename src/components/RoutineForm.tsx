@@ -506,8 +506,8 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                       )}
                     >
                       <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {exercise.imageUrl ? (
-                          <img src={exercise.imageUrl} alt={exercise.name} className="w-full h-full object-cover" />
+                        {(exercise.imageUrls?.[0] || exercise.imageUrl) ? (
+                          <img src={exercise.imageUrls?.[0] || exercise.imageUrl!} alt={exercise.name} className="w-full h-full object-cover" />
                         ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
                           <img src={getMuscleGroupIcon(exercise.muscleGroup)!} alt={exercise.muscleGroup} className="w-7 h-7 object-contain opacity-70" />
                         ) : (
