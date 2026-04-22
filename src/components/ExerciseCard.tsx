@@ -348,16 +348,8 @@ export const ExerciseCard = ({
         {/* Expanded content */}
         {expanded && (
           <div className="px-4 pb-4 space-y-4 animate-fade-in">
-            {/* Image preview - square */}
-            {exercise.imageUrl && (
-              <div className="w-full aspect-square rounded-xl bg-secondary overflow-hidden">
-                <img 
-                  src={exercise.imageUrl} 
-                  alt={exercise.name}
-                  className="w-full h-full object-contain"
-                />
-              </div>
-            )}
+            {/* Image carousel - múltiples imágenes con deslizamiento lateral */}
+            <ExerciseImagesCarousel exercise={exercise} />
             
             {/* Video preview */}
             {exercise.videoUrl && (
