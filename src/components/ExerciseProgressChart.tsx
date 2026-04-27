@@ -109,7 +109,10 @@ export const ExerciseProgressChart = ({
     );
   }
 
-  const setNumbers = Array.from({ length: maxSets }, (_, i) => i + 1);
+  const allSetNumbers = Array.from({ length: maxSets }, (_, i) => i + 1);
+  const setNumbers = setNumberFilter
+    ? allSetNumbers.filter(n => n === setNumberFilter && perSetData.has(n))
+    : allSetNumbers;
   const unit = metric === 'weight' ? 'kg' : 'reps';
 
   const CustomTooltip = ({ active, payload, label }: any) => {
