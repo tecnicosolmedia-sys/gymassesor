@@ -3,6 +3,8 @@ import { Play, Pause, RotateCcw, X, ArrowRight, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useWorkoutNotification } from '@/hooks/useWorkoutNotification';
+import { ExerciseProgressChart } from './ExerciseProgressChart';
+import { WorkoutSession } from '@/types/workoutHistory';
 
 interface FullscreenTimerProps {
   initialTime: number;
@@ -15,6 +17,11 @@ interface FullscreenTimerProps {
   globalElapsedTime?: number;
   globalIsRunning?: boolean;
   onGlobalToggle?: () => void;
+  // Datos para mostrar la gráfica de progresión de la siguiente serie
+  chartExerciseId?: string;
+  chartExerciseName?: string;
+  chartSessions?: WorkoutSession[];
+  chartNextSetNumber?: number;
 }
 
 export const FullscreenTimer = ({
@@ -27,6 +34,10 @@ export const FullscreenTimer = ({
   globalElapsedTime,
   globalIsRunning,
   onGlobalToggle,
+  chartExerciseId,
+  chartExerciseName,
+  chartSessions,
+  chartNextSetNumber,
 }: FullscreenTimerProps) => {
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [isRunning, setIsRunning] = useState(true);
@@ -462,7 +473,19 @@ export const FullscreenTimer = ({
                 {nextSetLabel}
               </p>
             )}
-            
+
+            {chartExerciseId && chartExerciseName && chartNextSetNumber && (
+              <div className="w-full max-w-xs px-1">
+                <ExerciseProgressChart
+                  exerciseId={chartExerciseId}
+                  exerciseName={chartExerciseName}
+                  sessions={chartSessions || []}
+                  inline
+                  setNumberFilter={chartNextSetNumber}
+                />
+              </div>
+            )}
+
             <button
               onClick={handleContinue}
               className="px-6 py-3 rounded-xl bg-primary/20 text-primary font-medium flex items-center gap-2 hover:bg-primary/30 transition-all border border-primary/30"
