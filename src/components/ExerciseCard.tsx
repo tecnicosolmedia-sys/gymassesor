@@ -392,21 +392,69 @@ export const ExerciseCard = ({
                   const isCurrent = index + 1 === currentSet && !isCompleted;
                   const previousConfig = index > 0 ? localSetConfigs[index - 1] : undefined;
                   
+                  // Build live session for the inline progression chart of the active set
+                  const liveCompletedSetObjects = completedSets.map(setNum => {
+                    const cfg = localSetConfigs[setNum - 1];
+                    return cfg ? {
+                      setNumber: setNum,
+                      reps: cfg.reps,
+                      weight: cfg.weight,
+                      restTime: cfg.restTime,
+                      completedAt: new Date(),
+                    } : null;
+                  }).filter(Boolean);
+
+                  const inlineLiveSession: WorkoutSession | null = liveCompletedSetObjects.length > 0 ? {
+                    id: 'live-session-set',
+                    date: new Date(),
+                    exercises: [{
+                      exerciseId: exercise.id,
+                      exerciseName: exercise.name,
+                      muscleGroup: exercise.muscleGroup,
+                      completedSets: liveCompletedSetObjects as any,
+                      totalSets: exercise.sets,
+                      startedAt: new Date(),
+                    }],
+                    totalDuration: 0,
+                    startedAt: new Date(),
+                    isComplete: false,
+                  } : null;
+
+                  const inlineSessions = inlineLiveSession
+                    ? [...(workoutSessions || []), inlineLiveSession]
+                    : (workoutSessions || []);
+
                   return (
-                    <SetCard
-                      key={index}
-                      config={config}
-                      index={index}
-                      isCompleted={isCompleted}
-                      isCurrent={isCurrent}
-                      currentSet={currentSet}
-                      currentWeight={currentConfig.weight}
-                      previousConfig={previousConfig}
-                      onUpdateConfig={updateSetConfig}
-                      onCompleteSet={handleSetComplete}
-                      onSetDirectValue={setDirectValue}
-                      onCopyFromPrevious={copyFromPreviousSet}
-                    />
+                    <div key={index} className="space-y-2">
+                      <SetCard
+                        config={config}
+                        index={index}
+                        isCompleted={isCompleted}
+                        isCurrent={isCurrent}
+                        currentSet={currentSet}
+                        currentWeight={currentConfig.weight}
+                        previousConfig={previousConfig}
+                        onUpdateConfig={updateSetConfig}
+                        onCompleteSet={handleSetComplete}
+                        onSetDirectValue={setDirectValue}
+                        onCopyFromPrevious={copyFromPreviousSet}
+                      />
+                      {isCurrent && (
+                        <div className="p-3 rounded-xl bg-secondary/30 border border-primary/30">
+                          <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-primary">
+                            <BarChart3 className="w-3.5 h-3.5" />
+                            Progresión Serie {currentSet}
+                          </div>
+                          <ExerciseProgressChart
+                            exerciseId={exercise.id}
+                            exerciseName={exercise.name}
+                            sessions={inlineSessions}
+                            inline
+                            setNumberFilter={currentSet}
+                          />
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
