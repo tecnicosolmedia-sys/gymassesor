@@ -34,6 +34,10 @@ export const FullscreenTimer = ({
   globalElapsedTime,
   globalIsRunning,
   onGlobalToggle,
+  chartExerciseId,
+  chartExerciseName,
+  chartSessions,
+  chartNextSetNumber,
 }: FullscreenTimerProps) => {
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [isRunning, setIsRunning] = useState(true);
