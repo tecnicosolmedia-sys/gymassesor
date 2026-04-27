@@ -301,7 +301,9 @@ export const ExerciseCard = ({
   
   const getNextSetLabel = () => {
     if (timerType === 'set') {
-      const nextConfig = exercise.setConfigs?.[currentSet] || {
+      // Usar localSetConfigs (que ya incluye los valores precargados de la última sesión)
+      // en vez de exercise.setConfigs (configuración estática del ejercicio).
+      const nextConfig = localSetConfigs[currentSet] || localSetConfigs[localSetConfigs.length - 1] || {
         reps: exercise.reps,
         weight: exercise.weight,
       };
