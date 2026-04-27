@@ -15,6 +15,8 @@ interface ExerciseProgressChartProps {
   onClose?: () => void;
   /** When provided, the tooltip shows a delete button to remove that specific set from history. */
   onDeleteSet?: (sessionId: string, setNumber: number) => void | Promise<void>;
+  /** When provided, only the chart for this set number is rendered (single chart, no grid). */
+  setNumberFilter?: number;
 }
 
 const SET_COLORS = [
