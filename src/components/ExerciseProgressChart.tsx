@@ -224,7 +224,6 @@ export const ExerciseProgressChart = ({
     );
   };
 
-  const charts = (
   const charts = setNumberFilter ? (
     setNumbers.length > 0 ? (
       <div>{setNumbers.map(renderSetChart)}</div>
