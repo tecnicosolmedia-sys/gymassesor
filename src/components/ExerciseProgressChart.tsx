@@ -15,6 +15,8 @@ interface ExerciseProgressChartProps {
   onClose?: () => void;
   /** When provided, the tooltip shows a delete button to remove that specific set from history. */
   onDeleteSet?: (sessionId: string, setNumber: number) => void | Promise<void>;
+  /** When provided, only the chart for this set number is rendered (single chart, no grid). */
+  setNumberFilter?: number;
 }
 
 const SET_COLORS = [
@@ -48,6 +50,7 @@ export const ExerciseProgressChart = ({
   inline = false,
   onClose,
   onDeleteSet,
+  setNumberFilter,
 }: ExerciseProgressChartProps) => {
   const [metric, setMetric] = useState<MetricMode>('weight');
   const [selectedPoint, setSelectedPoint] = useState<{ setNum: number; index: number } | null>(null);
@@ -106,7 +109,10 @@ export const ExerciseProgressChart = ({
     );
   }
 
-  const setNumbers = Array.from({ length: maxSets }, (_, i) => i + 1);
+  const allSetNumbers = Array.from({ length: maxSets }, (_, i) => i + 1);
+  const setNumbers = setNumberFilter
+    ? allSetNumbers.filter(n => n === setNumberFilter && perSetData.has(n))
+    : allSetNumbers;
   const unit = metric === 'weight' ? 'kg' : 'reps';
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -218,7 +224,15 @@ export const ExerciseProgressChart = ({
     );
   };
 
-  const charts = (
+  const charts = setNumberFilter ? (
+    setNumbers.length > 0 ? (
+      <div>{setNumbers.map(renderSetChart)}</div>
+    ) : (
+      <div className="rounded-xl border border-border bg-secondary/20 p-3 text-center text-xs text-muted-foreground">
+        Sin datos previos para esta serie
+      </div>
+    )
+  ) : (
     <div className="grid grid-cols-2 gap-2">
       {setNumbers.map(renderSetChart)}
     </div>
