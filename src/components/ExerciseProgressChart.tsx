@@ -225,6 +225,15 @@ export const ExerciseProgressChart = ({
   };
 
   const charts = (
+  const charts = setNumberFilter ? (
+    setNumbers.length > 0 ? (
+      <div>{setNumbers.map(renderSetChart)}</div>
+    ) : (
+      <div className="rounded-xl border border-border bg-secondary/20 p-3 text-center text-xs text-muted-foreground">
+        Sin datos previos para esta serie
+      </div>
+    )
+  ) : (
     <div className="grid grid-cols-2 gap-2">
       {setNumbers.map(renderSetChart)}
     </div>
