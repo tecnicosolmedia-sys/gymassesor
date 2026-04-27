@@ -133,11 +133,12 @@ export const ExerciseCard = ({
     setCompletedSets(initialCompletedSets);
   }, [exercise.id, initialCurrentSet, initialCompletedSets]);
 
-  // Sincronizar cuando cambia el ejercicio o cargan las sesiones del historial
+  // Sincronizar SOLO cuando cambia el ejercicio activo (no cuando cambia el historial,
+  // para no sobreescribir las ediciones del usuario durante el entrenamiento).
   useEffect(() => {
     setLocalSetConfigs(buildInitialConfigs());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exercise.id, exercise.setConfigs, exercise.sets, exercise.reps, exercise.weight, exercise.restBetweenSets, workoutSessions?.length]);
+  }, [exercise.id, exercise.sets]);
 
   // Notificar cambios en el estado de las series al padre (para persistencia)
   useEffect(() => {
