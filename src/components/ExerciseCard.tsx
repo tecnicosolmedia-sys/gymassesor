@@ -585,19 +585,61 @@ export const ExerciseCard = ({
       </div>
       
       {/* Fullscreen Timer */}
-      {showFullscreenTimer && (
-        <FullscreenTimer
-          initialTime={getTimerDuration()}
-          label={getTimerLabel()}
-          nextSetLabel={getNextSetLabel()}
-          onComplete={handleTimerComplete}
-          onContinue={handleContinue}
-          onClose={handleCloseTimer}
-          globalElapsedTime={globalElapsedTime}
-          globalIsRunning={globalIsRunning}
-          onGlobalToggle={onGlobalToggle}
-        />
-      )}
+      {showFullscreenTimer && (() => {
+        // Construir sesión "en vivo" con las series ya completadas para que la
+        // gráfica de la siguiente serie refleje los datos del entrenamiento actual.
+        const liveCompletedSetObjects = completedSets.map(setNum => {
+          const cfg = localSetConfigs[setNum - 1];
+          return cfg ? {
+            setNumber: setNum,
+            reps: cfg.reps,
+            weight: cfg.weight,
+            restTime: cfg.restTime,
+            completedAt: new Date(),
+          } : null;
+        }).filter(Boolean);
+
+        const liveSession: WorkoutSession | null = liveCompletedSetObjects.length > 0 ? {
+          id: 'live-session-timer',
+          date: new Date(),
+          exercises: [{
+            exerciseId: exercise.id,
+            exerciseName: exercise.name,
+            muscleGroup: exercise.muscleGroup,
+            completedSets: liveCompletedSetObjects as any,
+            totalSets: exercise.sets,
+            startedAt: new Date(),
+          }],
+          totalDuration: 0,
+          startedAt: new Date(),
+          isComplete: false,
+        } : null;
+
+        const timerSessions = liveSession
+          ? [...(workoutSessions || []), liveSession]
+          : (workoutSessions || []);
+
+        // Solo mostramos la gráfica entre series (no en el descanso entre ejercicios)
+        const showChartInTimer = timerType === 'set' && currentSet < exercise.sets;
+
+        return (
+          <FullscreenTimer
+            initialTime={getTimerDuration()}
+            label={getTimerLabel()}
+            nextSetLabel={getNextSetLabel()}
+            onComplete={handleTimerComplete}
+            onContinue={handleContinue}
+            onClose={handleCloseTimer}
+            globalElapsedTime={globalElapsedTime}
+            globalIsRunning={globalIsRunning}
+            onGlobalToggle={onGlobalToggle}
+            chartExerciseId={showChartInTimer ? exercise.id : undefined}
+            chartExerciseName={showChartInTimer ? exercise.name : undefined}
+            chartSessions={showChartInTimer ? timerSessions : undefined}
+            chartNextSetNumber={showChartInTimer ? currentSet + 1 : undefined}
+          />
+        );
+      })()}
     </>
   );
 };
