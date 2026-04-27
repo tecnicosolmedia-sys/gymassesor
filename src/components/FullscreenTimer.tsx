@@ -473,7 +473,19 @@ export const FullscreenTimer = ({
                 {nextSetLabel}
               </p>
             )}
-            
+
+            {chartExerciseId && chartExerciseName && chartNextSetNumber && (
+              <div className="w-full max-w-xs px-1">
+                <ExerciseProgressChart
+                  exerciseId={chartExerciseId}
+                  exerciseName={chartExerciseName}
+                  sessions={chartSessions || []}
+                  inline
+                  setNumberFilter={chartNextSetNumber}
+                />
+              </div>
+            )}
+
             <button
               onClick={handleContinue}
               className="px-6 py-3 rounded-xl bg-primary/20 text-primary font-medium flex items-center gap-2 hover:bg-primary/30 transition-all border border-primary/30"
