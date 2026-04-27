@@ -83,15 +83,49 @@ export const ExerciseCard = ({
   
   const [showChart, setShowChart] = useState(false);
 
+  // Buscar la última sesión completada de este ejercicio para precargar pesos/reps
+  const getLastSessionConfigs = (): SetConfig[] | null => {
+    if (!workoutSessions || workoutSessions.length === 0) return null;
+    // workoutSessions viene ordenado descendente por fecha, pero por seguridad ordenamos
+    const sorted = [...workoutSessions].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    for (const session of sorted) {
+      const exSession = session.exercises.find(e => e.exerciseId === exercise.id);
+      if (exSession && exSession.completedSets.length > 0) {
+        // Construir configs basados en las series de la última sesión
+        const sortedSets = [...exSession.completedSets].sort((a, b) => a.setNumber - b.setNumber);
+        return Array.from({ length: exercise.sets }, (_, i) => {
+          // Buscar la serie correspondiente o usar la última registrada como fallback
+          const matched = sortedSets.find(s => s.setNumber === i + 1) || sortedSets[sortedSets.length - 1];
+          return {
+            setNumber: i + 1,
+            reps: matched.reps,
+            weight: matched.weight,
+            restTime: matched.restTime || exercise.restBetweenSets,
+          };
+        });
+      }
+    }
+    return null;
+  };
+
+  // Construir configs iniciales: prioridad a última sesión > setConfigs > valores del ejercicio
+  const buildInitialConfigs = (): SetConfig[] => {
+    const lastSession = getLastSessionConfigs();
+    if (lastSession) return lastSession;
+    return exercise.setConfigs && exercise.setConfigs.length > 0
+      ? exercise.setConfigs
+      : Array.from({ length: exercise.sets }, (_, i) => ({
+          setNumber: i + 1,
+          reps: exercise.reps,
+          weight: exercise.weight,
+          restTime: exercise.restBetweenSets,
+        }));
+  };
+
   // Estado local para las configuraciones editables
-  const [localSetConfigs, setLocalSetConfigs] = useState<SetConfig[]>(() => {
-    return exercise.setConfigs || Array.from({ length: exercise.sets }, (_, i) => ({
-      setNumber: i + 1,
-      reps: exercise.reps,
-      weight: exercise.weight,
-      restTime: exercise.restBetweenSets,
-    }));
-  });
+  const [localSetConfigs, setLocalSetConfigs] = useState<SetConfig[]>(buildInitialConfigs);
 
   // Sincronizar estado de series cuando cambia el ejercicio o se restaura sesión
   useEffect(() => {
@@ -99,17 +133,11 @@ export const ExerciseCard = ({
     setCompletedSets(initialCompletedSets);
   }, [exercise.id, initialCurrentSet, initialCompletedSets]);
 
-  // Sincronizar cuando cambia el ejercicio
+  // Sincronizar cuando cambia el ejercicio o cargan las sesiones del historial
   useEffect(() => {
-    setLocalSetConfigs(
-      exercise.setConfigs || Array.from({ length: exercise.sets }, (_, i) => ({
-        setNumber: i + 1,
-        reps: exercise.reps,
-        weight: exercise.weight,
-        restTime: exercise.restBetweenSets,
-      }))
-    );
-  }, [exercise.id, exercise.setConfigs, exercise.sets, exercise.reps, exercise.weight, exercise.restBetweenSets]);
+    setLocalSetConfigs(buildInitialConfigs());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercise.id, exercise.setConfigs, exercise.sets, exercise.reps, exercise.weight, exercise.restBetweenSets, workoutSessions?.length]);
 
   // Notificar cambios en el estado de las series al padre (para persistencia)
   useEffect(() => {
