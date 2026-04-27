@@ -441,10 +441,6 @@ export const ExerciseCard = ({
                       />
                       {isCurrent && (
                         <div className="p-3 rounded-xl bg-secondary/30 border border-primary/30">
-                          <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-primary">
-                            <BarChart3 className="w-3.5 h-3.5" />
-                            Progresión Serie {currentSet}
-                          </div>
                           <ExerciseProgressChart
                             exerciseId={exercise.id}
                             exerciseName={exercise.name}
