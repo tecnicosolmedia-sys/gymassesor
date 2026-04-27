@@ -3,6 +3,8 @@ import { Play, Pause, RotateCcw, X, ArrowRight, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useWorkoutNotification } from '@/hooks/useWorkoutNotification';
+import { ExerciseProgressChart } from './ExerciseProgressChart';
+import { WorkoutSession } from '@/types/workoutHistory';
 
 interface FullscreenTimerProps {
   initialTime: number;
@@ -15,6 +17,11 @@ interface FullscreenTimerProps {
   globalElapsedTime?: number;
   globalIsRunning?: boolean;
   onGlobalToggle?: () => void;
+  // Datos para mostrar la gráfica de progresión de la siguiente serie
+  chartExerciseId?: string;
+  chartExerciseName?: string;
+  chartSessions?: WorkoutSession[];
+  chartNextSetNumber?: number;
 }
 
 export const FullscreenTimer = ({
