@@ -110,6 +110,7 @@ export const WorkoutFlow = ({
   
   // Estado de series por ejercicio (para persistir y restaurar)
   const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(initialExerciseSetStates);
+  const [pdfPreviewData, setPdfPreviewData] = useState<ExportData | null>(null);
   
   // Datos personales para cálculo de calorías
   const { personalData } = usePersonalData();
