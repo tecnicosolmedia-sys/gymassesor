@@ -506,6 +506,7 @@ export const ExerciseCard = ({
                         onCompleteSet={handleSetComplete}
                         onSetDirectValue={setDirectValue}
                         onCopyFromPrevious={copyFromPreviousSet}
+                        onRemoveSet={!isCompleted && localSetConfigs.length > 1 ? removeSet : undefined}
                       />
                       {isCurrent && (
                         <div className="p-3 rounded-xl bg-secondary/30 border border-primary/30">
