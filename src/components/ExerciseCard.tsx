@@ -316,12 +316,29 @@ export const ExerciseCard = ({
       },
       exercise.sets
     );
-    
+
+    // Detección de récord personal: peso superior al máximo histórico
+    // y mejor que cualquier marca ya conseguida en esta misma sesión.
+    const benchmark = Math.max(previousMaxWeight, sessionBestWeight);
+    if (config.weight > 0 && benchmark > 0 && config.weight > benchmark) {
+      setSessionBestWeight(config.weight);
+      setRecordDialog({
+        open: true,
+        weight: config.weight,
+        reps: config.reps,
+        previous: previousMaxWeight,
+      });
+      playRecordSound();
+    } else if (config.weight > sessionBestWeight) {
+      setSessionBestWeight(config.weight);
+    }
+
     const newCompletedSets = [...completedSets, currentSet];
     setCompletedSets(newCompletedSets);
     
     // Sincronizar estado inmediatamente antes de notificar al padre
     onSetStateChange?.(exercise.id, currentSet, newCompletedSets);
+
     
     if (currentSet < exercise.sets) {
       // Hay más series, mostrar temporizador entre series
