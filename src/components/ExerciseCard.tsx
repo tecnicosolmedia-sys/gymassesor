@@ -731,6 +731,15 @@ export const ExerciseCard = ({
           />
         );
       })()}
+
+      <PersonalRecordDialog
+        open={recordDialog.open}
+        onClose={() => setRecordDialog((r) => ({ ...r, open: false }))}
+        exerciseName={exercise.name}
+        weight={recordDialog.weight}
+        reps={recordDialog.reps}
+        previousRecord={recordDialog.previous}
+      />
     </>
   );
 };
