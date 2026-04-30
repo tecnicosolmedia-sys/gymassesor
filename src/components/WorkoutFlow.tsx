@@ -628,7 +628,7 @@ export const WorkoutFlow = ({
             <button
               onClick={() => {
                 const completedExs = workoutExercises.filter(e => completedExerciseIds.has(e.id));
-                exportWorkoutToPDF({
+                setPdfPreviewData({
                   routineName,
                   date: new Date(),
                   durationSeconds: elapsedTime,
