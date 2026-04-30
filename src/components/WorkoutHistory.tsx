@@ -410,7 +410,7 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            exportSessionFromHistory(session);
+                            setPdfPreviewData(sessionToExportData(session));
                           }}
                           className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
                         >
