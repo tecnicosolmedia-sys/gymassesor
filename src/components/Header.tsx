@@ -1,4 +1,4 @@
-import { Plus, Calendar, TrendingUp, User, LogOut } from 'lucide-react';
+import { Plus, Calendar, TrendingUp, User, LogOut, Trophy } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -7,9 +7,10 @@ interface HeaderProps {
   onAddRoutine: () => void;
   onShowHistory: () => void;
   onShowPersonalData: () => void;
+  onShowRecords: () => void;
 }
 
-export const Header = ({ onAddExercise, onAddRoutine, onShowHistory, onShowPersonalData }: HeaderProps) => {
+export const Header = ({ onAddExercise, onAddRoutine, onShowHistory, onShowPersonalData, onShowRecords }: HeaderProps) => {
   const { user, signOut } = useAuth();
   return (
     <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border safe-area-top">
@@ -41,6 +42,14 @@ export const Header = ({ onAddExercise, onAddRoutine, onShowHistory, onShowPerso
                 <User className="w-4 h-4" />
               )}
               <span className="hidden sm:inline sm:ml-2">Perfil</span>
+            </button>
+            <button
+              onClick={onShowRecords}
+              className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2.5 rounded-xl bg-secondary/50 text-muted-foreground hover:text-primary hover:bg-secondary transition-all"
+              title="Récords personales"
+            >
+              <Trophy className="w-4 h-4" />
+              <span className="hidden sm:inline sm:ml-2">Récords</span>
             </button>
             <button
               onClick={onShowHistory}

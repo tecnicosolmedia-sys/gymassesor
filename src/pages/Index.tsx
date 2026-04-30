@@ -10,6 +10,7 @@ import { WorkoutHistory } from '@/components/WorkoutHistory';
 import { WorkoutFlow, FlowState, ExerciseSetState } from '@/components/WorkoutFlow';
 import { ResumeWorkoutBanner } from '@/components/ResumeWorkoutBanner';
 import { PersonalDataForm } from '@/components/PersonalDataForm';
+import { PersonalRecordsView } from '@/components/PersonalRecordsView';
 import { useExercises } from '@/hooks/useExercises';
 import { useRoutines } from '@/hooks/useRoutines';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
@@ -60,6 +61,7 @@ const Index = () => {
   const [showRoutineForm, setShowRoutineForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPersonalData, setShowPersonalData] = useState(false);
+  const [showRecords, setShowRecords] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [selectedMuscleFilter, setSelectedMuscleFilter] = useState<MuscleGroup | 'todas'>('todas');
@@ -226,7 +228,7 @@ const Index = () => {
       {/* Background glow effect */}
       <div className="fixed inset-0 bg-glow pointer-events-none opacity-30" />
       
-      <Header onAddExercise={handleAddExercise} onAddRoutine={handleAddRoutine} onShowHistory={() => setShowHistory(true)} onShowPersonalData={() => setShowPersonalData(true)} />
+      <Header onAddExercise={handleAddExercise} onAddRoutine={handleAddRoutine} onShowHistory={() => setShowHistory(true)} onShowPersonalData={() => setShowPersonalData(true)} onShowRecords={() => setShowRecords(true)} />
       
       <main className="w-full px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 relative pb-safe">
         {/* Banner para restaurar entrenamiento */}
@@ -548,6 +550,13 @@ const Index = () => {
         <PersonalDataForm onClose={() => setShowPersonalData(false)} />
       )}
 
+      {showRecords && (
+        <PersonalRecordsView
+          sessions={sessions}
+          onClose={() => setShowRecords(false)}
+        />
+      )}
+
       {/* Exercise Preview Modal */}
       {previewExercise && (
         <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] overflow-y-auto" onClick={() => setPreviewExercise(null)}>
@@ -731,7 +740,7 @@ const Index = () => {
       {/* Floating Back Button */}
       <FloatingBackButton
         visible={
-          showExerciseForm || showRoutineForm || showHistory || showPersonalData ||
+          showExerciseForm || showRoutineForm || showHistory || showPersonalData || showRecords ||
           !!previewExercise || !!libraryChartExercise || resumingWorkout || showFreeWorkout
         }
         onClick={() => {
@@ -740,6 +749,7 @@ const Index = () => {
           if (showRoutineForm) { setShowRoutineForm(false); return; }
           if (previewExercise) { setPreviewExercise(null); return; }
           if (libraryChartExercise) { setLibraryChartExercise(null); return; }
+          if (showRecords) { setShowRecords(false); return; }
           if (showHistory) { setShowHistory(false); return; }
           if (showPersonalData) { setShowPersonalData(false); return; }
           if (resumingWorkout) { setResumingWorkout(false); clearSavedWorkout(); return; }
