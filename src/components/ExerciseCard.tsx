@@ -17,6 +17,8 @@ import { WorkoutSession } from '@/types/workoutHistory';
 import { ExerciseProgressChart } from './ExerciseProgressChart';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
+import { PersonalRecordDialog } from './PersonalRecordDialog';
+import { usePersonalRecordSound } from '@/hooks/usePersonalRecordSound';
 import {
   Carousel,
   CarouselContent,
