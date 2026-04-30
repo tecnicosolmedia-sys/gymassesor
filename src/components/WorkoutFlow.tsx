@@ -567,6 +567,8 @@ export const WorkoutFlow = ({
   // Renderizar pantalla de rutina completada
   if (flowState.type === 'routine-complete') {
     return (
+      <>
+      <PDFPreviewDialog open={!!pdfPreviewData} onOpenChange={(o) => !o && setPdfPreviewData(null)} data={pdfPreviewData} />
       <div className="fixed inset-0 bg-background z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-md text-center py-8">
           <div className="w-24 h-24 mx-auto rounded-full bg-primary/20 flex items-center justify-center mb-6 animate-pulse">
