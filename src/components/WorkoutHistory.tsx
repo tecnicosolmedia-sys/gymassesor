@@ -16,7 +16,9 @@ import {
   BarChart3,
   ListTree,
   User,
+  FileDown,
 } from 'lucide-react';
+import { exportSessionFromHistory } from '@/utils/exportWorkoutPDF';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
