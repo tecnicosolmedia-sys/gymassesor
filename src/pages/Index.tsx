@@ -549,6 +549,13 @@ const Index = () => {
         <PersonalDataForm onClose={() => setShowPersonalData(false)} />
       )}
 
+      {showRecords && (
+        <PersonalRecordsView
+          sessions={sessions}
+          onClose={() => setShowRecords(false)}
+        />
+      )}
+
       {/* Exercise Preview Modal */}
       {previewExercise && (
         <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-[60] overflow-y-auto" onClick={() => setPreviewExercise(null)}>
