@@ -624,6 +624,46 @@ export const WorkoutFlow = ({
           
           <div className="space-y-3">
             <button
+              onClick={() => {
+                const completedExs = workoutExercises.filter(e => completedExerciseIds.has(e.id));
+                exportWorkoutToPDF({
+                  routineName,
+                  date: new Date(),
+                  durationSeconds: elapsedTime,
+                  totalKg: workoutStats.totalKgMoved,
+                  calories: personalData ? workoutStats.caloriesBurned : undefined,
+                  exercises: completedExs.map(ex => {
+                    const setState = exerciseSetStates.find(s => s.exerciseId === ex.id);
+                    const configs = ex.setConfigs || Array.from({ length: ex.sets }, (_, i) => ({
+                      setNumber: i + 1,
+                      reps: ex.reps,
+                      weight: ex.weight,
+                      restTime: ex.restBetweenSets,
+                    }));
+                    const completedNums = setState?.completedSets || [];
+                    return {
+                      name: ex.name,
+                      muscleGroup: ex.muscleGroup,
+                      sets: completedNums.map(n => {
+                        const cfg = configs[n - 1];
+                        return {
+                          setNumber: n,
+                          reps: cfg?.reps ?? ex.reps,
+                          weight: cfg?.weight ?? ex.weight,
+                          restTime: cfg?.restTime ?? ex.restBetweenSets,
+                        };
+                      }),
+                    };
+                  }),
+                });
+              }}
+              className="w-full py-4 rounded-xl bg-secondary text-foreground font-semibold flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all"
+            >
+              <FileDown className="w-5 h-5" />
+              Exportar a PDF
+            </button>
+
+            <button
               onClick={() => setFlowState({ type: 'add-extra-exercise' })}
               className="w-full py-4 rounded-xl bg-secondary text-foreground font-semibold flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all"
             >
