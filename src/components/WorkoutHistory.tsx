@@ -54,6 +54,7 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | 'todas'>('todas');
   const [viewMode, setViewMode] = useState<ViewMode>('routines');
   const [chartExercise, setChartExercise] = useState<{ id: string; name: string } | null>(null);
+  const [pdfPreviewData, setPdfPreviewData] = useState<ExportData | null>(null);
 
   // Usar rutinas existentes si se proporcionan, si no extraer de sesiones
   const routineNames = useMemo(() => {
