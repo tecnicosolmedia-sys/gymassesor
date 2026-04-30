@@ -10,6 +10,7 @@ import { WorkoutHistory } from '@/components/WorkoutHistory';
 import { WorkoutFlow, FlowState, ExerciseSetState } from '@/components/WorkoutFlow';
 import { ResumeWorkoutBanner } from '@/components/ResumeWorkoutBanner';
 import { PersonalDataForm } from '@/components/PersonalDataForm';
+import { PersonalRecordsView } from '@/components/PersonalRecordsView';
 import { useExercises } from '@/hooks/useExercises';
 import { useRoutines } from '@/hooks/useRoutines';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
