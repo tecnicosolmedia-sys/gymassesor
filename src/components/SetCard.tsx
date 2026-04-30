@@ -23,6 +23,7 @@ interface SetCardProps {
   onCompleteSet: () => void;
   onSetDirectValue?: (index: number, field: keyof Omit<SetConfig, 'setNumber'>, value: number) => void;
   onCopyFromPrevious?: (index: number) => void; // Callback para copiar de la serie anterior
+  onRemoveSet?: (index: number) => void; // Callback para eliminar esta serie
 }
 
 type EditableField = 'reps' | 'weight' | 'restTime';
