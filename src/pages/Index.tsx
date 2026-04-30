@@ -60,6 +60,7 @@ const Index = () => {
   const [showRoutineForm, setShowRoutineForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPersonalData, setShowPersonalData] = useState(false);
+  const [showRecords, setShowRecords] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [selectedMuscleFilter, setSelectedMuscleFilter] = useState<MuscleGroup | 'todas'>('todas');
