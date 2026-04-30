@@ -690,6 +690,7 @@ export const WorkoutFlow = ({
           </div>
         </div>
       </div>
+      </>
     );
   }
 
