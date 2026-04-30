@@ -144,6 +144,22 @@ export const SetCard = ({
                 {isEditingCompleted ? 'Cerrar' : 'Editar'}
               </button>
             )}
+            {!isCompleted && onRemoveSet && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveSet(index);
+                }}
+                className={cn(
+                  "w-7 h-7 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors flex items-center justify-center flex-shrink-0",
+                  !isCurrent && "ml-auto"
+                )}
+                title="Eliminar esta serie"
+                aria-label="Eliminar serie"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
           
           {/* Controles editables - para serie actual o serie completada en modo edición */}
