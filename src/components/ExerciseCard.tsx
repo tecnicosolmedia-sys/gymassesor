@@ -85,6 +85,37 @@ export const ExerciseCard = ({
   
   const [showChart, setShowChart] = useState(false);
 
+  // Récord personal
+  const playRecordSound = usePersonalRecordSound();
+  const [recordDialog, setRecordDialog] = useState<{
+    open: boolean;
+    weight: number;
+    reps: number;
+    previous: number;
+  }>({ open: false, weight: 0, reps: 0, previous: 0 });
+
+  // Máximo peso histórico registrado para este ejercicio (sesiones previas)
+  const previousMaxWeight = useMemo(() => {
+    let max = 0;
+    workoutSessions.forEach((s) => {
+      s.exercises.forEach((e) => {
+        if (e.exerciseId === exercise.id) {
+          e.completedSets.forEach((set) => {
+            if (set.weight > max) max = set.weight;
+          });
+        }
+      });
+    });
+    return max;
+  }, [workoutSessions, exercise.id]);
+
+  // Mejor peso conseguido en la sesión EN CURSO (para no disparar el récord
+  // varias veces con la misma marca dentro del mismo entrenamiento).
+  const [sessionBestWeight, setSessionBestWeight] = useState(0);
+  useEffect(() => {
+    setSessionBestWeight(0);
+  }, [exercise.id]);
+
   // Buscar la última sesión completada de este ejercicio para precargar pesos/reps
   const getLastSessionConfigs = (): SetConfig[] | null => {
     if (!workoutSessions || workoutSessions.length === 0) return null;
