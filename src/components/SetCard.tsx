@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { SetConfig } from '@/types/exercise';
-import { Check, Minus, Plus, Edit2, Dumbbell, Clock, Play, Copy } from 'lucide-react';
+import { Check, Minus, Plus, Edit2, Dumbbell, Clock, Play, Copy, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
