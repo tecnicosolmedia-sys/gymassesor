@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { SetConfig } from '@/types/exercise';
-import { Check, Minus, Plus, Edit2, Dumbbell, Clock, Play, Copy } from 'lucide-react';
+import { Check, Minus, Plus, Edit2, Dumbbell, Clock, Play, Copy, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -23,6 +23,7 @@ interface SetCardProps {
   onCompleteSet: () => void;
   onSetDirectValue?: (index: number, field: keyof Omit<SetConfig, 'setNumber'>, value: number) => void;
   onCopyFromPrevious?: (index: number) => void; // Callback para copiar de la serie anterior
+  onRemoveSet?: (index: number) => void; // Callback para eliminar esta serie
 }
 
 type EditableField = 'reps' | 'weight' | 'restTime';
@@ -39,6 +40,7 @@ export const SetCard = ({
   onCompleteSet,
   onSetDirectValue,
   onCopyFromPrevious,
+  onRemoveSet,
 }: SetCardProps) => {
   const [isEditingCompleted, setIsEditingCompleted] = useState(false);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
@@ -140,6 +142,22 @@ export const SetCard = ({
               >
                 <Edit2 className="w-3 h-3" />
                 {isEditingCompleted ? 'Cerrar' : 'Editar'}
+              </button>
+            )}
+            {!isCompleted && onRemoveSet && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveSet(index);
+                }}
+                className={cn(
+                  "w-7 h-7 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors flex items-center justify-center flex-shrink-0",
+                  !isCurrent && "ml-auto"
+                )}
+                title="Eliminar esta serie"
+                aria-label="Eliminar serie"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
