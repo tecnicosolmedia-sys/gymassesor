@@ -1,4 +1,4 @@
-import { Plus, Calendar, TrendingUp, User, LogOut } from 'lucide-react';
+import { Plus, Calendar, TrendingUp, User, LogOut, Trophy } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -7,9 +7,10 @@ interface HeaderProps {
   onAddRoutine: () => void;
   onShowHistory: () => void;
   onShowPersonalData: () => void;
+  onShowRecords: () => void;
 }
 
-export const Header = ({ onAddExercise, onAddRoutine, onShowHistory, onShowPersonalData }: HeaderProps) => {
+export const Header = ({ onAddExercise, onAddRoutine, onShowHistory, onShowPersonalData, onShowRecords }: HeaderProps) => {
   const { user, signOut } = useAuth();
   return (
     <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border safe-area-top">
