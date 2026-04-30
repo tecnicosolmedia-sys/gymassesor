@@ -3,7 +3,7 @@ import { WorkoutSession } from '@/types/workoutHistory';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-interface ExportData {
+export interface ExportData {
   routineName: string;
   date: Date;
   durationSeconds: number;
