@@ -1113,6 +1113,21 @@ export const WorkoutFlow = ({
 
           {/* Botones de acciones */}
           <div className="mt-8 pt-6 border-t border-border space-y-3">
+            {/* Botón para salir del ejercicio sin completarlo y elegir otro */}
+            {workoutExercises.length > 1 && (
+              <button
+                onClick={() => setFlowState({
+                  type: 'select-next-exercise',
+                  completedExerciseIndex: flowState.exerciseIndex,
+                })}
+                className="w-full py-3 rounded-xl bg-secondary/70 text-foreground font-medium flex items-center justify-center gap-2 hover:bg-secondary transition-all border border-border"
+                title="Dejar este ejercicio sin marcarlo como completado y elegir otro"
+              >
+                <ListChecks className="w-5 h-5" />
+                Cambiar de ejercicio
+              </button>
+            )}
+
             {/* Botón para sustituir ejercicio */}
             <button
               onClick={() => {
