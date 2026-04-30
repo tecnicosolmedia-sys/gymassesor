@@ -740,7 +740,7 @@ const Index = () => {
       {/* Floating Back Button */}
       <FloatingBackButton
         visible={
-          showExerciseForm || showRoutineForm || showHistory || showPersonalData ||
+          showExerciseForm || showRoutineForm || showHistory || showPersonalData || showRecords ||
           !!previewExercise || !!libraryChartExercise || resumingWorkout || showFreeWorkout
         }
         onClick={() => {
@@ -749,6 +749,7 @@ const Index = () => {
           if (showRoutineForm) { setShowRoutineForm(false); return; }
           if (previewExercise) { setPreviewExercise(null); return; }
           if (libraryChartExercise) { setLibraryChartExercise(null); return; }
+          if (showRecords) { setShowRecords(false); return; }
           if (showHistory) { setShowHistory(false); return; }
           if (showPersonalData) { setShowPersonalData(false); return; }
           if (resumingWorkout) { setResumingWorkout(false); clearSavedWorkout(); return; }
