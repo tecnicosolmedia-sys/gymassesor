@@ -207,6 +207,43 @@ export const ExerciseCard = ({
     });
   };
 
+  // Eliminar una serie (solo si no está completada y queda más de una)
+  const removeSet = (index: number) => {
+    if (localSetConfigs.length <= 1) return;
+    const setNumberToRemove = index + 1;
+    if (completedSets.includes(setNumberToRemove)) return;
+
+    setLocalSetConfigs((prev) => {
+      // Eliminar y renumerar
+      const updated = prev
+        .filter((_, i) => i !== index)
+        .map((config, i) => ({ ...config, setNumber: i + 1 }));
+
+      // Actualizar series completadas: las posteriores se desplazan -1
+      const newCompletedSets = completedSets
+        .filter((s) => s !== setNumberToRemove)
+        .map((s) => (s > setNumberToRemove ? s - 1 : s));
+
+      // Ajustar serie actual
+      let newCurrentSet = currentSet;
+      if (currentSet > setNumberToRemove) {
+        newCurrentSet = currentSet - 1;
+      } else if (currentSet === setNumberToRemove) {
+        // Mantener el mismo índice (que ahora es la siguiente serie) o retroceder si era la última
+        newCurrentSet = Math.min(currentSet, updated.length);
+      }
+
+      setCompletedSets(newCompletedSets);
+      setCurrentSet(newCurrentSet);
+
+      // Notificar cambios al padre
+      onUpdateSetConfig?.(exercise.id, updated);
+      onSetStateChange?.(exercise.id, newCurrentSet, newCompletedSets);
+
+      return updated;
+    });
+  };
+
   // Copiar configuración de la serie anterior
   const copyFromPreviousSet = (index: number) => {
     if (index <= 0) return; // No hay serie anterior
