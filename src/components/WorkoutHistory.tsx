@@ -16,7 +16,9 @@ import {
   BarChart3,
   ListTree,
   User,
+  FileDown,
 } from 'lucide-react';
+import { exportSessionFromHistory } from '@/utils/exportWorkoutPDF';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -403,6 +405,16 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                           Inicio: {format(new Date(session.startedAt), 'HH:mm')} · 
                           Fin: {session.completedAt ? format(new Date(session.completedAt), 'HH:mm') : '--'}
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exportSessionFromHistory(session);
+                          }}
+                          className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
+                        >
+                          <FileDown className="w-4 h-4" />
+                          Exportar a PDF
+                        </button>
                       </div>
                     )}
                   </div>
