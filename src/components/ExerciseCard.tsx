@@ -17,6 +17,8 @@ import { WorkoutSession } from '@/types/workoutHistory';
 import { ExerciseProgressChart } from './ExerciseProgressChart';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
+import { PersonalRecordDialog } from './PersonalRecordDialog';
+import { usePersonalRecordSound } from '@/hooks/usePersonalRecordSound';
 import {
   Carousel,
   CarouselContent,
@@ -82,6 +84,37 @@ export const ExerciseCard = ({
   const [completedSets, setCompletedSets] = useState<number[]>(initialCompletedSets);
   
   const [showChart, setShowChart] = useState(false);
+
+  // Récord personal
+  const playRecordSound = usePersonalRecordSound();
+  const [recordDialog, setRecordDialog] = useState<{
+    open: boolean;
+    weight: number;
+    reps: number;
+    previous: number;
+  }>({ open: false, weight: 0, reps: 0, previous: 0 });
+
+  // Máximo peso histórico registrado para este ejercicio (sesiones previas)
+  const previousMaxWeight = useMemo(() => {
+    let max = 0;
+    workoutSessions.forEach((s) => {
+      s.exercises.forEach((e) => {
+        if (e.exerciseId === exercise.id) {
+          e.completedSets.forEach((set) => {
+            if (set.weight > max) max = set.weight;
+          });
+        }
+      });
+    });
+    return max;
+  }, [workoutSessions, exercise.id]);
+
+  // Mejor peso conseguido en la sesión EN CURSO (para no disparar el récord
+  // varias veces con la misma marca dentro del mismo entrenamiento).
+  const [sessionBestWeight, setSessionBestWeight] = useState(0);
+  useEffect(() => {
+    setSessionBestWeight(0);
+  }, [exercise.id]);
 
   // Buscar la última sesión completada de este ejercicio para precargar pesos/reps
   const getLastSessionConfigs = (): SetConfig[] | null => {
@@ -283,12 +316,29 @@ export const ExerciseCard = ({
       },
       exercise.sets
     );
-    
+
+    // Detección de récord personal: peso superior al máximo histórico
+    // y mejor que cualquier marca ya conseguida en esta misma sesión.
+    const benchmark = Math.max(previousMaxWeight, sessionBestWeight);
+    if (config.weight > 0 && benchmark > 0 && config.weight > benchmark) {
+      setSessionBestWeight(config.weight);
+      setRecordDialog({
+        open: true,
+        weight: config.weight,
+        reps: config.reps,
+        previous: previousMaxWeight,
+      });
+      playRecordSound();
+    } else if (config.weight > sessionBestWeight) {
+      setSessionBestWeight(config.weight);
+    }
+
     const newCompletedSets = [...completedSets, currentSet];
     setCompletedSets(newCompletedSets);
     
     // Sincronizar estado inmediatamente antes de notificar al padre
     onSetStateChange?.(exercise.id, currentSet, newCompletedSets);
+
     
     if (currentSet < exercise.sets) {
       // Hay más series, mostrar temporizador entre series
@@ -681,6 +731,15 @@ export const ExerciseCard = ({
           />
         );
       })()}
+
+      <PersonalRecordDialog
+        open={recordDialog.open}
+        onClose={() => setRecordDialog((r) => ({ ...r, open: false }))}
+        exerciseName={exercise.name}
+        weight={recordDialog.weight}
+        reps={recordDialog.reps}
+        previousRecord={recordDialog.previous}
+      />
     </>
   );
 };
