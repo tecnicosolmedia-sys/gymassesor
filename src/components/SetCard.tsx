@@ -40,6 +40,7 @@ export const SetCard = ({
   onCompleteSet,
   onSetDirectValue,
   onCopyFromPrevious,
+  onRemoveSet,
 }: SetCardProps) => {
   const [isEditingCompleted, setIsEditingCompleted] = useState(false);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
