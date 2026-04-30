@@ -227,7 +227,7 @@ const Index = () => {
       {/* Background glow effect */}
       <div className="fixed inset-0 bg-glow pointer-events-none opacity-30" />
       
-      <Header onAddExercise={handleAddExercise} onAddRoutine={handleAddRoutine} onShowHistory={() => setShowHistory(true)} onShowPersonalData={() => setShowPersonalData(true)} />
+      <Header onAddExercise={handleAddExercise} onAddRoutine={handleAddRoutine} onShowHistory={() => setShowHistory(true)} onShowPersonalData={() => setShowPersonalData(true)} onShowRecords={() => setShowRecords(true)} />
       
       <main className="w-full px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 relative pb-safe">
         {/* Banner para restaurar entrenamiento */}
