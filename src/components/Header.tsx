@@ -44,6 +44,14 @@ export const Header = ({ onAddExercise, onAddRoutine, onShowHistory, onShowPerso
               <span className="hidden sm:inline sm:ml-2">Perfil</span>
             </button>
             <button
+              onClick={onShowRecords}
+              className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2.5 rounded-xl bg-secondary/50 text-muted-foreground hover:text-primary hover:bg-secondary transition-all"
+              title="Récords personales"
+            >
+              <Trophy className="w-4 h-4" />
+              <span className="hidden sm:inline sm:ml-2">Récords</span>
+            </button>
+            <button
               onClick={onShowHistory}
               className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2.5 rounded-xl bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
               title="Historial"
