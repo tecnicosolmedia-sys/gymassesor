@@ -3,7 +3,7 @@ import { WorkoutSession } from '@/types/workoutHistory';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-interface ExportData {
+export interface ExportData {
   routineName: string;
   date: Date;
   durationSeconds: number;
@@ -25,7 +25,7 @@ const formatDuration = (s: number) => {
   return `${sec}s`;
 };
 
-export const exportWorkoutToPDF = (data: ExportData) => {
+export const buildWorkoutPDF = (data: ExportData) => {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -147,17 +147,26 @@ export const exportWorkoutToPDF = (data: ExportData) => {
     doc.text(`Gym Assessor · página ${i} de ${pageCount}`, pageW / 2, pageH - 20, { align: 'center' });
   }
 
-  const safeName = data.routineName.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
-  const dateStr = format(data.date, 'yyyy-MM-dd');
-  doc.save(`entrenamiento_${safeName}_${dateStr}.pdf`);
+  return doc;
 };
 
-export const exportSessionFromHistory = (session: WorkoutSession) => {
+export const getWorkoutPDFFilename = (data: ExportData) => {
+  const safeName = data.routineName.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+  const dateStr = format(data.date, 'yyyy-MM-dd');
+  return `entrenamiento_${safeName}_${dateStr}.pdf`;
+};
+
+export const exportWorkoutToPDF = (data: ExportData) => {
+  const doc = buildWorkoutPDF(data);
+  doc.save(getWorkoutPDFFilename(data));
+};
+
+export const sessionToExportData = (session: WorkoutSession): ExportData => {
   const totalKg = session.exercises.reduce(
     (acc, e) => acc + e.completedSets.reduce((s, set) => s + set.weight * set.reps, 0),
     0
   );
-  exportWorkoutToPDF({
+  return {
     routineName: session.routineName || 'Entrenamiento libre',
     date: new Date(session.date),
     durationSeconds: session.totalDuration,
@@ -172,5 +181,10 @@ export const exportSessionFromHistory = (session: WorkoutSession) => {
         restTime: s.restTime,
       })),
     })),
-  });
+  };
 };
+
+export const exportSessionFromHistory = (session: WorkoutSession) => {
+  exportWorkoutToPDF(sessionToExportData(session));
+};
+

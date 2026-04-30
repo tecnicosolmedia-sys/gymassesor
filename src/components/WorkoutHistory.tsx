@@ -18,7 +18,8 @@ import {
   User,
   FileDown,
 } from 'lucide-react';
-import { exportSessionFromHistory } from '@/utils/exportWorkoutPDF';
+import { sessionToExportData, ExportData } from '@/utils/exportWorkoutPDF';
+import { PDFPreviewDialog } from './PDFPreviewDialog';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -53,6 +54,7 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | 'todas'>('todas');
   const [viewMode, setViewMode] = useState<ViewMode>('routines');
   const [chartExercise, setChartExercise] = useState<{ id: string; name: string } | null>(null);
+  const [pdfPreviewData, setPdfPreviewData] = useState<ExportData | null>(null);
 
   // Usar rutinas existentes si se proporcionan, si no extraer de sesiones
   const routineNames = useMemo(() => {
@@ -408,7 +410,7 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            exportSessionFromHistory(session);
+                            setPdfPreviewData(sessionToExportData(session));
                           }}
                           className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
                         >
@@ -540,6 +542,12 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
           }
         />
       )}
+
+      <PDFPreviewDialog
+        open={!!pdfPreviewData}
+        onOpenChange={(o) => !o && setPdfPreviewData(null)}
+        data={pdfPreviewData}
+      />
     </div>
   );
 };
