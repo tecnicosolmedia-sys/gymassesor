@@ -18,8 +18,7 @@ import {
   User,
   FileDown,
 } from 'lucide-react';
-import { sessionToExportData, ExportData } from '@/utils/exportWorkoutPDF';
-import { PDFPreviewDialog } from './PDFPreviewDialog';
+import { exportSessionFromHistory } from '@/utils/exportWorkoutPDF';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
