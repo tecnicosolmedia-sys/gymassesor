@@ -119,14 +119,20 @@ const SortableRoutineExerciseItem = ({
       )}
     >
       <div
-        {...attributes}
-        {...listeners}
         className={cn(
-          'flex items-center gap-2 p-2 rounded-lg bg-card border border-border cursor-grab active:cursor-grabbing touch-none',
+          'flex items-center gap-2 p-2 rounded-lg bg-card border border-border',
           isDragging && 'ring-2 ring-primary shadow-lg'
         )}
       >
-        <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label="Reordenar ejercicio"
+          className="p-1 -m-1 cursor-grab active:cursor-grabbing touch-none flex-shrink-0 text-muted-foreground hover:text-foreground"
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
         <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
           {(exercise.imageUrls?.[0] || exercise.imageUrl) ? (
             <img
