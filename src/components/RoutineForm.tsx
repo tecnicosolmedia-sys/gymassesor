@@ -164,9 +164,7 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     pointerId: null as number | null,
     startX: 0,
     startY: 0,
-    pendingIndex: null as number | null,
     dragging: false,
-    pressTimer: null as number | null,
   });
 
   const reorderByIndex = (from: number, to: number) => {
@@ -179,18 +177,8 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     });
   };
 
-  const clearPressTimer = () => {
-    const state = pointerStateRef.current;
-    if (state.pressTimer !== null) {
-      window.clearTimeout(state.pressTimer);
-      state.pressTimer = null;
-    }
-  };
-
   const resetDragState = () => {
-    clearPressTimer();
     pointerStateRef.current.pointerId = null;
-    pointerStateRef.current.pendingIndex = null;
     pointerStateRef.current.dragging = false;
     dragIndexRef.current = null;
     overIndexRef.current = null;
@@ -226,50 +214,23 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     if (target.closest('button, input, [role="button"], a, select, textarea')) return;
 
     const state = pointerStateRef.current;
-    clearPressTimer();
     state.pointerId = e.pointerId;
     state.startX = e.clientX;
     state.startY = e.clientY;
-    state.pendingIndex = index;
-    state.dragging = false;
+    state.dragging = true;
 
     const pointerTarget = e.currentTarget;
-
-    if (e.pointerType === 'mouse') {
-      e.preventDefault();
-      pointerTarget.setPointerCapture?.(e.pointerId);
-      state.pendingIndex = null;
-      state.dragging = true;
-      activateDrag(index);
-      return;
-    }
-
-    state.pressTimer = window.setTimeout(() => {
-      if (pointerStateRef.current.pointerId !== e.pointerId) return;
-      pointerTarget.setPointerCapture?.(e.pointerId);
-      pointerStateRef.current.pendingIndex = null;
-      pointerStateRef.current.dragging = true;
-      activateDrag(index);
-      if (navigator.vibrate) navigator.vibrate(30);
-    }, 220);
+    e.preventDefault();
+    pointerTarget.setPointerCapture?.(e.pointerId);
+    activateDrag(index);
+    if (e.pointerType !== 'mouse' && navigator.vibrate) navigator.vibrate(20);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const state = pointerStateRef.current;
     if (state.pointerId !== e.pointerId) return;
 
-    if (!state.dragging) {
-      if (state.pendingIndex !== null) {
-        const dx = Math.abs(e.clientX - state.startX);
-        const dy = Math.abs(e.clientY - state.startY);
-        if (dx > 8 || dy > 8) {
-          clearPressTimer();
-          state.pointerId = null;
-          state.pendingIndex = null;
-        }
-      }
-      return;
-    }
+    if (!state.dragging) return;
 
     e.preventDefault();
     const index = findIndexAt(e.clientY);
@@ -362,7 +323,7 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                       onPointerUp={handlePointerUp}
                       onPointerCancel={handlePointerCancel}
                       className={cn(
-                        "space-y-0 transition-all cursor-grab active:cursor-grabbing select-none",
+                        "space-y-0 transition-all cursor-grab active:cursor-grabbing select-none touch-none",
                         dragIndex === index && "opacity-60 scale-[0.98] ring-2 ring-primary rounded-lg shadow-lg",
                         overIndex === index && dragIndex !== null && dragIndex !== index && "border-t-2 border-primary rounded-t-lg"
                       )}
