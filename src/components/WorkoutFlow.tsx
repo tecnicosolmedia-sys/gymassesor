@@ -309,6 +309,24 @@ export const WorkoutFlow = ({
     setFlowState({ type: 'exercising', exerciseIndex });
   };
 
+  // Reordenar ejercicios pendientes durante la sesión
+  const handleReorderRemaining = (exerciseId: string, direction: 'up' | 'down') => {
+    setWorkoutExercises((prev) => {
+      const pendingIndices = prev
+        .map((e, i) => ({ e, i }))
+        .filter(({ e }) => !completedExerciseIds.has(e.id));
+      const posInPending = pendingIndices.findIndex(({ e }) => e.id === exerciseId);
+      if (posInPending === -1) return prev;
+      const targetPosInPending = direction === 'up' ? posInPending - 1 : posInPending + 1;
+      if (targetPosInPending < 0 || targetPosInPending >= pendingIndices.length) return prev;
+      const fromIdx = pendingIndices[posInPending].i;
+      const toIdx = pendingIndices[targetPosInPending].i;
+      const updated = [...prev];
+      [updated[fromIdx], updated[toIdx]] = [updated[toIdx], updated[fromIdx]];
+      return updated;
+    });
+  };
+
   const handleAddExtraExercise = (exercise: Exercise) => {
     // Guardar el ejercicio pendiente y mostrar el diálogo
     setPendingExerciseToAdd(exercise);
