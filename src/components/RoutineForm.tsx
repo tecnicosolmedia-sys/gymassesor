@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { DndContext, PointerSensor, closestCorners, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Routine } from '@/types/routine';
 import { Exercise, MuscleGroup, MUSCLE_GROUPS, SetConfig } from '@/types/exercise';
@@ -367,38 +367,17 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     if (!over || active.id === over.id) return;
 
     const activeId = String(active.id);
+    const overId = String(over.id);
 
     setSelectedExercises((prev) => {
       const visualIds = prev.filter((id) => exercises.some((e) => e.id === id));
       const orphanIds = prev.filter((id) => !exercises.some((e) => e.id === id));
 
       const oldIndex = visualIds.indexOf(activeId);
-      if (oldIndex === -1) return prev;
+      const newIndex = visualIds.indexOf(overId);
+      if (oldIndex === -1 || newIndex === -1) return prev;
 
-      const translatedRect = active.rect.current.translated;
-      const initialRect = active.rect.current.initial;
-
-      if (!translatedRect || !initialRect) return prev;
-
-      const activeCenterY = translatedRect.top + translatedRect.height / 2;
-      const isMovingDown = translatedRect.top > initialRect.top;
-
-      const remainingIds = visualIds.filter((id) => id !== activeId);
-
-      const insertionIndex = remainingIds.reduce((count, id) => {
-        const element = document.querySelector(`[data-routine-sortable-id="${id}"]`);
-        if (!(element instanceof HTMLElement)) return count;
-
-        const rect = element.getBoundingClientRect();
-        const centerY = rect.top + rect.height / 2;
-        const shouldCount = isMovingDown ? activeCenterY >= centerY : activeCenterY > centerY;
-
-        return shouldCount ? count + 1 : count;
-      }, 0);
-
-      const reordered = [...remainingIds];
-      reordered.splice(insertionIndex, 0, activeId);
-
+      const reordered = arrayMove(visualIds, oldIndex, newIndex);
       return [...reordered, ...orphanIds];
     });
   };
