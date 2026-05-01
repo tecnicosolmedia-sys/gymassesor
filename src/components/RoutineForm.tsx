@@ -1,4 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Routine } from '@/types/routine';
 import { Exercise, MuscleGroup, MUSCLE_GROUPS, SetConfig } from '@/types/exercise';
 import { X, Calendar, Plus, Check, GripVertical, Settings2, Minus } from 'lucide-react';
@@ -74,6 +77,199 @@ interface RoutineFormProps {
   onUpdateExercise?: (id: string, updates: Partial<Exercise>) => void;
   onClose: () => void;
 }
+
+interface SortableRoutineExerciseItemProps {
+  exercise: Exercise;
+  index: number;
+  expandedExerciseId: string | null;
+  setExpandedExerciseId: (id: string | null) => void;
+  onUpdateExercise?: (id: string, updates: Partial<Exercise>) => void;
+  onToggleExercise: (exerciseId: string) => void;
+  handleUpdateSets: (exerciseId: string, delta: number) => void;
+  handleCopySetToNext: (exerciseId: string, setIndex: number) => void;
+  handleCopyFromPrevious: (exerciseId: string, setIndex: number) => void;
+}
+
+const SortableRoutineExerciseItem = ({
+  exercise,
+  index,
+  expandedExerciseId,
+  setExpandedExerciseId,
+  onUpdateExercise,
+  onToggleExercise,
+  handleUpdateSets,
+  handleCopySetToNext,
+  handleCopyFromPrevious,
+}: SortableRoutineExerciseItemProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: exercise.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'space-y-0 select-none',
+        isDragging && 'z-20 opacity-70 scale-[0.98]'
+      )}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className={cn(
+          'flex items-center gap-2 p-2 rounded-lg bg-card border border-border cursor-grab active:cursor-grabbing touch-none',
+          isDragging && 'ring-2 ring-primary shadow-lg'
+        )}
+      >
+        <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+          {(exercise.imageUrls?.[0] || exercise.imageUrl) ? (
+            <img
+              src={exercise.imageUrls?.[0] || exercise.imageUrl!}
+              alt={exercise.name}
+              className="w-full h-full object-cover"
+            />
+          ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
+            <img
+              src={getMuscleGroupIcon(exercise.muscleGroup)!}
+              alt={exercise.muscleGroup}
+              className="w-6 h-6 object-contain"
+            />
+          ) : (
+            <span className="text-xs font-bold text-primary">{index + 1}</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium break-words">{exercise.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {exercise.sets}×{exercise.reps} · {exercise.weight}kg · {exercise.restBetweenSets}s
+          </p>
+        </div>
+        {onUpdateExercise && (
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpandedExerciseId(expandedExerciseId === exercise.id ? null : exercise.id);
+            }}
+            className={cn(
+              'p-1.5 rounded-lg transition-colors flex-shrink-0',
+              expandedExerciseId === exercise.id
+                ? 'bg-primary/20 text-primary'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            )}
+            title="Editar configuración"
+          >
+            <Settings2 className="w-4 h-4" />
+          </button>
+        )}
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExercise(exercise.id);
+          }}
+          className="p-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {expandedExerciseId === exercise.id && onUpdateExercise && (
+        <div className="mx-2 p-3 rounded-b-lg bg-card/50 border border-t-0 border-border animate-fade-in">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-muted-foreground">Nº de Series</span>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => handleUpdateSets(exercise.id, -1)}
+                className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                <Minus className="w-3 h-3" />
+              </button>
+              <span className="font-lcd text-lg text-primary w-6 text-center">{exercise.sets}</span>
+              <button type="button" onClick={() => handleUpdateSets(exercise.id, 1)}
+                className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {exercise.setConfigs.map((setConfig, si) => (
+              <div key={setConfig.setNumber} className="p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-primary">Serie {setConfig.setNumber}</span>
+                  <div className="flex items-center gap-1">
+                    {si > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyFromPrevious(exercise.id, si)}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-secondary border border-border text-muted-foreground hover:text-foreground"
+                      >
+                        ← Prev
+                      </button>
+                    )}
+                    {si < exercise.setConfigs.length - 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopySetToNext(exercise.id, si)}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-secondary border border-border text-muted-foreground hover:text-foreground"
+                      >
+                        Next →
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col items-center flex-1 min-w-0">
+                    <span className="text-[10px] text-muted-foreground mb-0.5">Reps</span>
+                    <ValueDropdown
+                      value={setConfig.reps}
+                      unit=""
+                      options={Array.from({ length: 50 }, (_, i) => i + 1)}
+                      onChange={(v) => {
+                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, reps: v } : c);
+                        onUpdateExercise(exercise.id, { setConfigs: newConfigs });
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col items-center flex-1 min-w-0">
+                    <span className="text-[10px] text-muted-foreground mb-0.5">Peso</span>
+                    <ValueDropdown
+                      value={setConfig.weight}
+                      unit="kg"
+                      options={Array.from({ length: 501 }, (_, i) => i * 0.5)}
+                      onChange={(v) => {
+                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, weight: v } : c);
+                        onUpdateExercise(exercise.id, { setConfigs: newConfigs });
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col items-center flex-1 min-w-0">
+                    <span className="text-[10px] text-muted-foreground mb-0.5">Desc.</span>
+                    <ValueDropdown
+                      value={setConfig.restTime}
+                      unit="s"
+                      options={[0, 5, 10, 15, 20, 25, 30, 45, 60, 90, 120, 150, 180, 240, 300]}
+                      onChange={(v) => {
+                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, restTime: v } : c);
+                        onUpdateExercise(exercise.id, { setConfigs: newConfigs });
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onClose }: RoutineFormProps) => {
   const [name, setName] = useState(routine?.name || '');
