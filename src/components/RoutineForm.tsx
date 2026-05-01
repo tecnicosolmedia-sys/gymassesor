@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Routine } from '@/types/routine';
@@ -356,6 +356,11 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     })
   );
 
+  const handleDragStart = (_event: DragStartEvent) => {
+    // Collapse any expanded panel so item heights stay uniform during drag
+    setExpandedExerciseId(null);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -420,7 +425,7 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                 <label className="block text-sm font-medium mb-2">
                   Orden de ejercicios ({orderedSelectedExercises.length})
                 </label>
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                   <SortableContext items={orderedSelectedExercises.map((e) => e.id)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border">
                       {orderedSelectedExercises.map((exercise, index) => (
