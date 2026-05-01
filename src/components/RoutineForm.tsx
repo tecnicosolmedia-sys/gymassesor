@@ -348,118 +348,25 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
         : [...prev, exerciseId]
     );
   };
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
 
-  // Drag & drop reordering (pointer events)
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [overIndex, setOverIndex] = useState<number | null>(null);
-  const orderedListRef = useRef<HTMLDivElement>(null);
-  const dragIndexRef = useRef<number | null>(null);
-  const overIndexRef = useRef<number | null>(null);
-  const pointerStateRef = useRef({
-    pointerId: null as number | null,
-    startX: 0,
-    startY: 0,
-    dragging: false,
-  });
-
-  const reorderByIndex = (from: number, to: number) => {
-    if (from === to || from < 0 || to < 0) return;
     setSelectedExercises((prev) => {
-      const newOrder = [...prev];
-      const [moved] = newOrder.splice(from, 1);
-      newOrder.splice(to, 0, moved);
-      return newOrder;
+      const oldIndex = prev.indexOf(String(active.id));
+      const newIndex = prev.indexOf(String(over.id));
+
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
     });
-  };
-
-  const resetDragState = () => {
-    pointerStateRef.current.pointerId = null;
-    pointerStateRef.current.dragging = false;
-    dragIndexRef.current = null;
-    overIndexRef.current = null;
-    setDragIndex(null);
-    setOverIndex(null);
-  };
-
-  const findIndexAt = (clientY: number) => {
-    const container = orderedListRef.current;
-    if (!container) return null;
-
-    const items = Array.from(container.querySelectorAll<HTMLElement>('[data-routine-exercise-item]'));
-    if (!items.length) return null;
-
-    for (let i = 0; i < items.length; i++) {
-      const rect = items[i].getBoundingClientRect();
-      const midpoint = rect.top + rect.height / 2;
-      if (clientY < midpoint) return i;
-    }
-
-    return items.length - 1;
-  };
-
-  const activateDrag = (index: number) => {
-    dragIndexRef.current = index;
-    overIndexRef.current = index;
-    setDragIndex(index);
-    setOverIndex(index);
-  };
-
-  const handlePointerDown = (index: number, e: React.PointerEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('button, input, [role="button"], a, select, textarea')) return;
-
-    const state = pointerStateRef.current;
-    state.pointerId = e.pointerId;
-    state.startX = e.clientX;
-    state.startY = e.clientY;
-    state.dragging = true;
-
-    const pointerTarget = e.currentTarget;
-    e.preventDefault();
-    pointerTarget.setPointerCapture?.(e.pointerId);
-    activateDrag(index);
-    if (e.pointerType !== 'mouse' && navigator.vibrate) navigator.vibrate(20);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const state = pointerStateRef.current;
-    if (state.pointerId !== e.pointerId) return;
-
-    if (!state.dragging) return;
-
-    e.preventDefault();
-    const index = findIndexAt(e.clientY);
-    if (index !== null && index !== overIndexRef.current) {
-      overIndexRef.current = index;
-      setOverIndex(index);
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    const state = pointerStateRef.current;
-    if (state.pointerId !== null && state.pointerId !== e.pointerId) return;
-
-    if (state.dragging) {
-      const from = dragIndexRef.current;
-      const to = overIndexRef.current ?? findIndexAt(e.clientY);
-      if (from !== null && to !== null && from !== to) {
-        reorderByIndex(from, to);
-      }
-    }
-
-    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-
-    resetDragState();
-  };
-
-  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-    resetDragState();
   };
 
   return (
