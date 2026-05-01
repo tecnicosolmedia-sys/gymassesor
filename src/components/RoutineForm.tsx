@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Routine } from '@/types/routine';
 import { Exercise, MuscleGroup, MUSCLE_GROUPS, SetConfig } from '@/types/exercise';
-import { X, Calendar, Plus, Check, ChevronUp, ChevronDown, GripVertical, Settings2, Minus } from 'lucide-react';
+import { X, Calendar, Plus, Check, GripVertical, Settings2, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 
@@ -153,15 +153,6 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     );
   };
 
-  const moveExercise = (index: number, direction: 'up' | 'down') => {
-    const newOrder = [...selectedExercises];
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    
-    if (newIndex < 0 || newIndex >= newOrder.length) return;
-    
-    [newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
-    setSelectedExercises(newOrder);
-  };
 
   // Drag & drop reordering (mouse + touch)
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -275,20 +266,15 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                       onDragOver={(e) => handleDragOver(index, e)}
                       onDrop={() => handleDrop(index)}
                       onDragEnd={handleDragEnd}
+                      onTouchStart={() => handleTouchStart(index)}
                       className={cn(
-                        "space-y-0 transition-all",
+                        "space-y-0 transition-all cursor-grab active:cursor-grabbing touch-none select-none",
                         dragIndex === index && "opacity-50",
                         overIndex === index && dragIndex !== null && dragIndex !== index && "border-t-2 border-primary rounded-t-lg"
                       )}
                     >
                       <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border">
-                        <div
-                          className="p-1 -m-1 cursor-grab active:cursor-grabbing touch-none text-muted-foreground flex-shrink-0"
-                          onTouchStart={() => handleTouchStart(index)}
-                          title="Arrastra para reordenar"
-                        >
-                          <GripVertical className="w-4 h-4" />
-                        </div>
+                        <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
                           {(exercise.imageUrls?.[0] || exercise.imageUrl) ? (
                             <img
@@ -315,7 +301,8 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                         {onUpdateExercise && (
                           <button
                             type="button"
-                            onClick={() => setExpandedExerciseId(expandedExerciseId === exercise.id ? null : exercise.id)}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); setExpandedExerciseId(expandedExerciseId === exercise.id ? null : exercise.id); }}
                             className={cn(
                               "p-1.5 rounded-lg transition-colors flex-shrink-0",
                               expandedExerciseId === exercise.id
@@ -327,27 +314,10 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                             <Settings2 className="w-4 h-4" />
                           </button>
                         )}
-                        <div className="flex flex-col gap-0.5">
-                          <button
-                            type="button"
-                            onClick={() => moveExercise(index, 'up')}
-                            disabled={index === 0}
-                            className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                          >
-                            <ChevronUp className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveExercise(index, 'down')}
-                            disabled={index === orderedSelectedExercises.length - 1}
-                            className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </button>
-                        </div>
                         <button
                           type="button"
-                          onClick={() => toggleExercise(exercise.id)}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); toggleExercise(exercise.id); }}
                           className="p-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
                         >
                           <X className="w-4 h-4" />
