@@ -196,45 +196,91 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     setOverIndex(null);
   };
 
-  // Touch handlers (native, with passive:false to allow preventDefault)
+  // Touch handlers (native, with passive:false to allow preventDefault).
+  // We use a long-press (220ms) to start dragging so vertical scroll still works.
   useEffect(() => {
     const container = orderedListRef.current;
     if (!container) return;
 
+    let pressTimer: number | null = null;
+    let startX = 0;
+    let startY = 0;
+    let pendingIndex: number | null = null;
+    let dragging = false;
+
+    const clearTimer = () => {
+      if (pressTimer !== null) {
+        window.clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    };
+
+    const findIndexAt = (clientY: number) => {
+      const items = container.querySelectorAll('[data-routine-exercise-item]');
+      for (let i = 0; i < items.length; i++) {
+        const rect = items[i].getBoundingClientRect();
+        if (clientY >= rect.top && clientY <= rect.bottom) return i;
+      }
+      return null;
+    };
+
     const handleTouchStart = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
-      // Ignore touches that started on interactive controls
-      if (target.closest('button, input, [role="button"]')) return;
+      if (target.closest('button, input, [role="button"], a, select, textarea')) return;
       const item = target.closest('[data-routine-exercise-item]') as HTMLElement | null;
       if (!item) return;
       const indexAttr = item.getAttribute('data-index');
       if (indexAttr === null) return;
       const index = parseInt(indexAttr, 10);
-      dragIndexRef.current = index;
-      overIndexRef.current = index;
-      setDragIndex(index);
-      setOverIndex(index);
+      const touch = e.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      pendingIndex = index;
+      dragging = false;
+      clearTimer();
+      pressTimer = window.setTimeout(() => {
+        // Activate drag mode
+        dragging = true;
+        dragIndexRef.current = index;
+        overIndexRef.current = index;
+        setDragIndex(index);
+        setOverIndex(index);
+        // Haptic feedback
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, 220);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (dragIndexRef.current === null) return;
-      e.preventDefault(); // prevent scroll while dragging
       const touch = e.touches[0];
-      const items = container.querySelectorAll('[data-routine-exercise-item]');
-      for (let i = 0; i < items.length; i++) {
-        const rect = items[i].getBoundingClientRect();
-        if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-          overIndexRef.current = i;
-          setOverIndex(i);
-          break;
+      if (!dragging) {
+        // Cancel pending press if user scrolls before long-press completes
+        if (pendingIndex !== null) {
+          const dx = Math.abs(touch.clientX - startX);
+          const dy = Math.abs(touch.clientY - startY);
+          if (dx > 8 || dy > 8) {
+            clearTimer();
+            pendingIndex = null;
+          }
         }
+        return;
+      }
+      e.preventDefault(); // prevent scroll while actively dragging
+      const idx = findIndexAt(touch.clientY);
+      if (idx !== null) {
+        overIndexRef.current = idx;
+        setOverIndex(idx);
       }
     };
 
     const handleTouchEnd = () => {
-      const from = dragIndexRef.current;
-      const to = overIndexRef.current;
-      if (from !== null && to !== null) reorderByIndex(from, to);
+      clearTimer();
+      pendingIndex = null;
+      if (dragging) {
+        const from = dragIndexRef.current;
+        const to = overIndexRef.current;
+        if (from !== null && to !== null && from !== to) reorderByIndex(from, to);
+      }
+      dragging = false;
       dragIndexRef.current = null;
       overIndexRef.current = null;
       setDragIndex(null);
@@ -247,6 +293,7 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     container.addEventListener('touchcancel', handleTouchEnd);
 
     return () => {
+      clearTimer();
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
@@ -312,8 +359,8 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                       onDrop={() => handleDrop(index)}
                       onDragEnd={handleDragEnd}
                       className={cn(
-                        "space-y-0 transition-all cursor-grab active:cursor-grabbing touch-none select-none",
-                        dragIndex === index && "opacity-50 scale-95",
+                        "space-y-0 transition-all cursor-grab active:cursor-grabbing select-none",
+                        dragIndex === index && "opacity-60 scale-[0.98] ring-2 ring-primary rounded-lg shadow-lg",
                         overIndex === index && dragIndex !== null && dragIndex !== index && "border-t-2 border-primary rounded-t-lg"
                       )}
                     >
