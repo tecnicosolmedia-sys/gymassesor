@@ -421,7 +421,7 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                   Orden de ejercicios ({orderedSelectedExercises.length})
                 </label>
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={selectedExercises} strategy={verticalListSortingStrategy}>
+                  <SortableContext items={orderedSelectedExercises.map((e) => e.id)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border">
                       {orderedSelectedExercises.map((exercise, index) => (
                         <SortableRoutineExerciseItem
