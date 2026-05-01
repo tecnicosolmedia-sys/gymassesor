@@ -360,12 +360,20 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    setSelectedExercises((prev) => {
-      const oldIndex = prev.indexOf(String(active.id));
-      const newIndex = prev.indexOf(String(over.id));
+    const activeId = String(active.id);
+    const overId = String(over.id);
 
+    setSelectedExercises((prev) => {
+      // Build the visual order (only ids that currently exist in exercises)
+      const visualIds = prev.filter((id) => exercises.some((e) => e.id === id));
+      const orphanIds = prev.filter((id) => !exercises.some((e) => e.id === id));
+
+      const oldIndex = visualIds.indexOf(activeId);
+      const newIndex = visualIds.indexOf(overId);
       if (oldIndex === -1 || newIndex === -1) return prev;
-      return arrayMove(prev, oldIndex, newIndex);
+
+      const reordered = arrayMove(visualIds, oldIndex, newIndex);
+      return [...reordered, ...orphanIds];
     });
   };
 
@@ -413,7 +421,7 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                   Orden de ejercicios ({orderedSelectedExercises.length})
                 </label>
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={selectedExercises} strategy={verticalListSortingStrategy}>
+                  <SortableContext items={orderedSelectedExercises.map((e) => e.id)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border">
                       {orderedSelectedExercises.map((exercise, index) => (
                         <SortableRoutineExerciseItem
