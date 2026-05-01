@@ -154,12 +154,18 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
   };
 
 
-  // Drag & drop reordering (mouse + touch)
+  // Drag & drop reordering (pointer events)
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const orderedListRef = useRef<HTMLDivElement>(null);
   const dragIndexRef = useRef<number | null>(null);
   const overIndexRef = useRef<number | null>(null);
+  const pointerStateRef = useRef({
+    pointerId: null as number | null,
+    startX: 0,
+    startY: 0,
+    dragging: false,
+  });
 
   const reorderByIndex = (from: number, to: number) => {
     if (from === to || from < 0 || to < 0) return;
@@ -171,135 +177,94 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     });
   };
 
-  // Mouse / HTML5 drag
-  const handleDragStart = (index: number) => {
+  const resetDragState = () => {
+    pointerStateRef.current.pointerId = null;
+    pointerStateRef.current.dragging = false;
+    dragIndexRef.current = null;
+    overIndexRef.current = null;
+    setDragIndex(null);
+    setOverIndex(null);
+  };
+
+  const findIndexAt = (clientY: number) => {
+    const container = orderedListRef.current;
+    if (!container) return null;
+
+    const items = Array.from(container.querySelectorAll<HTMLElement>('[data-routine-exercise-item]'));
+    if (!items.length) return null;
+
+    for (let i = 0; i < items.length; i++) {
+      const rect = items[i].getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      if (clientY < midpoint) return i;
+    }
+
+    return items.length - 1;
+  };
+
+  const activateDrag = (index: number) => {
     dragIndexRef.current = index;
+    overIndexRef.current = index;
     setDragIndex(index);
     setOverIndex(index);
   };
-  const handleDragOver = (index: number, e: React.DragEvent) => {
+
+  const handlePointerDown = (index: number, e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button, input, [role="button"], a, select, textarea')) return;
+
+    const state = pointerStateRef.current;
+    state.pointerId = e.pointerId;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.dragging = true;
+
+    const pointerTarget = e.currentTarget;
     e.preventDefault();
-    overIndexRef.current = index;
-    setOverIndex(index);
-  };
-  const handleDrop = (index: number) => {
-    if (dragIndexRef.current !== null) reorderByIndex(dragIndexRef.current, index);
-    dragIndexRef.current = null;
-    overIndexRef.current = null;
-    setDragIndex(null);
-    setOverIndex(null);
-  };
-  const handleDragEnd = () => {
-    dragIndexRef.current = null;
-    overIndexRef.current = null;
-    setDragIndex(null);
-    setOverIndex(null);
+    pointerTarget.setPointerCapture?.(e.pointerId);
+    activateDrag(index);
+    if (e.pointerType !== 'mouse' && navigator.vibrate) navigator.vibrate(20);
   };
 
-  // Touch handlers (native, with passive:false to allow preventDefault).
-  // We use a long-press (220ms) to start dragging so vertical scroll still works.
-  useEffect(() => {
-    const container = orderedListRef.current;
-    if (!container) return;
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = pointerStateRef.current;
+    if (state.pointerId !== e.pointerId) return;
 
-    let pressTimer: number | null = null;
-    let startX = 0;
-    let startY = 0;
-    let pendingIndex: number | null = null;
-    let dragging = false;
+    if (!state.dragging) return;
 
-    const clearTimer = () => {
-      if (pressTimer !== null) {
-        window.clearTimeout(pressTimer);
-        pressTimer = null;
+    e.preventDefault();
+    const index = findIndexAt(e.clientY);
+    if (index !== null && index !== overIndexRef.current) {
+      overIndexRef.current = index;
+      setOverIndex(index);
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = pointerStateRef.current;
+    if (state.pointerId !== null && state.pointerId !== e.pointerId) return;
+
+    if (state.dragging) {
+      const from = dragIndexRef.current;
+      const to = overIndexRef.current ?? findIndexAt(e.clientY);
+      if (from !== null && to !== null && from !== to) {
+        reorderByIndex(from, to);
       }
-    };
+    }
 
-    const findIndexAt = (clientY: number) => {
-      const items = container.querySelectorAll('[data-routine-exercise-item]');
-      for (let i = 0; i < items.length; i++) {
-        const rect = items[i].getBoundingClientRect();
-        if (clientY >= rect.top && clientY <= rect.bottom) return i;
-      }
-      return null;
-    };
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
 
-    const handleTouchStart = (e: TouchEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('button, input, [role="button"], a, select, textarea')) return;
-      const item = target.closest('[data-routine-exercise-item]') as HTMLElement | null;
-      if (!item) return;
-      const indexAttr = item.getAttribute('data-index');
-      if (indexAttr === null) return;
-      const index = parseInt(indexAttr, 10);
-      const touch = e.touches[0];
-      startX = touch.clientX;
-      startY = touch.clientY;
-      pendingIndex = index;
-      dragging = false;
-      clearTimer();
-      pressTimer = window.setTimeout(() => {
-        // Activate drag mode
-        dragging = true;
-        dragIndexRef.current = index;
-        overIndexRef.current = index;
-        setDragIndex(index);
-        setOverIndex(index);
-        // Haptic feedback
-        if (navigator.vibrate) navigator.vibrate(30);
-      }, 220);
-    };
+    resetDragState();
+  };
 
-    const handleTouchMove = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      if (!dragging) {
-        // Cancel pending press if user scrolls before long-press completes
-        if (pendingIndex !== null) {
-          const dx = Math.abs(touch.clientX - startX);
-          const dy = Math.abs(touch.clientY - startY);
-          if (dx > 8 || dy > 8) {
-            clearTimer();
-            pendingIndex = null;
-          }
-        }
-        return;
-      }
-      e.preventDefault(); // prevent scroll while actively dragging
-      const idx = findIndexAt(touch.clientY);
-      if (idx !== null) {
-        overIndexRef.current = idx;
-        setOverIndex(idx);
-      }
-    };
-
-    const handleTouchEnd = () => {
-      clearTimer();
-      pendingIndex = null;
-      if (dragging) {
-        const from = dragIndexRef.current;
-        const to = overIndexRef.current;
-        if (from !== null && to !== null && from !== to) reorderByIndex(from, to);
-      }
-      dragging = false;
-      dragIndexRef.current = null;
-      overIndexRef.current = null;
-      setDragIndex(null);
-      setOverIndex(null);
-    };
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd);
-    container.addEventListener('touchcancel', handleTouchEnd);
-
-    return () => {
-      clearTimer();
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-      container.removeEventListener('touchcancel', handleTouchEnd);
-    };
-  }, [orderedSelectedExercises.length]);
+  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    resetDragState();
+  };
 
   return (
     <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 overflow-y-auto">
@@ -353,13 +318,12 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                       key={exercise.id}
                       data-routine-exercise-item
                       data-index={index}
-                      draggable
-                      onDragStart={() => handleDragStart(index)}
-                      onDragOver={(e) => handleDragOver(index, e)}
-                      onDrop={() => handleDrop(index)}
-                      onDragEnd={handleDragEnd}
+                      onPointerDown={(e) => handlePointerDown(index, e)}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerCancel={handlePointerCancel}
                       className={cn(
-                        "space-y-0 transition-all cursor-grab active:cursor-grabbing select-none",
+                        "space-y-0 transition-all cursor-grab active:cursor-grabbing select-none touch-none",
                         dragIndex === index && "opacity-60 scale-[0.98] ring-2 ring-primary rounded-lg shadow-lg",
                         overIndex === index && dragIndex !== null && dragIndex !== index && "border-t-2 border-primary rounded-t-lg"
                       )}
