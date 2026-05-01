@@ -356,6 +356,11 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     })
   );
 
+  const handleDragStart = (_event: DragStartEvent) => {
+    // Collapse any expanded panel so item heights stay uniform during drag
+    setExpandedExerciseId(null);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
