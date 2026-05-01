@@ -6,8 +6,7 @@ import { ExerciseCard } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
 import { AddExerciseDuringWorkoutDialog } from './AddExerciseDuringWorkoutDialog';
 import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff, Flame, Weight, RefreshCw, ClipboardList, FileDown, ListChecks, ChevronUp, ChevronDown } from 'lucide-react';
-import { ExportData } from '@/utils/exportWorkoutPDF';
-import { PDFPreviewDialog } from './PDFPreviewDialog';
+import { exportWorkoutToPDF } from '@/utils/exportWorkoutPDF';
 import { CompletedExercisesReview } from './CompletedExercisesReview';
 import { ExerciseSummary } from './ExerciseSummary';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -110,7 +109,7 @@ export const WorkoutFlow = ({
   
   // Estado de series por ejercicio (para persistir y restaurar)
   const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(initialExerciseSetStates);
-  const [pdfPreviewData, setPdfPreviewData] = useState<ExportData | null>(null);
+  
   
   // Datos personales para cálculo de calorías
   const { personalData } = usePersonalData();
@@ -615,7 +614,7 @@ export const WorkoutFlow = ({
   if (flowState.type === 'routine-complete') {
     return (
       <>
-      <PDFPreviewDialog open={!!pdfPreviewData} onOpenChange={(o) => !o && setPdfPreviewData(null)} data={pdfPreviewData} />
+      
       <div className="fixed inset-0 bg-background z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-md text-center py-8">
           <div className="w-24 h-24 mx-auto rounded-full bg-primary/20 flex items-center justify-center mb-6 animate-pulse">
@@ -677,7 +676,7 @@ export const WorkoutFlow = ({
             <button
               onClick={() => {
                 const completedExs = workoutExercises.filter(e => completedExerciseIds.has(e.id));
-                setPdfPreviewData({
+                exportWorkoutToPDF({
                   routineName,
                   date: new Date(),
                   durationSeconds: elapsedTime,
