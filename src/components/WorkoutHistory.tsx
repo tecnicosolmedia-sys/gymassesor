@@ -542,11 +542,6 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
         />
       )}
 
-      <PDFPreviewDialog
-        open={!!pdfPreviewData}
-        onOpenChange={(o) => !o && setPdfPreviewData(null)}
-        data={pdfPreviewData}
-      />
     </div>
   );
 };
