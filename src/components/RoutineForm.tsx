@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { DndContext, PointerSensor, closestCorners, MeasuringStrategy, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
+import { DndContext, PointerSensor, TouchSensor, MouseSensor, closestCorners, MeasuringStrategy, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Routine } from '@/types/routine';
@@ -124,15 +124,16 @@ const SortableRoutineExerciseItem = ({
           isDragging && 'ring-2 ring-primary shadow-lg'
         )}
       >
-        <button
-          type="button"
+        <div
           {...attributes}
           {...listeners}
+          role="button"
+          tabIndex={0}
           aria-label="Reordenar ejercicio"
-          className="p-1 -m-1 cursor-grab active:cursor-grabbing touch-none flex-shrink-0 text-muted-foreground hover:text-foreground"
+          className="p-2 -m-1 cursor-grab active:cursor-grabbing touch-none flex-shrink-0 text-muted-foreground hover:text-foreground"
         >
           <GripVertical className="w-4 h-4" />
-        </button>
+        </div>
         <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
           {(exercise.imageUrls?.[0] || exercise.imageUrl) ? (
             <img
@@ -356,10 +357,11 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     );
   };
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 150, tolerance: 8 },
     })
   );
 
