@@ -482,42 +482,71 @@ export const WorkoutFlow = ({
 
           {/* Ejercicios restantes */}
           <div className="space-y-3">
-            {remainingExercises.map((exercise) => (
-              <button
+            {remainingExercises.map((exercise, idx) => (
+              <div
                 key={exercise.id}
-                onClick={() => handleSelectNextExercise(exercise)}
-                className="w-full p-4 rounded-2xl bg-card border border-border hover:border-primary transition-all flex items-center gap-4 text-left group"
+                className="w-full p-4 rounded-2xl bg-card border border-border hover:border-primary transition-all flex items-center gap-3 group"
               >
-                <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
-                  {exercise.imageUrl ? (
-                    <img 
-                      src={exercise.imageUrl} 
-                      alt={exercise.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
-                    <img 
-                      src={getMuscleGroupIcon(exercise.muscleGroup)!} 
-                      alt={exercise.muscleGroup}
-                      className="w-12 h-12 object-contain"
-                    />
-                  ) : (
-                    <Dumbbell className="w-6 h-6 text-primary" />
-                  )}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
-                    {exercise.muscleGroup}
-                  </span>
-                  <h3 className="font-display font-bold text-lg mt-1">{exercise.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {exercise.sets} series · {exercise.reps} reps
-                  </p>
-                </div>
-                
-                <ChevronRight className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
-              </button>
+                {/* Reorder controls */}
+                {remainingExercises.length > 1 && (
+                  <div className="flex flex-col gap-0.5 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleReorderRemaining(exercise.id, 'up'); }}
+                      disabled={idx === 0}
+                      className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Subir"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleReorderRemaining(exercise.id, 'down'); }}
+                      disabled={idx === remainingExercises.length - 1}
+                      className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Bajar"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handleSelectNextExercise(exercise)}
+                  className="flex-1 min-w-0 flex items-center gap-4 text-left"
+                >
+                  <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {exercise.imageUrl ? (
+                      <img 
+                        src={exercise.imageUrl} 
+                        alt={exercise.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
+                      <img 
+                        src={getMuscleGroupIcon(exercise.muscleGroup)!} 
+                        alt={exercise.muscleGroup}
+                        className="w-12 h-12 object-contain"
+                      />
+                    ) : (
+                      <Dumbbell className="w-6 h-6 text-primary" />
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
+                      {exercise.muscleGroup}
+                    </span>
+                    <h3 className="font-display font-bold text-lg mt-1 break-words">{exercise.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {exercise.sets} series · {exercise.reps} reps
+                    </p>
+                  </div>
+                  
+                  <ChevronRight className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                </button>
+              </div>
             ))}
           </div>
 
