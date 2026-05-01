@@ -158,55 +158,101 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const orderedListRef = useRef<HTMLDivElement>(null);
+  const dragIndexRef = useRef<number | null>(null);
+  const overIndexRef = useRef<number | null>(null);
 
   const reorderByIndex = (from: number, to: number) => {
     if (from === to || from < 0 || to < 0) return;
-    const newOrder = [...selectedExercises];
-    const [moved] = newOrder.splice(from, 1);
-    newOrder.splice(to, 0, moved);
-    setSelectedExercises(newOrder);
+    setSelectedExercises((prev) => {
+      const newOrder = [...prev];
+      const [moved] = newOrder.splice(from, 1);
+      newOrder.splice(to, 0, moved);
+      return newOrder;
+    });
   };
 
+  // Mouse / HTML5 drag
   const handleDragStart = (index: number) => {
+    dragIndexRef.current = index;
     setDragIndex(index);
     setOverIndex(index);
   };
   const handleDragOver = (index: number, e: React.DragEvent) => {
     e.preventDefault();
+    overIndexRef.current = index;
     setOverIndex(index);
   };
   const handleDrop = (index: number) => {
-    if (dragIndex !== null) reorderByIndex(dragIndex, index);
+    if (dragIndexRef.current !== null) reorderByIndex(dragIndexRef.current, index);
+    dragIndexRef.current = null;
+    overIndexRef.current = null;
     setDragIndex(null);
     setOverIndex(null);
   };
   const handleDragEnd = () => {
+    dragIndexRef.current = null;
+    overIndexRef.current = null;
     setDragIndex(null);
     setOverIndex(null);
   };
 
-  // Touch handlers
-  const handleTouchStart = (index: number) => {
-    setDragIndex(index);
-    setOverIndex(index);
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (dragIndex === null || !orderedListRef.current) return;
-    const touch = e.touches[0];
-    const items = orderedListRef.current.querySelectorAll('[data-routine-exercise-item]');
-    for (let i = 0; i < items.length; i++) {
-      const rect = items[i].getBoundingClientRect();
-      if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-        setOverIndex(i);
-        break;
+  // Touch handlers (native, with passive:false to allow preventDefault)
+  useEffect(() => {
+    const container = orderedListRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      // Ignore touches that started on interactive controls
+      if (target.closest('button, input, [role="button"]')) return;
+      const item = target.closest('[data-routine-exercise-item]') as HTMLElement | null;
+      if (!item) return;
+      const indexAttr = item.getAttribute('data-index');
+      if (indexAttr === null) return;
+      const index = parseInt(indexAttr, 10);
+      dragIndexRef.current = index;
+      overIndexRef.current = index;
+      setDragIndex(index);
+      setOverIndex(index);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (dragIndexRef.current === null) return;
+      e.preventDefault(); // prevent scroll while dragging
+      const touch = e.touches[0];
+      const items = container.querySelectorAll('[data-routine-exercise-item]');
+      for (let i = 0; i < items.length; i++) {
+        const rect = items[i].getBoundingClientRect();
+        if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+          overIndexRef.current = i;
+          setOverIndex(i);
+          break;
+        }
       }
-    }
-  };
-  const handleTouchEnd = () => {
-    if (dragIndex !== null && overIndex !== null) reorderByIndex(dragIndex, overIndex);
-    setDragIndex(null);
-    setOverIndex(null);
-  };
+    };
+
+    const handleTouchEnd = () => {
+      const from = dragIndexRef.current;
+      const to = overIndexRef.current;
+      if (from !== null && to !== null) reorderByIndex(from, to);
+      dragIndexRef.current = null;
+      overIndexRef.current = null;
+      setDragIndex(null);
+      setOverIndex(null);
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
+    container.addEventListener('touchcancel', handleTouchEnd);
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [orderedSelectedExercises.length]);
 
   return (
     <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 overflow-y-auto">
@@ -254,22 +300,20 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                 <div
                   ref={orderedListRef}
                   className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border"
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
                 >
                   {orderedSelectedExercises.map((exercise, index) => (
                     <div
                       key={exercise.id}
                       data-routine-exercise-item
+                      data-index={index}
                       draggable
                       onDragStart={() => handleDragStart(index)}
                       onDragOver={(e) => handleDragOver(index, e)}
                       onDrop={() => handleDrop(index)}
                       onDragEnd={handleDragEnd}
-                      onTouchStart={() => handleTouchStart(index)}
                       className={cn(
                         "space-y-0 transition-all cursor-grab active:cursor-grabbing touch-none select-none",
-                        dragIndex === index && "opacity-50",
+                        dragIndex === index && "opacity-50 scale-95",
                         overIndex === index && dragIndex !== null && dragIndex !== index && "border-t-2 border-primary rounded-t-lg"
                       )}
                     >
