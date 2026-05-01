@@ -112,6 +112,7 @@ const SortableRoutineExerciseItem = ({
     <div
       ref={setNodeRef}
       style={style}
+      data-routine-sortable-id={exercise.id}
       className={cn(
         'space-y-0 select-none',
         isDragging && 'z-20 opacity-70 scale-[0.98]'
@@ -366,18 +367,38 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     if (!over || active.id === over.id) return;
 
     const activeId = String(active.id);
-    const overId = String(over.id);
 
     setSelectedExercises((prev) => {
-      // Build the visual order (only ids that currently exist in exercises)
       const visualIds = prev.filter((id) => exercises.some((e) => e.id === id));
       const orphanIds = prev.filter((id) => !exercises.some((e) => e.id === id));
 
       const oldIndex = visualIds.indexOf(activeId);
-      const newIndex = visualIds.indexOf(overId);
-      if (oldIndex === -1 || newIndex === -1) return prev;
+      if (oldIndex === -1) return prev;
 
-      const reordered = arrayMove(visualIds, oldIndex, newIndex);
+      const translatedRect = active.rect.current.translated;
+      const initialRect = active.rect.current.initial;
+
+      if (!translatedRect || !initialRect) return prev;
+
+      const activeCenterY = translatedRect.top + translatedRect.height / 2;
+      const isMovingDown = translatedRect.top > initialRect.top;
+
+      const remainingIds = visualIds.filter((id) => id !== activeId);
+
+      const insertionIndex = remainingIds.reduce((count, id) => {
+        const element = document.querySelector(`[data-routine-sortable-id="${id}"]`);
+        if (!(element instanceof HTMLElement)) return count;
+
+        const rect = element.getBoundingClientRect();
+        const centerY = rect.top + rect.height / 2;
+        const shouldCount = isMovingDown ? activeCenterY >= centerY : activeCenterY > centerY;
+
+        return shouldCount ? count + 1 : count;
+      }, 0);
+
+      const reordered = [...remainingIds];
+      reordered.splice(insertionIndex, 0, activeId);
+
       return [...reordered, ...orphanIds];
     });
   };
