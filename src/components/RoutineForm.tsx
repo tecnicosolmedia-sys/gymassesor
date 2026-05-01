@@ -300,22 +300,20 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                 <div
                   ref={orderedListRef}
                   className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border"
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
                 >
                   {orderedSelectedExercises.map((exercise, index) => (
                     <div
                       key={exercise.id}
                       data-routine-exercise-item
+                      data-index={index}
                       draggable
                       onDragStart={() => handleDragStart(index)}
                       onDragOver={(e) => handleDragOver(index, e)}
                       onDrop={() => handleDrop(index)}
                       onDragEnd={handleDragEnd}
-                      onTouchStart={() => handleTouchStart(index)}
                       className={cn(
                         "space-y-0 transition-all cursor-grab active:cursor-grabbing touch-none select-none",
-                        dragIndex === index && "opacity-50",
+                        dragIndex === index && "opacity-50 scale-95",
                         overIndex === index && dragIndex !== null && dragIndex !== index && "border-t-2 border-primary rounded-t-lg"
                       )}
                     >
