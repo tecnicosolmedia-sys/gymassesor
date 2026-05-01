@@ -1,4 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Routine } from '@/types/routine';
 import { Exercise, MuscleGroup, MUSCLE_GROUPS, SetConfig } from '@/types/exercise';
 import { X, Calendar, Plus, Check, GripVertical, Settings2, Minus } from 'lucide-react';
@@ -74,6 +77,199 @@ interface RoutineFormProps {
   onUpdateExercise?: (id: string, updates: Partial<Exercise>) => void;
   onClose: () => void;
 }
+
+interface SortableRoutineExerciseItemProps {
+  exercise: Exercise;
+  index: number;
+  expandedExerciseId: string | null;
+  setExpandedExerciseId: (id: string | null) => void;
+  onUpdateExercise?: (id: string, updates: Partial<Exercise>) => void;
+  onToggleExercise: (exerciseId: string) => void;
+  handleUpdateSets: (exerciseId: string, delta: number) => void;
+  handleCopySetToNext: (exerciseId: string, setIndex: number) => void;
+  handleCopyFromPrevious: (exerciseId: string, setIndex: number) => void;
+}
+
+const SortableRoutineExerciseItem = ({
+  exercise,
+  index,
+  expandedExerciseId,
+  setExpandedExerciseId,
+  onUpdateExercise,
+  onToggleExercise,
+  handleUpdateSets,
+  handleCopySetToNext,
+  handleCopyFromPrevious,
+}: SortableRoutineExerciseItemProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: exercise.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'space-y-0 select-none',
+        isDragging && 'z-20 opacity-70 scale-[0.98]'
+      )}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className={cn(
+          'flex items-center gap-2 p-2 rounded-lg bg-card border border-border cursor-grab active:cursor-grabbing touch-none',
+          isDragging && 'ring-2 ring-primary shadow-lg'
+        )}
+      >
+        <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
+          {(exercise.imageUrls?.[0] || exercise.imageUrl) ? (
+            <img
+              src={exercise.imageUrls?.[0] || exercise.imageUrl!}
+              alt={exercise.name}
+              className="w-full h-full object-cover"
+            />
+          ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
+            <img
+              src={getMuscleGroupIcon(exercise.muscleGroup)!}
+              alt={exercise.muscleGroup}
+              className="w-6 h-6 object-contain"
+            />
+          ) : (
+            <span className="text-xs font-bold text-primary">{index + 1}</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium break-words">{exercise.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {exercise.sets}×{exercise.reps} · {exercise.weight}kg · {exercise.restBetweenSets}s
+          </p>
+        </div>
+        {onUpdateExercise && (
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpandedExerciseId(expandedExerciseId === exercise.id ? null : exercise.id);
+            }}
+            className={cn(
+              'p-1.5 rounded-lg transition-colors flex-shrink-0',
+              expandedExerciseId === exercise.id
+                ? 'bg-primary/20 text-primary'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            )}
+            title="Editar configuración"
+          >
+            <Settings2 className="w-4 h-4" />
+          </button>
+        )}
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExercise(exercise.id);
+          }}
+          className="p-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {expandedExerciseId === exercise.id && onUpdateExercise && (
+        <div className="mx-2 p-3 rounded-b-lg bg-card/50 border border-t-0 border-border animate-fade-in">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium text-muted-foreground">Nº de Series</span>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => handleUpdateSets(exercise.id, -1)}
+                className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                <Minus className="w-3 h-3" />
+              </button>
+              <span className="font-lcd text-lg text-primary w-6 text-center">{exercise.sets}</span>
+              <button type="button" onClick={() => handleUpdateSets(exercise.id, 1)}
+                className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {exercise.setConfigs.map((setConfig, si) => (
+              <div key={setConfig.setNumber} className="p-2 rounded-lg bg-secondary/30 border border-border/50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-primary">Serie {setConfig.setNumber}</span>
+                  <div className="flex items-center gap-1">
+                    {si > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyFromPrevious(exercise.id, si)}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-secondary border border-border text-muted-foreground hover:text-foreground"
+                      >
+                        ← Prev
+                      </button>
+                    )}
+                    {si < exercise.setConfigs.length - 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopySetToNext(exercise.id, si)}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-secondary border border-border text-muted-foreground hover:text-foreground"
+                      >
+                        Next →
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col items-center flex-1 min-w-0">
+                    <span className="text-[10px] text-muted-foreground mb-0.5">Reps</span>
+                    <ValueDropdown
+                      value={setConfig.reps}
+                      unit=""
+                      options={Array.from({ length: 50 }, (_, i) => i + 1)}
+                      onChange={(v) => {
+                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, reps: v } : c);
+                        onUpdateExercise(exercise.id, { setConfigs: newConfigs });
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col items-center flex-1 min-w-0">
+                    <span className="text-[10px] text-muted-foreground mb-0.5">Peso</span>
+                    <ValueDropdown
+                      value={setConfig.weight}
+                      unit="kg"
+                      options={Array.from({ length: 501 }, (_, i) => i * 0.5)}
+                      onChange={(v) => {
+                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, weight: v } : c);
+                        onUpdateExercise(exercise.id, { setConfigs: newConfigs });
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col items-center flex-1 min-w-0">
+                    <span className="text-[10px] text-muted-foreground mb-0.5">Desc.</span>
+                    <ValueDropdown
+                      value={setConfig.restTime}
+                      unit="s"
+                      options={[0, 5, 10, 15, 20, 25, 30, 45, 60, 90, 120, 150, 180, 240, 300]}
+                      onChange={(v) => {
+                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, restTime: v } : c);
+                        onUpdateExercise(exercise.id, { setConfigs: newConfigs });
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onClose }: RoutineFormProps) => {
   const [name, setName] = useState(routine?.name || '');
@@ -152,118 +348,25 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
         : [...prev, exerciseId]
     );
   };
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
 
-  // Drag & drop reordering (pointer events)
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [overIndex, setOverIndex] = useState<number | null>(null);
-  const orderedListRef = useRef<HTMLDivElement>(null);
-  const dragIndexRef = useRef<number | null>(null);
-  const overIndexRef = useRef<number | null>(null);
-  const pointerStateRef = useRef({
-    pointerId: null as number | null,
-    startX: 0,
-    startY: 0,
-    dragging: false,
-  });
-
-  const reorderByIndex = (from: number, to: number) => {
-    if (from === to || from < 0 || to < 0) return;
     setSelectedExercises((prev) => {
-      const newOrder = [...prev];
-      const [moved] = newOrder.splice(from, 1);
-      newOrder.splice(to, 0, moved);
-      return newOrder;
+      const oldIndex = prev.indexOf(String(active.id));
+      const newIndex = prev.indexOf(String(over.id));
+
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
     });
-  };
-
-  const resetDragState = () => {
-    pointerStateRef.current.pointerId = null;
-    pointerStateRef.current.dragging = false;
-    dragIndexRef.current = null;
-    overIndexRef.current = null;
-    setDragIndex(null);
-    setOverIndex(null);
-  };
-
-  const findIndexAt = (clientY: number) => {
-    const container = orderedListRef.current;
-    if (!container) return null;
-
-    const items = Array.from(container.querySelectorAll<HTMLElement>('[data-routine-exercise-item]'));
-    if (!items.length) return null;
-
-    for (let i = 0; i < items.length; i++) {
-      const rect = items[i].getBoundingClientRect();
-      const midpoint = rect.top + rect.height / 2;
-      if (clientY < midpoint) return i;
-    }
-
-    return items.length - 1;
-  };
-
-  const activateDrag = (index: number) => {
-    dragIndexRef.current = index;
-    overIndexRef.current = index;
-    setDragIndex(index);
-    setOverIndex(index);
-  };
-
-  const handlePointerDown = (index: number, e: React.PointerEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('button, input, [role="button"], a, select, textarea')) return;
-
-    const state = pointerStateRef.current;
-    state.pointerId = e.pointerId;
-    state.startX = e.clientX;
-    state.startY = e.clientY;
-    state.dragging = true;
-
-    const pointerTarget = e.currentTarget;
-    e.preventDefault();
-    pointerTarget.setPointerCapture?.(e.pointerId);
-    activateDrag(index);
-    if (e.pointerType !== 'mouse' && navigator.vibrate) navigator.vibrate(20);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const state = pointerStateRef.current;
-    if (state.pointerId !== e.pointerId) return;
-
-    if (!state.dragging) return;
-
-    e.preventDefault();
-    const index = findIndexAt(e.clientY);
-    if (index !== null && index !== overIndexRef.current) {
-      overIndexRef.current = index;
-      setOverIndex(index);
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    const state = pointerStateRef.current;
-    if (state.pointerId !== null && state.pointerId !== e.pointerId) return;
-
-    if (state.dragging) {
-      const from = dragIndexRef.current;
-      const to = overIndexRef.current ?? findIndexAt(e.clientY);
-      if (from !== null && to !== null && from !== to) {
-        reorderByIndex(from, to);
-      }
-    }
-
-    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-
-    resetDragState();
-  };
-
-  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-    resetDragState();
   };
 
   return (
@@ -309,165 +412,26 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                 <label className="block text-sm font-medium mb-2">
                   Orden de ejercicios ({orderedSelectedExercises.length})
                 </label>
-                <div
-                  ref={orderedListRef}
-                  className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border"
-                >
-                  {orderedSelectedExercises.map((exercise, index) => (
-                    <div
-                      key={exercise.id}
-                      data-routine-exercise-item
-                      data-index={index}
-                      onPointerDown={(e) => handlePointerDown(index, e)}
-                      onPointerMove={handlePointerMove}
-                      onPointerUp={handlePointerUp}
-                      onPointerCancel={handlePointerCancel}
-                      className={cn(
-                        "space-y-0 transition-all cursor-grab active:cursor-grabbing select-none touch-none",
-                        dragIndex === index && "opacity-60 scale-[0.98] ring-2 ring-primary rounded-lg shadow-lg",
-                        overIndex === index && dragIndex !== null && dragIndex !== index && "border-t-2 border-primary rounded-t-lg"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border">
-                        <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
-                          {(exercise.imageUrls?.[0] || exercise.imageUrl) ? (
-                            <img
-                              src={exercise.imageUrls?.[0] || exercise.imageUrl!}
-                              alt={exercise.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : getMuscleGroupIcon(exercise.muscleGroup) ? (
-                            <img
-                              src={getMuscleGroupIcon(exercise.muscleGroup)!}
-                              alt={exercise.muscleGroup}
-                              className="w-6 h-6 object-contain"
-                            />
-                          ) : (
-                            <span className="text-xs font-bold text-primary">{index + 1}</span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium break-words">{exercise.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {exercise.sets}×{exercise.reps} · {exercise.weight}kg · {exercise.restBetweenSets}s
-                          </p>
-                        </div>
-                        {onUpdateExercise && (
-                          <button
-                            type="button"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onClick={(e) => { e.stopPropagation(); setExpandedExerciseId(expandedExerciseId === exercise.id ? null : exercise.id); }}
-                            className={cn(
-                              "p-1.5 rounded-lg transition-colors flex-shrink-0",
-                              expandedExerciseId === exercise.id
-                                ? "bg-primary/20 text-primary"
-                                : "bg-secondary text-muted-foreground hover:text-foreground"
-                            )}
-                            title="Editar configuración"
-                          >
-                            <Settings2 className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => { e.stopPropagation(); toggleExercise(exercise.id); }}
-                          className="p-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      
-                      {/* Inline exercise config editor */}
-                      {expandedExerciseId === exercise.id && onUpdateExercise && (
-                        <div className="mx-2 p-3 rounded-b-lg bg-card/50 border border-t-0 border-border animate-fade-in">
-                          {/* Número de series */}
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-medium text-muted-foreground">Nº de Series</span>
-                            <div className="flex items-center gap-2">
-                              <button type="button" onClick={() => handleUpdateSets(exercise.id, -1)}
-                                className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="font-lcd text-lg text-primary w-6 text-center">{exercise.sets}</span>
-                              <button type="button" onClick={() => handleUpdateSets(exercise.id, 1)}
-                                className="w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Per-set config */}
-                          <div className="space-y-2">
-                            {exercise.setConfigs.slice(0, exercise.sets).map((setConfig, si) => (
-                              <div key={si} className="p-2 rounded-lg bg-secondary/50 border border-border">
-                                <div className="flex items-center gap-1 mb-2 flex-wrap">
-                                  <span className="text-xs font-semibold text-primary">Serie {si + 1}</span>
-                                  <div className="ml-auto flex items-center gap-1">
-                                    {si > 0 && (
-                                      <button type="button" onClick={() => handleCopyFromPrevious(exercise.id, si)}
-                                        className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground hover:text-foreground transition-colors">
-                                        ← Copiar ant.
-                                      </button>
-                                    )}
-                                    {si < exercise.sets - 1 && (
-                                      <button type="button" onClick={() => handleCopySetToNext(exercise.id, si)}
-                                        className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground hover:text-foreground transition-colors">
-                                        Copiar a sig. →
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex items-center justify-between gap-2">
-                                  {/* Reps */}
-                                  <div className="flex flex-col items-center flex-1 min-w-0">
-                                    <span className="text-[10px] text-muted-foreground mb-0.5">Reps</span>
-                                    <ValueDropdown
-                                      value={setConfig.reps}
-                                      unit=""
-                                      options={Array.from({ length: 50 }, (_, i) => i + 1)}
-                                      onChange={(v) => {
-                                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, reps: v } : c);
-                                        onUpdateExercise!(exercise.id, { setConfigs: newConfigs });
-                                      }}
-                                    />
-                                  </div>
-                                  {/* Weight */}
-                                  <div className="flex flex-col items-center flex-1 min-w-0">
-                                    <span className="text-[10px] text-muted-foreground mb-0.5">Peso</span>
-                                    <ValueDropdown
-                                      value={setConfig.weight}
-                                      unit="kg"
-                                      options={Array.from({ length: 501 }, (_, i) => i * 0.5)}
-                                      onChange={(v) => {
-                                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, weight: v } : c);
-                                        onUpdateExercise!(exercise.id, { setConfigs: newConfigs });
-                                      }}
-                                    />
-                                  </div>
-                                  {/* Rest */}
-                                  <div className="flex flex-col items-center flex-1 min-w-0">
-                                    <span className="text-[10px] text-muted-foreground mb-0.5">Desc.</span>
-                                    <ValueDropdown
-                                      value={setConfig.restTime}
-                                      unit="s"
-                                      options={[0, 5, 10, 15, 20, 25, 30, 45, 60, 90, 120, 150, 180, 240, 300]}
-                                      onChange={(v) => {
-                                        const newConfigs = exercise.setConfigs.map((c, i) => i === si ? { ...c, restTime: v } : c);
-                                        onUpdateExercise!(exercise.id, { setConfigs: newConfigs });
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={selectedExercises} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border">
+                      {orderedSelectedExercises.map((exercise, index) => (
+                        <SortableRoutineExerciseItem
+                          key={exercise.id}
+                          exercise={exercise}
+                          index={index}
+                          expandedExerciseId={expandedExerciseId}
+                          setExpandedExerciseId={setExpandedExerciseId}
+                          onUpdateExercise={onUpdateExercise}
+                          onToggleExercise={toggleExercise}
+                          handleUpdateSets={handleUpdateSets}
+                          handleCopySetToNext={handleCopySetToNext}
+                          handleCopyFromPrevious={handleCopyFromPrevious}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </SortableContext>
+                </DndContext>
               </div>
             )}
 
