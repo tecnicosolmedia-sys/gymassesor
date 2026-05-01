@@ -359,8 +359,8 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                       onDrop={() => handleDrop(index)}
                       onDragEnd={handleDragEnd}
                       className={cn(
-                        "space-y-0 transition-all cursor-grab active:cursor-grabbing touch-none select-none",
-                        dragIndex === index && "opacity-50 scale-95",
+                        "space-y-0 transition-all cursor-grab active:cursor-grabbing select-none",
+                        dragIndex === index && "opacity-60 scale-[0.98] ring-2 ring-primary rounded-lg shadow-lg",
                         overIndex === index && dragIndex !== null && dragIndex !== index && "border-t-2 border-primary rounded-t-lg"
                       )}
                     >
