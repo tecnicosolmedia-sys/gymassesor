@@ -372,6 +372,7 @@ const Index = () => {
               newExerciseToAdd={newlyCreatedExercise}
               onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
               workoutSessions={sessions}
+              onDeleteCompletedSet={deleteCompletedSet}
             />
           )}
         </section>
