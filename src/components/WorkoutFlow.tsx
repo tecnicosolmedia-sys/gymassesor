@@ -1156,6 +1156,7 @@ export const WorkoutFlow = ({
                 globalIsRunning={isRunning}
                 onGlobalToggle={toggle}
                 workoutSessions={workoutSessions}
+                onDeleteCompletedSet={onDeleteCompletedSet}
               />
             );
           })()}
