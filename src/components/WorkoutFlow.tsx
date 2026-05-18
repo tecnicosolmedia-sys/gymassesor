@@ -57,6 +57,7 @@ interface WorkoutFlowProps {
   // Estado inicial de series por ejercicio
   initialExerciseSetStates?: ExerciseSetState[];
   workoutSessions?: WorkoutSession[];
+  onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
 }
 
 export type FlowState = 
