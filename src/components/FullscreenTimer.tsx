@@ -484,6 +484,7 @@ export const FullscreenTimer = ({
                   sessions={chartSessions || []}
                   inline
                   setNumberFilter={chartNextSetNumber}
+                  onDeleteSet={chartOnDeleteSet}
                 />
               </div>
             )}
