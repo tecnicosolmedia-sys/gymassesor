@@ -53,6 +53,7 @@ export const ExerciseProgressChart = ({
   onClose,
   onDeleteSet,
   setNumberFilter,
+  maxSetNumber,
 }: ExerciseProgressChartProps) => {
   const [metric, setMetric] = useState<MetricMode>('weight');
   const [selectedPoint, setSelectedPoint] = useState<{ setNum: number; index: number } | null>(null);
