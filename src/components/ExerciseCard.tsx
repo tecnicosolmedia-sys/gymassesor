@@ -77,6 +77,7 @@ export const ExerciseCard = ({
   globalIsRunning,
   onGlobalToggle,
   workoutSessions = [],
+  onDeleteCompletedSet,
 }: ExerciseCardProps) => {
   const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
