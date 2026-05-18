@@ -736,6 +736,7 @@ const Index = () => {
           onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
           initialFlowState={{ type: 'add-extra-exercise' }}
           workoutSessions={sessions}
+          onDeleteCompletedSet={deleteCompletedSet}
         />
       )}
 
