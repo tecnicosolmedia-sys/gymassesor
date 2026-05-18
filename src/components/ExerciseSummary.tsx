@@ -212,6 +212,7 @@ export const ExerciseSummary = ({
                 exerciseName={exerciseName}
                 sessions={sessionsWithLive}
                 inline
+                onDeleteSet={onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exerciseId, sn) : undefined}
               />
             </div>
           ) : null;
