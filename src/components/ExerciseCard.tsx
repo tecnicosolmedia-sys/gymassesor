@@ -568,6 +568,7 @@ export const ExerciseCard = ({
                             sessions={inlineSessions}
                             inline
                             setNumberFilter={currentSet}
+                            onDeleteSet={onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
                           />
                         </div>
                       )}
