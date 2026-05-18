@@ -422,6 +422,7 @@ export const WorkoutFlow = ({
           onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
           onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.id)}
           historySessions={workoutSessions}
+          onDeleteCompletedSet={onDeleteCompletedSet}
         />
       );
     }
