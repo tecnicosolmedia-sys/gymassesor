@@ -17,6 +17,7 @@ interface ExerciseSummaryProps {
   onContinue: (updatedConfigs: SetConfig[]) => void;
   onGoBack?: () => void;
   historySessions?: WorkoutSession[];
+  onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
 }
 
 export const ExerciseSummary = ({
@@ -28,6 +29,7 @@ export const ExerciseSummary = ({
   onContinue,
   onGoBack,
   historySessions = [],
+  onDeleteCompletedSet,
 }: ExerciseSummaryProps) => {
   const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);
   const [localConfigs, setLocalConfigs] = useState<SetConfig[]>([...setConfigs]);
