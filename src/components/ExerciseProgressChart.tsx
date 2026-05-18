@@ -17,6 +17,8 @@ interface ExerciseProgressChartProps {
   onDeleteSet?: (sessionId: string, setNumber: number) => void | Promise<void>;
   /** When provided, only the chart for this set number is rendered (single chart, no grid). */
   setNumberFilter?: number;
+  /** Maximum set number to render. Series above this are hidden (exercise has fewer sets now). */
+  maxSetNumber?: number;
 }
 
 const SET_COLORS = [
@@ -51,6 +53,7 @@ export const ExerciseProgressChart = ({
   onClose,
   onDeleteSet,
   setNumberFilter,
+  maxSetNumber,
 }: ExerciseProgressChartProps) => {
   const [metric, setMetric] = useState<MetricMode>('weight');
   const [selectedPoint, setSelectedPoint] = useState<{ setNum: number; index: number } | null>(null);
@@ -109,10 +112,11 @@ export const ExerciseProgressChart = ({
     );
   }
 
-  const allSetNumbers = Array.from({ length: maxSets }, (_, i) => i + 1);
+  const effectiveMax = maxSetNumber ? Math.min(maxSets, maxSetNumber) : maxSets;
+  const allSetNumbers = Array.from({ length: effectiveMax }, (_, i) => i + 1);
   const setNumbers = setNumberFilter
     ? allSetNumbers.filter(n => n === setNumberFilter && perSetData.has(n))
-    : allSetNumbers;
+    : allSetNumbers.filter(n => perSetData.has(n));
   const unit = metric === 'weight' ? 'kg' : 'reps';
 
   const CustomTooltip = ({ active, payload, label }: any) => {
