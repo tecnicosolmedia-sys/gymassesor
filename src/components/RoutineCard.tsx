@@ -283,6 +283,7 @@ export const RoutineCard = ({
           onNewExerciseHandled={onNewExerciseHandled}
           initialFlowState={{ type: 'exercising', exerciseIndex: startExerciseIndex }}
           workoutSessions={workoutSessions}
+          onDeleteCompletedSet={onDeleteCompletedSet}
         />
       )}
     </>
