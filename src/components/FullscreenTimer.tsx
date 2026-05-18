@@ -22,6 +22,7 @@ interface FullscreenTimerProps {
   chartExerciseName?: string;
   chartSessions?: WorkoutSession[];
   chartNextSetNumber?: number;
+  chartOnDeleteSet?: (sessionId: string, setNumber: number) => void | Promise<void>;
 }
 
 export const FullscreenTimer = ({
@@ -38,6 +39,7 @@ export const FullscreenTimer = ({
   chartExerciseName,
   chartSessions,
   chartNextSetNumber,
+  chartOnDeleteSet,
 }: FullscreenTimerProps) => {
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [isRunning, setIsRunning] = useState(true);
@@ -482,6 +484,7 @@ export const FullscreenTimer = ({
                   sessions={chartSessions || []}
                   inline
                   setNumberFilter={chartNextSetNumber}
+                  onDeleteSet={chartOnDeleteSet}
                 />
               </div>
             )}

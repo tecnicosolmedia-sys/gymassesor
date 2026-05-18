@@ -57,6 +57,7 @@ interface ExerciseCardProps {
   onGlobalToggle?: () => void;
   // Historial para gráfica de progresión
   workoutSessions?: WorkoutSession[];
+  onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
 }
 
 export const ExerciseCard = ({ 
@@ -76,6 +77,7 @@ export const ExerciseCard = ({
   globalIsRunning,
   onGlobalToggle,
   workoutSessions = [],
+  onDeleteCompletedSet,
 }: ExerciseCardProps) => {
   const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
@@ -566,6 +568,7 @@ export const ExerciseCard = ({
                             sessions={inlineSessions}
                             inline
                             setNumberFilter={currentSet}
+                            onDeleteSet={onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
                           />
                         </div>
                       )}
@@ -641,6 +644,7 @@ export const ExerciseCard = ({
                     exerciseName={exercise.name}
                     sessions={sessionsWithLive}
                     inline
+                    onDeleteSet={onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
                   />
                 </div>
               ) : null;
@@ -728,6 +732,7 @@ export const ExerciseCard = ({
             chartExerciseName={showChartInTimer ? exercise.name : undefined}
             chartSessions={showChartInTimer ? timerSessions : undefined}
             chartNextSetNumber={showChartInTimer ? currentSet + 1 : undefined}
+            chartOnDeleteSet={showChartInTimer && onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
           />
         );
       })()}

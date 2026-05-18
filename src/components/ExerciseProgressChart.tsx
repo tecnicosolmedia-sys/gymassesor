@@ -267,9 +267,10 @@ export const ExerciseProgressChart = ({
             {selectedData.weight}kg · {selectedData.reps} reps
           </p>
         </div>
-        {onDeleteSet && (
+        {onDeleteSet && !selectedData.sessionId.startsWith('live-session') && (
           <button
             onClick={async () => {
+              if (!window.confirm('¿Eliminar este registro del historial?')) return;
               await onDeleteSet(selectedData.sessionId, selectedData.setNumber);
               setSelectedPoint(null);
             }}

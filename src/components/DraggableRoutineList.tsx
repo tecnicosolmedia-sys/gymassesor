@@ -24,6 +24,7 @@ interface DraggableRoutineListProps {
   newExerciseToAdd?: Exercise | null;
   onNewExerciseHandled: () => void;
   workoutSessions: WorkoutSession[];
+  onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
 }
 
 export const DraggableRoutineList = ({
@@ -31,7 +32,7 @@ export const DraggableRoutineList = ({
   onEdit, onDelete, onEditExercise, onDeleteExercise,
   onSetComplete, onUpdateSetConfig, onWorkoutComplete,
   onAddExerciseToRoutine, onRemoveExerciseFromRoutine, onCreateExercise, newExerciseToAdd, onNewExerciseHandled,
-  workoutSessions,
+  workoutSessions, onDeleteCompletedSet,
 }: DraggableRoutineListProps) => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
@@ -164,6 +165,7 @@ export const DraggableRoutineList = ({
                 newExerciseToAdd={newExerciseToAdd}
                 onNewExerciseHandled={onNewExerciseHandled}
                 workoutSessions={workoutSessions}
+                onDeleteCompletedSet={onDeleteCompletedSet}
               />
             </div>
           </div>

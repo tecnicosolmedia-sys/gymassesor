@@ -372,6 +372,7 @@ const Index = () => {
               newExerciseToAdd={newlyCreatedExercise}
               onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
               workoutSessions={sessions}
+              onDeleteCompletedSet={deleteCompletedSet}
             />
           )}
         </section>
@@ -706,6 +707,7 @@ const Index = () => {
           initialElapsedTime={savedWorkout.elapsedTime}
           initialExerciseSetStates={(savedWorkout.exerciseSetStates || []) as ExerciseSetState[]}
           workoutSessions={sessions}
+          onDeleteCompletedSet={deleteCompletedSet}
         />
       )}
 
@@ -734,6 +736,7 @@ const Index = () => {
           onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
           initialFlowState={{ type: 'add-extra-exercise' }}
           workoutSessions={sessions}
+          onDeleteCompletedSet={deleteCompletedSet}
         />
       )}
 

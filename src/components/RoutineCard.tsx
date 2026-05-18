@@ -32,6 +32,7 @@ interface RoutineCardProps {
   newExerciseToAdd?: Exercise | null;
   onNewExerciseHandled?: () => void;
   workoutSessions?: WorkoutSession[];
+  onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
 }
 
 export const RoutineCard = ({
@@ -51,6 +52,7 @@ export const RoutineCard = ({
   newExerciseToAdd,
   onNewExerciseHandled,
   workoutSessions = [],
+  onDeleteCompletedSet,
 }: RoutineCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [showExerciseList, setShowExerciseList] = useState(false);
@@ -235,6 +237,7 @@ export const RoutineCard = ({
                     onDelete={onDeleteExercise}
                     onSetComplete={onSetComplete}
                     workoutSessions={workoutSessions}
+                    onDeleteCompletedSet={onDeleteCompletedSet}
                   />
                 ))}
               </>
@@ -280,6 +283,7 @@ export const RoutineCard = ({
           onNewExerciseHandled={onNewExerciseHandled}
           initialFlowState={{ type: 'exercising', exerciseIndex: startExerciseIndex }}
           workoutSessions={workoutSessions}
+          onDeleteCompletedSet={onDeleteCompletedSet}
         />
       )}
     </>

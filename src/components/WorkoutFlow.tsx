@@ -57,6 +57,7 @@ interface WorkoutFlowProps {
   // Estado inicial de series por ejercicio
   initialExerciseSetStates?: ExerciseSetState[];
   workoutSessions?: WorkoutSession[];
+  onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
 }
 
 export type FlowState = 
@@ -89,6 +90,7 @@ export const WorkoutFlow = ({
   initialElapsedTime = 0,
   initialExerciseSetStates = [],
   workoutSessions = [],
+  onDeleteCompletedSet,
 }: WorkoutFlowProps) => {
   const [workoutExercises, setWorkoutExercises] = useState<Exercise[]>(initialExercises);
   // Estado para el diálogo de guardar ejercicio en rutina
@@ -420,6 +422,7 @@ export const WorkoutFlow = ({
           onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
           onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.id)}
           historySessions={workoutSessions}
+          onDeleteCompletedSet={onDeleteCompletedSet}
         />
       );
     }
@@ -1153,6 +1156,7 @@ export const WorkoutFlow = ({
                 globalIsRunning={isRunning}
                 onGlobalToggle={toggle}
                 workoutSessions={workoutSessions}
+                onDeleteCompletedSet={onDeleteCompletedSet}
               />
             );
           })()}
