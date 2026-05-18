@@ -57,6 +57,7 @@ interface ExerciseCardProps {
   onGlobalToggle?: () => void;
   // Historial para gráfica de progresión
   workoutSessions?: WorkoutSession[];
+  onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
 }
 
 export const ExerciseCard = ({ 
