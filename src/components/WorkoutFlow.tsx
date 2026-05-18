@@ -90,6 +90,7 @@ export const WorkoutFlow = ({
   initialElapsedTime = 0,
   initialExerciseSetStates = [],
   workoutSessions = [],
+  onDeleteCompletedSet,
 }: WorkoutFlowProps) => {
   const [workoutExercises, setWorkoutExercises] = useState<Exercise[]>(initialExercises);
   // Estado para el diálogo de guardar ejercicio en rutina
