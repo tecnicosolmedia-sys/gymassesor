@@ -706,6 +706,7 @@ const Index = () => {
           initialElapsedTime={savedWorkout.elapsedTime}
           initialExerciseSetStates={(savedWorkout.exerciseSetStates || []) as ExerciseSetState[]}
           workoutSessions={sessions}
+          onDeleteCompletedSet={deleteCompletedSet}
         />
       )}
 
