@@ -39,6 +39,7 @@ export const FullscreenTimer = ({
   chartExerciseName,
   chartSessions,
   chartNextSetNumber,
+  chartOnDeleteSet,
 }: FullscreenTimerProps) => {
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [isRunning, setIsRunning] = useState(true);
