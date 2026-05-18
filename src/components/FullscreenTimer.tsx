@@ -22,6 +22,7 @@ interface FullscreenTimerProps {
   chartExerciseName?: string;
   chartSessions?: WorkoutSession[];
   chartNextSetNumber?: number;
+  chartOnDeleteSet?: (sessionId: string, setNumber: number) => void | Promise<void>;
 }
 
 export const FullscreenTimer = ({
