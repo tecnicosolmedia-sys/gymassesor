@@ -17,6 +17,8 @@ interface ExerciseProgressChartProps {
   onDeleteSet?: (sessionId: string, setNumber: number) => void | Promise<void>;
   /** When provided, only the chart for this set number is rendered (single chart, no grid). */
   setNumberFilter?: number;
+  /** Maximum set number to render. Series above this are hidden (exercise has fewer sets now). */
+  maxSetNumber?: number;
 }
 
 const SET_COLORS = [
