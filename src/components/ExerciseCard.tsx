@@ -644,6 +644,7 @@ export const ExerciseCard = ({
                     exerciseName={exercise.name}
                     sessions={sessionsWithLive}
                     inline
+                    onDeleteSet={onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
                   />
                 </div>
               ) : null;
