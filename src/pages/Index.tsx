@@ -543,6 +543,7 @@ const Index = () => {
           routineNames={routines.map(r => r.name)}
           onDeleteSession={deleteSession}
           onDeleteCompletedSet={deleteCompletedSet}
+          onUpdateCompletedSet={updateCompletedSet}
           onClose={() => setShowHistory(false)}
         />
       )}
