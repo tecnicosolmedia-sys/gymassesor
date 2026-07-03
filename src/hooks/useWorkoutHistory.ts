@@ -274,6 +274,50 @@ export const useWorkoutHistory = () => {
     }).filter(s => s.exercises.length > 0));
   }, []);
 
+  // Update a single completed set's reps/weight in a historical session
+  const updateCompletedSet = useCallback(async (
+    sessionId: string,
+    exerciseId: string,
+    setNumber: number,
+    updates: { reps?: number; weight?: number },
+  ) => {
+    const { data: exRows } = await supabase
+      .from('workout_session_exercises')
+      .select('id')
+      .eq('session_id', sessionId)
+      .eq('exercise_id', exerciseId)
+      .limit(1);
+    const exSessionId = exRows?.[0]?.id;
+    if (!exSessionId) return;
+
+    const dbUpdates: Record<string, number> = {};
+    if (typeof updates.reps === 'number') dbUpdates.reps = updates.reps;
+    if (typeof updates.weight === 'number') dbUpdates.weight = updates.weight;
+    if (Object.keys(dbUpdates).length === 0) return;
+
+    await supabase
+      .from('workout_completed_sets')
+      .update(dbUpdates)
+      .eq('exercise_session_id', exSessionId)
+      .eq('set_number', setNumber);
+
+    setSessions(prev => prev.map(s => {
+      if (s.id !== sessionId) return s;
+      return {
+        ...s,
+        exercises: s.exercises.map(e => {
+          if (e.exerciseId !== exerciseId) return e;
+          return {
+            ...e,
+            completedSets: e.completedSets.map(set =>
+              set.setNumber === setNumber ? { ...set, ...updates } : set
+            ),
+          };
+        }),
+      };
+    }));
+  }, []);
+
   const clearHistory = useCallback(async () => {
     if (!user) return;
     // Delete all user sessions (cascade will handle exercises and sets)
@@ -284,6 +328,7 @@ export const useWorkoutHistory = () => {
 
   return {
     sessions, currentSession, isLoading, startSession, logCompletedSet,
-    endSession, getExerciseHistory, getStats, deleteSession, deleteCompletedSet, clearHistory,
+    endSession, getExerciseHistory, getStats, deleteSession, deleteCompletedSet, updateCompletedSet, clearHistory,
   };
 };
+
