@@ -569,6 +569,17 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
         />
       )}
 
+      <EditCompletedSetDialog
+        target={editingSet}
+        onClose={() => setEditingSet(null)}
+        onSave={async (sessionId, exerciseId, setNumber, updates) => {
+          if (onUpdateCompletedSet) {
+            await onUpdateCompletedSet(sessionId, exerciseId, setNumber, updates);
+          }
+        }}
+        onDelete={onDeleteCompletedSet}
+      />
+
     </div>
   );
 };
