@@ -23,12 +23,14 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
+import { EditCompletedSetDialog, EditableSetTarget } from './EditCompletedSetDialog';
 
 interface WorkoutHistoryProps {
   sessions: WorkoutSession[];
   routineNames?: string[];
   onDeleteSession: (id: string) => void;
   onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
+  onUpdateCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number, updates: { reps: number; weight: number }) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -46,7 +48,8 @@ interface ExerciseHistoryEntry {
   }[];
 }
 
-export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, onDeleteSession, onDeleteCompletedSet, onClose }: WorkoutHistoryProps) => {
+export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, onDeleteSession, onDeleteCompletedSet, onUpdateCompletedSet, onClose }: WorkoutHistoryProps) => {
+  const [editingSet, setEditingSet] = useState<EditableSetTarget | null>(null);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [selectedRoutine, setSelectedRoutine] = useState<string | 'todas'>('todas');
@@ -372,13 +375,25 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                             
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                               {exercise.completedSets.map((set, setIndex) => (
-                                <div 
+                                <button
                                   key={setIndex}
-                                  className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-secondary/50 text-xs"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!onUpdateCompletedSet && !onDeleteCompletedSet) return;
+                                    setEditingSet({
+                                      sessionId: session.id,
+                                      exerciseId: exercise.exerciseId,
+                                      exerciseName: exercise.exerciseName,
+                                      setNumber: set.setNumber,
+                                      reps: set.reps,
+                                      weight: set.weight,
+                                    });
+                                  }}
+                                  className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-secondary/50 text-xs hover:bg-secondary/80 hover:ring-1 hover:ring-primary/40 transition-all"
                                 >
                                   <span className="font-medium text-muted-foreground">S{set.setNumber}</span>
                                   <span className="font-semibold">{set.reps}x{set.weight}kg</span>
-                                </div>
+                                </button>
                               ))}
                             </div>
                           </div>
@@ -506,13 +521,25 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                               {entry.sets.map((set, setIdx) => (
-                                <div 
+                                <button
                                   key={setIdx}
-                                  className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-secondary/50 text-xs"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!onUpdateCompletedSet && !onDeleteCompletedSet) return;
+                                    setEditingSet({
+                                      sessionId: entry.sessionId,
+                                      exerciseId: exHistory.exerciseId,
+                                      exerciseName: exHistory.exerciseName,
+                                      setNumber: set.setNumber,
+                                      reps: set.reps,
+                                      weight: set.weight,
+                                    });
+                                  }}
+                                  className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-secondary/50 text-xs hover:bg-secondary/80 hover:ring-1 hover:ring-primary/40 transition-all"
                                 >
                                   <span className="font-medium text-muted-foreground">S{set.setNumber}</span>
                                   <span className="font-semibold">{set.reps}x{set.weight}kg</span>
-                                </div>
+                                </button>
                               ))}
                             </div>
                           </div>
@@ -541,6 +568,17 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
           }
         />
       )}
+
+      <EditCompletedSetDialog
+        target={editingSet}
+        onClose={() => setEditingSet(null)}
+        onSave={async (sessionId, exerciseId, setNumber, updates) => {
+          if (onUpdateCompletedSet) {
+            await onUpdateCompletedSet(sessionId, exerciseId, setNumber, updates);
+          }
+        }}
+        onDelete={onDeleteCompletedSet}
+      />
 
     </div>
   );
