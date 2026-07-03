@@ -360,7 +360,11 @@ export const ExerciseCard = ({
   };
 
   const handleTimerComplete = () => {
-    // Solo se llama cuando el timer llega a 0
+    // Auto-avanzar a la siguiente serie cuando termina el descanso entre series.
+    // En la última serie (timerType === 'exercise') mostramos el resumen y esperamos confirmación.
+    if (timerType === 'set') {
+      handleContinue();
+    }
   };
 
   const handleContinue = () => {
