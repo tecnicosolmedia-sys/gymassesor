@@ -375,13 +375,25 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                             
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                               {exercise.completedSets.map((set, setIndex) => (
-                                <div 
+                                <button
                                   key={setIndex}
-                                  className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-secondary/50 text-xs"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!onUpdateCompletedSet && !onDeleteCompletedSet) return;
+                                    setEditingSet({
+                                      sessionId: session.id,
+                                      exerciseId: exercise.exerciseId,
+                                      exerciseName: exercise.exerciseName,
+                                      setNumber: set.setNumber,
+                                      reps: set.reps,
+                                      weight: set.weight,
+                                    });
+                                  }}
+                                  className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-secondary/50 text-xs hover:bg-secondary/80 hover:ring-1 hover:ring-primary/40 transition-all"
                                 >
                                   <span className="font-medium text-muted-foreground">S{set.setNumber}</span>
                                   <span className="font-semibold">{set.reps}x{set.weight}kg</span>
-                                </div>
+                                </button>
                               ))}
                             </div>
                           </div>
