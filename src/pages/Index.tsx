@@ -51,6 +51,7 @@ const Index = () => {
     endSession,
     deleteSession,
     deleteCompletedSet,
+    updateCompletedSet,
   } = useWorkoutHistory();
   
   // Estado de entrenamiento guardado
