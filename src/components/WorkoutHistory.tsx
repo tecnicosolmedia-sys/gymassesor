@@ -48,7 +48,8 @@ interface ExerciseHistoryEntry {
   }[];
 }
 
-export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, onDeleteSession, onDeleteCompletedSet, onClose }: WorkoutHistoryProps) => {
+export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, onDeleteSession, onDeleteCompletedSet, onUpdateCompletedSet, onClose }: WorkoutHistoryProps) => {
+  const [editingSet, setEditingSet] = useState<EditableSetTarget | null>(null);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [selectedRoutine, setSelectedRoutine] = useState<string | 'todas'>('todas');
