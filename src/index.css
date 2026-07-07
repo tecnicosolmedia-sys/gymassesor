@@ -191,6 +191,17 @@
   }
 }
 
+/* Stroboscopic flash for personal records */
+@keyframes strobe-flash {
+  0%, 100% { background-color: transparent; }
+  10%, 30%, 50%, 70%, 90% { background-color: hsl(0 0% 100% / 0.85); }
+  20%, 40%, 60%, 80% { background-color: transparent; }
+}
+
+.animate-strobe-flash {
+  animation: strobe-flash 0.18s steps(1, end) infinite;
+}
+
 .neon-border-trace {
   position: relative;
   z-index: 0;
