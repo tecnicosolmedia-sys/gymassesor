@@ -18,7 +18,7 @@ import { ExerciseProgressChart } from './ExerciseProgressChart';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { PersonalRecordDialog } from './PersonalRecordDialog';
-import { usePersonalRecordSound } from '@/hooks/usePersonalRecordSound';
+
 import {
   Carousel,
   CarouselContent,
@@ -88,7 +88,7 @@ export const ExerciseCard = ({
   const [showChart, setShowChart] = useState(false);
 
   // Récord personal
-  const playRecordSound = usePersonalRecordSound();
+  const [recordFlash, setRecordFlash] = useState(false);
   const [recordDialog, setRecordDialog] = useState<{
     open: boolean;
     weight: number;
@@ -330,7 +330,8 @@ export const ExerciseCard = ({
         reps: config.reps,
         previous: previousMaxWeight,
       });
-      playRecordSound();
+      setRecordFlash(true);
+      window.setTimeout(() => setRecordFlash(false), 3000);
     } else if (config.weight > sessionBestWeight) {
       setSessionBestWeight(config.weight);
     }
@@ -750,6 +751,10 @@ export const ExerciseCard = ({
         reps={recordDialog.reps}
         previousRecord={recordDialog.previous}
       />
+
+      {recordFlash && (
+        <div className="fixed inset-0 z-[300] pointer-events-none animate-strobe-flash" />
+      )}
     </>
   );
 };
