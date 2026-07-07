@@ -188,6 +188,7 @@
   }
   100% {
     background-position: 0% 50%;
+  }
 }
 
 /* Stroboscopic flash for personal records */
@@ -199,7 +200,6 @@
 
 .animate-strobe-flash {
   animation: strobe-flash 0.18s steps(1, end) infinite;
-}
 }
 
 .neon-border-trace {
