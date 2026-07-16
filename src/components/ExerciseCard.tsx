@@ -13,11 +13,14 @@ import {
   CheckCircle,
   BarChart3,
 } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { WorkoutSession } from '@/types/workoutHistory';
 import { ExerciseProgressChart } from './ExerciseProgressChart';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { PersonalRecordDialog } from './PersonalRecordDialog';
+import { useAISuggestion } from '@/hooks/useAISuggestion';
+import { AISuggestionDialog } from './AISuggestionDialog';
 
 import {
   Carousel,
@@ -86,6 +89,8 @@ export const ExerciseCard = ({
   const [completedSets, setCompletedSets] = useState<number[]>(initialCompletedSets);
   
   const [showChart, setShowChart] = useState(false);
+  const ai = useAISuggestion();
+  const hasHistory = workoutSessions.some(s => s.exercises.some(e => e.exerciseId === exercise.id && e.completedSets.length > 0));
 
   // Récord personal
   const [recordFlash, setRecordFlash] = useState(false);
@@ -463,6 +468,25 @@ export const ExerciseCard = ({
               </div>
             </div>
             
+            {/* AI Suggest button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!hasHistory) return;
+                ai.request(exercise, workoutSessions);
+              }}
+              disabled={!hasHistory}
+              title={hasHistory ? 'Sugerencia IA' : 'Sin histórico todavía'}
+              className={cn(
+                "p-2 rounded-lg transition-colors",
+                hasHistory
+                  ? "text-primary hover:bg-primary/10"
+                  : "text-muted-foreground/40 cursor-not-allowed"
+              )}
+            >
+              <Sparkles className="w-5 h-5" />
+            </button>
+
             {/* Expand button */}
             <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
               {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -755,6 +779,16 @@ export const ExerciseCard = ({
       {recordFlash && (
         <div className="fixed inset-0 z-[300] pointer-events-none animate-strobe-flash" />
       )}
+
+      <AISuggestionDialog
+        open={ai.open}
+        onOpenChange={ai.setOpen}
+        loading={ai.loading}
+        suggestion={ai.suggestion}
+        exerciseName={exercise.name}
+        currentConfig={exercise.setConfigs}
+        currentRest={exercise.restBetweenSets}
+      />
     </>
   );
 };
