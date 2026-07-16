@@ -89,6 +89,8 @@ export const ExerciseCard = ({
   const [completedSets, setCompletedSets] = useState<number[]>(initialCompletedSets);
   
   const [showChart, setShowChart] = useState(false);
+  const ai = useAISuggestion();
+  const hasHistory = workoutSessions.some(s => s.exercises.some(e => e.exerciseId === exercise.id && e.completedSets.length > 0));
 
   // Récord personal
   const [recordFlash, setRecordFlash] = useState(false);
