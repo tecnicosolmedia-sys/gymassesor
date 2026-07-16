@@ -13,11 +13,14 @@ import {
   CheckCircle,
   BarChart3,
 } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { WorkoutSession } from '@/types/workoutHistory';
 import { ExerciseProgressChart } from './ExerciseProgressChart';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { PersonalRecordDialog } from './PersonalRecordDialog';
+import { useAISuggestion } from '@/hooks/useAISuggestion';
+import { AISuggestionDialog } from './AISuggestionDialog';
 
 import {
   Carousel,
