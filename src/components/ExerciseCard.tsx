@@ -468,6 +468,25 @@ export const ExerciseCard = ({
               </div>
             </div>
             
+            {/* AI Suggest button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!hasHistory) return;
+                ai.request(exercise, workoutSessions);
+              }}
+              disabled={!hasHistory}
+              title={hasHistory ? 'Sugerencia IA' : 'Sin histórico todavía'}
+              className={cn(
+                "p-2 rounded-lg transition-colors",
+                hasHistory
+                  ? "text-primary hover:bg-primary/10"
+                  : "text-muted-foreground/40 cursor-not-allowed"
+              )}
+            >
+              <Sparkles className="w-5 h-5" />
+            </button>
+
             {/* Expand button */}
             <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
               {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
