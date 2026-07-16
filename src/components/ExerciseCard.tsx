@@ -779,6 +779,16 @@ export const ExerciseCard = ({
       {recordFlash && (
         <div className="fixed inset-0 z-[300] pointer-events-none animate-strobe-flash" />
       )}
+
+      <AISuggestionDialog
+        open={ai.open}
+        onOpenChange={ai.setOpen}
+        loading={ai.loading}
+        suggestion={ai.suggestion}
+        exerciseName={exercise.name}
+        currentConfig={exercise.setConfigs}
+        currentRest={exercise.restBetweenSets}
+      />
     </>
   );
 };
