@@ -114,13 +114,51 @@ Sugiere la configuración para la próxima sesión.`;
     }
 
     const aiJson = await aiRes.json();
-    const content: string = aiJson?.choices?.[0]?.message?.content ?? '{}';
-    let parsed: any;
+    const rawContent: string = aiJson?.choices?.[0]?.message?.content ?? '{}';
+    console.log('AI raw content:', rawContent);
+
+    // Extract JSON object from content (may be wrapped in ```json fences)
+    const extractJsonBlock = (s: string): string => {
+      const fenced = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      const base = fenced ? fenced[1] : s;
+      const start = base.indexOf('{');
+      const end = base.lastIndexOf('}');
+      return start !== -1 && end > start ? base.slice(start, end + 1) : base;
+    };
+
+    // Repair common JSON issues: escape raw newlines/tabs inside string values
+    const repairJson = (s: string): string => {
+      let out = '';
+      let inString = false;
+      let escape = false;
+      for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (escape) { out += ch; escape = false; continue; }
+        if (ch === '\\') { out += ch; escape = true; continue; }
+        if (ch === '"') { inString = !inString; out += ch; continue; }
+        if (inString) {
+          if (ch === '\n') { out += '\\n'; continue; }
+          if (ch === '\r') { out += '\\r'; continue; }
+          if (ch === '\t') { out += '\\t'; continue; }
+        }
+        out += ch;
+      }
+      return out;
+    };
+
+    let parsed: any = {};
+    const candidate = extractJsonBlock(rawContent);
     try {
-      parsed = JSON.parse(content);
-    } catch {
-      const match = content.match(/\{[\s\S]*\}/);
-      parsed = match ? JSON.parse(match[0]) : {};
+      parsed = JSON.parse(candidate);
+    } catch (e1) {
+      try {
+        parsed = JSON.parse(repairJson(candidate));
+      } catch (e2) {
+        console.error('Failed to parse AI JSON after repair', e2, 'candidate:', candidate);
+        return new Response(JSON.stringify({ error: 'ai_parse_error' }), {
+          status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     const setSuggestions = Array.isArray(parsed.setSuggestions)
