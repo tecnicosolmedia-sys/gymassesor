@@ -122,8 +122,24 @@ Sugiere la configuración para la próxima sesión.`;
       const fenced = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
       const base = fenced ? fenced[1] : s;
       const start = base.indexOf('{');
-      const end = base.lastIndexOf('}');
-      return start !== -1 && end > start ? base.slice(start, end + 1) : base;
+      if (start === -1) return base;
+      // Brace-count to find the matching closing brace, respecting strings/escapes.
+      let depth = 0;
+      let inStr = false;
+      let esc = false;
+      for (let i = start; i < base.length; i++) {
+        const ch = base[i];
+        if (esc) { esc = false; continue; }
+        if (ch === '\\') { esc = true; continue; }
+        if (ch === '"') { inStr = !inStr; continue; }
+        if (inStr) continue;
+        if (ch === '{') depth++;
+        else if (ch === '}') {
+          depth--;
+          if (depth === 0) return base.slice(start, i + 1);
+        }
+      }
+      return base.slice(start);
     };
 
     // Repair common JSON issues: escape raw newlines/tabs inside string values
