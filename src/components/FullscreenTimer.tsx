@@ -222,47 +222,62 @@ export const FullscreenTimer = ({
     }
   }, [vibrate]);
 
-  // Reproducir sonido de inicio e iniciar timer inmediatamente al montar
+  // Temporizador basado en marcas de tiempo reales (resistente a segundo plano)
+  const deadlineRef = useRef<number>(Date.now() + initialTime * 1000);
+  const pausedRemainingRef = useRef<number | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  const tick = useCallback(() => {
+    if (pausedRemainingRef.current !== null) return;
+
+    const remaining = Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000));
+
+    setTimeLeft((prev) => (prev === remaining ? prev : remaining));
+
+    if (remaining === 0) {
+      if (!hasPlayedRef.current.has(0)) {
+        hasPlayedRef.current.add(0);
+        playBoxingBell();
+        setIsComplete(true);
+        setIsRunning(false);
+        onCompleteRef.current();
+      }
+      return;
+    }
+
+    if (remaining <= 10 && !hasPlayedRef.current.has(remaining)) {
+      hasPlayedRef.current.add(remaining);
+      playCountdownBeep(remaining);
+    }
+  }, [playBoxingBell, playCountdownBeep]);
+
   useEffect(() => {
-    // Reproducir sonido de inicio una sola vez
     if (!hasPlayedStartRef.current) {
       hasPlayedStartRef.current = true;
-      // Pequeño delay para asegurar que el AudioContext se active correctamente
       setTimeout(() => {
         playStartBeep();
       }, 100);
     }
-    
-    // Iniciar el timer inmediatamente
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          // Timer completado
-          if (!hasPlayedRef.current.has(0)) {
-            hasPlayedRef.current.add(0);
-            playBoxingBell();
-          }
-          setIsComplete(true);
-          setIsRunning(false);
-          onComplete();
-          return 0;
-        }
-        
-        const newTime = prev - 1;
-        
-        // Beep fuerte para los últimos 10 segundos
-        if (newTime <= 10 && newTime > 0 && !hasPlayedRef.current.has(newTime)) {
-          hasPlayedRef.current.add(newTime);
-          playCountdownBeep(newTime);
-        }
-        
-        return newTime;
-      });
-    }, 1000);
 
-    return () => clearInterval(interval);
+    // Intervalo corto: aunque el navegador lo ralentice en segundo plano,
+    // el tiempo restante siempre se recalcula con Date.now()
+    const interval = setInterval(tick, 250);
+
+    // Resincronizar inmediatamente al volver a la app / encender la pantalla
+    const resync = () => tick();
+    document.addEventListener('visibilitychange', resync);
+    window.addEventListener('focus', resync);
+    window.addEventListener('pageshow', resync);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', resync);
+      window.removeEventListener('focus', resync);
+      window.removeEventListener('pageshow', resync);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Solo ejecutar al montar
+  }, []);
 
   // Actualizar notificación de descanso
   useEffect(() => {
@@ -277,13 +292,6 @@ export const FullscreenTimer = ({
     };
   }, [timeLeft, nextSetLabel, notificationPermission, updateRestNotification, closeNotification]);
 
-  // Pausar/reanudar timer
-  useEffect(() => {
-    if (!isRunning && timeLeft > 0 && !isComplete) {
-      // Timer está pausado, no hacer nada aquí ya que el interval ya está corriendo
-    }
-  }, [isRunning, timeLeft, isComplete]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -294,15 +302,29 @@ export const FullscreenTimer = ({
   const isWarning = timeLeft <= 10 && timeLeft > 0;
 
   const handleToggle = () => {
-    setIsRunning(!isRunning);
+    if (isComplete) return;
+    if (pausedRemainingRef.current === null) {
+      // Pausar: guardar restante
+      pausedRemainingRef.current = Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000));
+      setIsRunning(false);
+    } else {
+      // Reanudar: nueva fecha límite
+      deadlineRef.current = Date.now() + pausedRemainingRef.current * 1000;
+      pausedRemainingRef.current = null;
+      setIsRunning(true);
+      tick();
+    }
   };
 
   const handleReset = () => {
+    deadlineRef.current = Date.now() + initialTime * 1000;
+    pausedRemainingRef.current = null;
     setTimeLeft(initialTime);
     setIsRunning(true);
     setIsComplete(false);
     hasPlayedRef.current.clear();
   };
+
 
   const handleContinue = () => {
     onContinue();
