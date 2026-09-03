@@ -129,7 +129,7 @@ export const WorkoutFlow = ({
   } = useWorkoutNotification();
   
   // Cronómetro del entrenamiento (con tiempo inicial si se está restaurando)
-  const { elapsedTime, isRunning, toggle, stop } = useWorkoutStopwatch(true, initialElapsedTime);
+  const { elapsedTime, isRunning, toggle, stop, setTime } = useWorkoutStopwatch(true, initialElapsedTime);
 
   // Estado para guardar las series completadas con peso
   const [completedSetsData, setCompletedSetsData] = useState<{exerciseId: string; weight: number; reps: number}[]>([]);
@@ -460,6 +460,7 @@ export const WorkoutFlow = ({
               elapsedTime={elapsedTime}
               isRunning={isRunning}
               onToggle={toggle}
+              onSetTime={setTime}
             />
           </div>
 
@@ -1060,6 +1061,7 @@ export const WorkoutFlow = ({
               elapsedTime={elapsedTime}
               isRunning={isRunning}
               onToggle={toggle}
+              onSetTime={setTime}
             />
             {notificationsSupported && (
               <button
