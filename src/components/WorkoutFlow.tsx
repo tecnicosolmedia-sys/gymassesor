@@ -748,8 +748,17 @@ export const WorkoutFlow = ({
   // Renderizar selector de ejercicio extra
   if (flowState.type === 'add-extra-exercise') {
     return (
-      <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
-        <div className="min-h-screen p-4">
+      <div className="fixed inset-0 bg-background z-50 flex flex-col">
+        {/* Cronómetro flotante */}
+        <div className="flex-none flex justify-center pt-4 pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+          <WorkoutStopwatch 
+            elapsedTime={elapsedTime}
+            isRunning={isRunning}
+            onToggle={toggle}
+            onSetTime={setTime}
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -767,6 +776,7 @@ export const WorkoutFlow = ({
               <X className="w-5 h-5" />
             </button>
           </div>
+
 
           {/* Filtros por grupo muscular */}
           <div className="flex flex-wrap gap-1.5 mb-4">
