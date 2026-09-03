@@ -1054,36 +1054,37 @@ export const WorkoutFlow = ({
   // Renderizar ejercicio actual
   if (currentExercise && flowState.type === 'exercising') {
     return (
-      <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
-        <div className="min-h-screen p-4">
-          {/* Cronómetro y notificaciones */}
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <WorkoutStopwatch 
-              elapsedTime={elapsedTime}
-              isRunning={isRunning}
-              onToggle={toggle}
-              onSetTime={setTime}
-            />
-            {notificationsSupported && (
-              <button
-                onClick={requestPermission}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                  notificationPermission === 'granted'
-                    ? 'bg-primary/20 text-primary'
-                    : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
-                }`}
-                title={notificationPermission === 'granted' 
-                  ? 'Notificaciones activas' 
-                  : 'Activar notificaciones para pantalla de bloqueo'}
-              >
-                {notificationPermission === 'granted' ? (
-                  <Bell className="w-5 h-5" />
-                ) : (
-                  <BellOff className="w-5 h-5" />
-                )}
-              </button>
-            )}
-          </div>
+      <div className="fixed inset-0 bg-background z-50 flex flex-col">
+        {/* Cronómetro y notificaciones flotantes */}
+        <div className="flex-none flex items-center justify-center gap-2 pt-4 pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+          <WorkoutStopwatch 
+            elapsedTime={elapsedTime}
+            isRunning={isRunning}
+            onToggle={toggle}
+            onSetTime={setTime}
+          />
+          {notificationsSupported && (
+            <button
+              onClick={requestPermission}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                notificationPermission === 'granted'
+                  ? 'bg-primary/20 text-primary'
+                  : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+              }`}
+              title={notificationPermission === 'granted' 
+                ? 'Notificaciones activas' 
+                : 'Activar notificaciones para pantalla de bloqueo'}
+            >
+              {notificationPermission === 'granted' ? (
+                <Bell className="w-5 h-5" />
+              ) : (
+                <BellOff className="w-5 h-5" />
+              )}
+            </button>
+          )}
+        </div>
+        <div className="flex-1 overflow-y-auto p-4">
+
 
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
