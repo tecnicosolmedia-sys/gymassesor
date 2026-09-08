@@ -598,8 +598,12 @@ export const ExerciseCard = ({
                             sessions={inlineSessions}
                             inline
                             setNumberFilter={currentSet}
+                            metric={chartMetric}
+                            onMetricChange={setChartMetric}
+                            showMetricToggle={false}
                             onDeleteSet={onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
                           />
+
                         </div>
                       )}
                     </div>
