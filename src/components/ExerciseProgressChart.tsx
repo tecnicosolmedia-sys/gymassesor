@@ -59,8 +59,16 @@ export const ExerciseProgressChart = ({
   onDeleteSet,
   setNumberFilter,
   maxSetNumber,
+  metric: metricProp,
+  onMetricChange,
+  showMetricToggle = true,
 }: ExerciseProgressChartProps) => {
-  const [metric, setMetric] = useState<MetricMode>('weight');
+  const [internalMetric, setInternalMetric] = useState<MetricMode>('weight');
+  const metric = metricProp ?? internalMetric;
+  const setMetric = (m: MetricMode) => {
+    if (onMetricChange) onMetricChange(m);
+    if (metricProp === undefined) setInternalMetric(m);
+  };
   const [selectedPoint, setSelectedPoint] = useState<{ setNum: number; index: number } | null>(null);
 
   // Sort sessions by date ascending
