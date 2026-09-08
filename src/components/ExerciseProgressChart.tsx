@@ -152,7 +152,7 @@ export const ExerciseProgressChart = ({
     ? perSetData.get(selectedPoint.setNum)?.[selectedPoint.index]
     : null;
 
-  const metricToggle = (
+  const metricToggle = !showMetricToggle ? null : (
     <div className="flex items-center gap-3 mb-2">
       <label
         className="flex items-center gap-1.5 cursor-pointer"
