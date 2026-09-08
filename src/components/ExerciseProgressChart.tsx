@@ -19,6 +19,11 @@ interface ExerciseProgressChartProps {
   setNumberFilter?: number;
   /** Maximum set number to render. Series above this are hidden (exercise has fewer sets now). */
   maxSetNumber?: number;
+  /** Controlled metric (single source of truth when several charts share one toggle). */
+  metric?: 'weight' | 'reps';
+  onMetricChange?: (metric: 'weight' | 'reps') => void;
+  /** Hide the Peso/Repeticiones toggle (when another chart already renders it). */
+  showMetricToggle?: boolean;
 }
 
 const SET_COLORS = [
