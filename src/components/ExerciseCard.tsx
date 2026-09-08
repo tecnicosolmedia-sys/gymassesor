@@ -679,6 +679,8 @@ export const ExerciseCard = ({
                     sessions={sessionsWithLive}
                     inline
                     maxSetNumber={exercise.sets}
+                    metric={chartMetric}
+                    onMetricChange={setChartMetric}
                     onDeleteSet={onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
                   />
                 </div>
