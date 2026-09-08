@@ -89,6 +89,7 @@ export const ExerciseCard = ({
   const [completedSets, setCompletedSets] = useState<number[]>(initialCompletedSets);
   
   const [showChart, setShowChart] = useState(false);
+  const [chartMetric, setChartMetric] = useState<'weight' | 'reps'>('weight');
   const ai = useAISuggestion();
   const hasHistory = workoutSessions.some(s => s.exercises.some(e => e.exerciseId === exercise.id && e.completedSets.length > 0));
 
@@ -597,8 +598,12 @@ export const ExerciseCard = ({
                             sessions={inlineSessions}
                             inline
                             setNumberFilter={currentSet}
+                            metric={chartMetric}
+                            onMetricChange={setChartMetric}
+                            showMetricToggle={false}
                             onDeleteSet={onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
                           />
+
                         </div>
                       )}
                     </div>
@@ -674,6 +679,8 @@ export const ExerciseCard = ({
                     sessions={sessionsWithLive}
                     inline
                     maxSetNumber={exercise.sets}
+                    metric={chartMetric}
+                    onMetricChange={setChartMetric}
                     onDeleteSet={onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
                   />
                 </div>

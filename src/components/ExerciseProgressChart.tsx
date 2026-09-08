@@ -19,6 +19,11 @@ interface ExerciseProgressChartProps {
   setNumberFilter?: number;
   /** Maximum set number to render. Series above this are hidden (exercise has fewer sets now). */
   maxSetNumber?: number;
+  /** Controlled metric (single source of truth when several charts share one toggle). */
+  metric?: 'weight' | 'reps';
+  onMetricChange?: (metric: 'weight' | 'reps') => void;
+  /** Hide the Peso/Repeticiones toggle (when another chart already renders it). */
+  showMetricToggle?: boolean;
 }
 
 const SET_COLORS = [
@@ -54,8 +59,16 @@ export const ExerciseProgressChart = ({
   onDeleteSet,
   setNumberFilter,
   maxSetNumber,
+  metric: metricProp,
+  onMetricChange,
+  showMetricToggle = true,
 }: ExerciseProgressChartProps) => {
-  const [metric, setMetric] = useState<MetricMode>('weight');
+  const [internalMetric, setInternalMetric] = useState<MetricMode>('weight');
+  const metric = metricProp ?? internalMetric;
+  const setMetric = (m: MetricMode) => {
+    if (onMetricChange) onMetricChange(m);
+    if (metricProp === undefined) setInternalMetric(m);
+  };
   const [selectedPoint, setSelectedPoint] = useState<{ setNum: number; index: number } | null>(null);
 
   // Sort sessions by date ascending
@@ -139,7 +152,7 @@ export const ExerciseProgressChart = ({
     ? perSetData.get(selectedPoint.setNum)?.[selectedPoint.index]
     : null;
 
-  const metricToggle = (
+  const metricToggle = !showMetricToggle ? null : (
     <div className="flex items-center gap-3 mb-2">
       <label
         className="flex items-center gap-1.5 cursor-pointer"
