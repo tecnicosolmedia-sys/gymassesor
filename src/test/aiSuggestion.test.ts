@@ -3,6 +3,7 @@ import {
   buildAIHistory,
   canonicalizeSetSuggestions,
   canonicalizeRest,
+  strictNumber,
 } from '@/utils/aiSuggestion';
 import { WorkoutSession } from '@/types/workoutHistory';
 import { SetConfig } from '@/types/exercise';
@@ -79,6 +80,14 @@ describe('buildAIHistory', () => {
     expect(JSON.stringify(sessions)).toBe(copy);
   });
 
+  it('devuelve vacío si el histórico solo contiene calentamientos', () => {
+    const sessions = [
+      session('a', '2026-02-01', [ex('e1', 'Press', [set(1, 12, 30, true), set(2, 12, 30, true)])]),
+      session('b', '2026-01-01', [ex('e1', 'Calentamiento', [set(1, 15, 20)])]),
+    ];
+    expect(buildAIHistory('e1', sessions)).toEqual([]);
+  });
+
   it('conserva reps totales en unilateral (24 total)', () => {
     const sessions = [session('a', '2026-02-01', [ex('e1', 'Zancada', [set(1, 24, 20)])])];
     expect(buildAIHistory('e1', sessions)[0].sets[0].reps).toBe(24);
@@ -105,6 +114,25 @@ describe('canonicalizeSetSuggestions', () => {
     expect(out).toEqual([{ setNumber: 1, reps: 9, weight: 102.5 }]);
   });
 
+  it('rechaza null, cadena vacía y booleanos sin convertirlos a números', () => {
+    const out = canonicalizeSetSuggestions([cfg(1, 8, 100), cfg(2, 8, 100)], [
+      { setNumber: 1, reps: null, weight: '' },
+      { setNumber: 2, reps: true, weight: false },
+    ]);
+    expect(out).toEqual([
+      { setNumber: 1, reps: 8, weight: 100 },
+      { setNumber: 2, reps: 8, weight: 100 },
+    ]);
+  });
+
+  it('ignora entradas cuyo setNumber es null, booleano o vacío', () => {
+    const out = canonicalizeSetSuggestions([cfg(1, 8, 100)], [
+      { setNumber: null, reps: 10, weight: 102.5 },
+    ]);
+    // Sin setNumber válido en ninguna entrada se admite el orden posicional.
+    expect(out).toEqual([{ setNumber: 1, reps: 10, weight: 102.5 }]);
+  });
+
   it('sustituye NaN, infinitos y valores ausentes por la configuración actual', () => {
     const out = canonicalizeSetSuggestions(current, [
       { setNumber: 1, reps: NaN, weight: Infinity },
@@ -115,16 +143,22 @@ describe('canonicalizeSetSuggestions', () => {
     expect(out[2]).toEqual({ setNumber: 3, reps: 8, weight: 100 });
   });
 
-  it('aplica límites conservadores y pasos de 0.5kg', () => {
+  it('aplica límites exactos de ±2.5kg y ±2 reps con pasos de 0.5kg', () => {
     const out = canonicalizeSetSuggestions([cfg(1, 8, 100)], [
       { setNumber: 1, reps: 40, weight: 200 },
     ]);
-    expect(out[0]).toEqual({ setNumber: 1, reps: 11, weight: 105 });
+    expect(out[0]).toEqual({ setNumber: 1, reps: 10, weight: 102.5 });
 
     const down = canonicalizeSetSuggestions([cfg(1, 8, 100)], [
       { setNumber: 1, reps: 1, weight: 10 },
     ]);
-    expect(down[0]).toEqual({ setNumber: 1, reps: 5, weight: 95 });
+    expect(down[0]).toEqual({ setNumber: 1, reps: 6, weight: 97.5 });
+
+    // Justo en el límite: se acepta sin recortar.
+    const edge = canonicalizeSetSuggestions([cfg(1, 8, 100)], [
+      { setNumber: 1, reps: 10, weight: 102.5 },
+    ]);
+    expect(edge[0]).toEqual({ setNumber: 1, reps: 10, weight: 102.5 });
 
     const step = canonicalizeSetSuggestions([cfg(1, 8, 100)], [
       { setNumber: 1, reps: 8, weight: 101.3 },
@@ -147,5 +181,19 @@ describe('canonicalizeRest', () => {
     expect(canonicalizeRest(1, 90)).toBe(15);
     expect(canonicalizeRest('x', 120)).toBe(120);
     expect(canonicalizeRest(undefined, undefined)).toBe(90);
+  });
+});
+
+describe('strictNumber', () => {
+  it('rechaza null, undefined, cadenas vacías, booleanos y texto no numérico', () => {
+    [null, undefined, '', '   ', true, false, 'abc', NaN, Infinity, {}, []].forEach(v => {
+      expect(strictNumber(v)).toBeUndefined();
+    });
+  });
+
+  it('acepta números finitos y cadenas numéricas', () => {
+    expect(strictNumber(0)).toBe(0);
+    expect(strictNumber(-2.5)).toBe(-2.5);
+    expect(strictNumber('12.5')).toBe(12.5);
   });
 });
