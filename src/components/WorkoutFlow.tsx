@@ -24,9 +24,34 @@ const WORKOUT_STATE_KEY = 'gym-tracker-active-workout';
 
 export interface ExerciseSetState {
   exerciseId: string;
+  /** Clave única de la aparición del ejercicio dentro del entrenamiento */
+  instanceKey?: string;
   currentSet: number;
   completedSets: number[];
 }
+
+/** Ejercicio dentro de un entrenamiento, con clave de instancia única y estable */
+export type WorkoutExercise = Exercise & { instanceKey: string };
+
+/** Asigna claves de instancia deterministas: `${exerciseId}#${nºAparición}` */
+const withInstanceKeys = (list: Exercise[]): WorkoutExercise[] => {
+  const counts = new Map<string, number>();
+  return list.map((e) => {
+    const n = counts.get(e.id) ?? 0;
+    counts.set(e.id, n + 1);
+    return { ...e, instanceKey: `${e.id}#${n}` };
+  });
+};
+
+const nextInstanceKey = (list: WorkoutExercise[], exerciseId: string) => {
+  let n = 0;
+  while (list.some((e) => e.instanceKey === `${exerciseId}#${n}`)) n++;
+  return `${exerciseId}#${n}`;
+};
+
+/** Compatibilidad con entrenamientos guardados antes de las claves de instancia */
+const normalizeKey = (key: string) => (key.includes('#') ? key : `${key}#0`);
+
 
 interface WorkoutFlowProps {
   routineId?: string;
@@ -92,13 +117,15 @@ export const WorkoutFlow = ({
   workoutSessions = [],
   onDeleteCompletedSet,
 }: WorkoutFlowProps) => {
-  const [workoutExercises, setWorkoutExercises] = useState<Exercise[]>(initialExercises);
+  const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>(() => withInstanceKeys(initialExercises));
   // Estado para el diálogo de guardar ejercicio en rutina
   const [pendingExerciseToAdd, setPendingExerciseToAdd] = useState<Exercise | null>(null);
   const [showSaveToRoutineDialog, setShowSaveToRoutineDialog] = useState(false);
+  // Se guardan claves de instancia (compatibles con ids antiguos)
   const [completedExerciseIds, setCompletedExerciseIds] = useState<Set<string>>(
-    new Set(initialCompletedExerciseIds)
+    () => new Set(initialCompletedExerciseIds.map(normalizeKey))
   );
+
   const [flowState, setFlowState] = useState<FlowState>(
     initialFlowState || { type: 'exercising', exerciseIndex: 0 }
   );
@@ -110,7 +137,10 @@ export const WorkoutFlow = ({
   const [showCompletedReview, setShowCompletedReview] = useState(false);
   
   // Estado de series por ejercicio (para persistir y restaurar)
-  const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(initialExerciseSetStates);
+  const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(
+    () => initialExerciseSetStates.map(s => ({ ...s, instanceKey: s.instanceKey ?? `${s.exerciseId}#0` }))
+  );
+
   
   
   // Datos personales para cálculo de calorías
@@ -187,11 +217,11 @@ export const WorkoutFlow = ({
     localStorage.setItem(WORKOUT_STATE_KEY, JSON.stringify(stateToSave));
   }, [routineId, routineName, workoutExercises, completedExerciseIds, flowState, elapsedTime, extraExercises, exerciseSetStates]);
 
-  // Actualizar estado de series de un ejercicio
-  const handleSetStateChange = useCallback((exerciseId: string, currentSet: number, completedSets: number[]) => {
+  // Actualizar estado de series de una aparición concreta del ejercicio
+  const handleSetStateChange = useCallback((instanceKey: string, exerciseId: string, currentSet: number, completedSets: number[]) => {
     setExerciseSetStates(prev => {
-      const existing = prev.findIndex(s => s.exerciseId === exerciseId);
-      const newState = { exerciseId, currentSet, completedSets };
+      const existing = prev.findIndex(s => s.instanceKey === instanceKey);
+      const newState = { instanceKey, exerciseId, currentSet, completedSets };
       if (existing >= 0) {
         const updated = [...prev];
         updated[existing] = newState;
@@ -200,6 +230,7 @@ export const WorkoutFlow = ({
       return [...prev, newState];
     });
   }, []);
+
 
   // Limpiar estado guardado al finalizar
   const clearSavedState = useCallback(() => {
@@ -259,7 +290,13 @@ export const WorkoutFlow = ({
   }, [newExerciseToAdd]);
 
   const remainingExercises = workoutExercises.filter(
-    (e) => !completedExerciseIds.has(e.id)
+    (e) => !completedExerciseIds.has(e.instanceKey)
+  );
+
+  // Ids de ejercicios (identidad histórica) con alguna aparición completada
+  const completedOriginalIds = useMemo(
+    () => new Set(workoutExercises.filter((e) => completedExerciseIds.has(e.instanceKey)).map((e) => e.id)),
+    [workoutExercises, completedExerciseIds]
   );
 
   const availableExtraExercises = allExercises.filter(
@@ -267,10 +304,10 @@ export const WorkoutFlow = ({
            !extraExercises.some((ee) => ee.id === e.id)
   );
 
-  const handleExerciseComplete = (exerciseId: string) => {
-    const exerciseIndex = workoutExercises.findIndex((e) => e.id === exerciseId);
+  const handleExerciseComplete = (instanceKey: string) => {
+    const exerciseIndex = workoutExercises.findIndex((e) => e.instanceKey === instanceKey);
     
-    setCompletedExerciseIds((prev) => new Set([...prev, exerciseId]));
+    setCompletedExerciseIds((prev) => new Set([...prev, instanceKey]));
     
     // Mostrar resumen del ejercicio antes de continuar
     setFlowState({ 
@@ -278,6 +315,7 @@ export const WorkoutFlow = ({
       completedExerciseIndex: exerciseIndex 
     });
   };
+
 
   const handleSummaryContinue = (completedExerciseIndex: number, updatedConfigs: SetConfig[]) => {
     const exercise = workoutExercises[completedExerciseIndex];
@@ -305,18 +343,18 @@ export const WorkoutFlow = ({
     }
   };
 
-  const handleSelectNextExercise = (exercise: Exercise) => {
-    const exerciseIndex = workoutExercises.findIndex((e) => e.id === exercise.id);
+  const handleSelectNextExercise = (exercise: WorkoutExercise) => {
+    const exerciseIndex = workoutExercises.findIndex((e) => e.instanceKey === exercise.instanceKey);
     setFlowState({ type: 'exercising', exerciseIndex });
   };
 
   // Reordenar ejercicios pendientes durante la sesión
-  const handleReorderRemaining = (exerciseId: string, direction: 'up' | 'down') => {
+  const handleReorderRemaining = (instanceKey: string, direction: 'up' | 'down') => {
     setWorkoutExercises((prev) => {
       const pendingIndices = prev
         .map((e, i) => ({ e, i }))
-        .filter(({ e }) => !completedExerciseIds.has(e.id));
-      const posInPending = pendingIndices.findIndex(({ e }) => e.id === exerciseId);
+        .filter(({ e }) => !completedExerciseIds.has(e.instanceKey));
+      const posInPending = pendingIndices.findIndex(({ e }) => e.instanceKey === instanceKey);
       if (posInPending === -1) return prev;
       const targetPosInPending = direction === 'up' ? posInPending - 1 : posInPending + 1;
       if (targetPosInPending < 0 || targetPosInPending >= pendingIndices.length) return prev;
@@ -342,7 +380,10 @@ export const WorkoutFlow = ({
       // Sustitución: reemplazar el ejercicio solo en la sesión actual
       setWorkoutExercises((prev) => {
         const updated = [...prev];
-        updated[substituteOriginalIndex] = pendingExerciseToAdd;
+        updated[substituteOriginalIndex] = {
+          ...pendingExerciseToAdd,
+          instanceKey: nextInstanceKey(prev, pendingExerciseToAdd.id),
+        };
         return updated;
       });
       
@@ -357,9 +398,13 @@ export const WorkoutFlow = ({
       setFlowState({ type: 'exercising', exerciseIndex: substituteOriginalIndex });
     } else {
       // Añadir extra (flujo original)
-      setWorkoutExercises((prev) => [...prev, pendingExerciseToAdd]);
+      setWorkoutExercises((prev) => [
+        ...prev,
+        { ...pendingExerciseToAdd, instanceKey: nextInstanceKey(prev, pendingExerciseToAdd.id) },
+      ]);
       setExtraExercises((prev) => [...prev, pendingExerciseToAdd]);
       const newIndex = workoutExercises.length;
+
       
       if (saveToRoutine && routineId && onAddExerciseToRoutine) {
         onAddExerciseToRoutine(pendingExerciseToAdd.id);
@@ -389,20 +434,21 @@ export const WorkoutFlow = ({
   };
 
   // Volver atrás desde el resumen al ejercicio
-  const handleSummaryGoBack = (exerciseIndex: number, exerciseId: string) => {
+  const handleSummaryGoBack = (exerciseIndex: number, instanceKey: string) => {
     // Quitar de completados para poder volver a ejercitarse
     setCompletedExerciseIds((prev) => {
       const next = new Set(prev);
-      next.delete(exerciseId);
+      next.delete(instanceKey);
       return next;
     });
     setFlowState({ type: 'exercising', exerciseIndex });
   };
 
+
   // Renderizar resumen del ejercicio completado
   if (flowState.type === 'exercise-summary') {
     const summaryExercise = workoutExercises[flowState.completedExerciseIndex];
-    const savedSetState = exerciseSetStates.find(s => s.exerciseId === summaryExercise?.id);
+    const savedSetState = exerciseSetStates.find(s => s.instanceKey === summaryExercise?.instanceKey);
     
     if (summaryExercise) {
       const configs = summaryExercise.setConfigs || Array.from({ length: summaryExercise.sets }, (_, i) => ({
@@ -420,7 +466,7 @@ export const WorkoutFlow = ({
           setConfigs={configs}
           completedSets={savedSetState?.completedSets || []}
           onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
-          onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.id)}
+          onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.instanceKey)}
           historySessions={workoutSessions}
           onDeleteCompletedSet={onDeleteCompletedSet}
         />
@@ -488,7 +534,7 @@ export const WorkoutFlow = ({
           <div className="space-y-3">
             {remainingExercises.map((exercise, idx) => (
               <div
-                key={exercise.id}
+                key={exercise.instanceKey}
                 className="w-full p-4 rounded-2xl bg-card border border-border hover:border-primary transition-all flex items-center gap-3 group"
               >
                 {/* Reorder controls */}
@@ -496,7 +542,7 @@ export const WorkoutFlow = ({
                   <div className="flex flex-col gap-0.5 flex-shrink-0">
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); handleReorderRemaining(exercise.id, 'up'); }}
+                      onClick={(e) => { e.stopPropagation(); handleReorderRemaining(exercise.instanceKey, 'up'); }}
                       disabled={idx === 0}
                       className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       title="Subir"
@@ -505,7 +551,7 @@ export const WorkoutFlow = ({
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); handleReorderRemaining(exercise.id, 'down'); }}
+                      onClick={(e) => { e.stopPropagation(); handleReorderRemaining(exercise.instanceKey, 'down'); }}
                       disabled={idx === remainingExercises.length - 1}
                       className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       title="Bajar"
@@ -680,7 +726,7 @@ export const WorkoutFlow = ({
           <div className="space-y-3">
             <button
               onClick={() => {
-                const completedExs = workoutExercises.filter(e => completedExerciseIds.has(e.id));
+                const completedExs = workoutExercises.filter(e => completedExerciseIds.has(e.instanceKey));
                 exportWorkoutToPDF({
                   routineName,
                   date: new Date(),
@@ -688,7 +734,7 @@ export const WorkoutFlow = ({
                   totalKg: workoutStats.totalKgMoved,
                   calories: personalData ? workoutStats.caloriesBurned : undefined,
                   exercises: completedExs.map(ex => {
-                    const setState = exerciseSetStates.find(s => s.exerciseId === ex.id);
+                    const setState = exerciseSetStates.find(s => s.instanceKey === ex.instanceKey);
                     const configs = ex.setConfigs || Array.from({ length: ex.sets }, (_, i) => ({
                       setNumber: i + 1,
                       reps: ex.reps,
@@ -869,7 +915,10 @@ export const WorkoutFlow = ({
                         if (routineId && onAddExerciseToRoutine) {
                           onAddExerciseToRoutine(exercise.id);
                         }
-                        setWorkoutExercises((prev) => [...prev, exercise]);
+                        setWorkoutExercises((prev) => [
+                          ...prev,
+                          { ...exercise, instanceKey: nextInstanceKey(prev, exercise.id) },
+                        ]);
                         setExtraExercises((prev) => [...prev, exercise]);
                         const newIndex = workoutExercises.length;
                         setFlowState({ type: 'exercising', exerciseIndex: newIndex });
@@ -913,7 +962,7 @@ export const WorkoutFlow = ({
   if (flowState.type === 'substitute-exercise') {
     const exerciseBeingSubstituted = workoutExercises[flowState.substituteIndex];
     const availableForSubstitution = allExercises.filter(
-      (e) => e.id !== exerciseBeingSubstituted?.id && !completedExerciseIds.has(e.id)
+      (e) => e.id !== exerciseBeingSubstituted?.id && !completedOriginalIds.has(e.id)
     );
     const filteredSubstitutes = substituteMuscleFilter === 'todos'
       ? availableForSubstitution
@@ -1146,7 +1195,7 @@ export const WorkoutFlow = ({
 
           {/* Exercise card con props para flujo de entrenamiento */}
           {(() => {
-            const savedSetState = exerciseSetStates.find(s => s.exerciseId === currentExercise.id);
+            const savedSetState = exerciseSetStates.find(s => s.instanceKey === currentExercise.instanceKey);
             return (
               <ExerciseCard
                 exercise={currentExercise}
@@ -1164,18 +1213,18 @@ export const WorkoutFlow = ({
                 }}
                 isActive={true}
                 skipExerciseRestTimer={true}
-                onExerciseComplete={() => handleExerciseComplete(currentExercise.id)}
+                onExerciseComplete={() => handleExerciseComplete(currentExercise.instanceKey)}
                 onUpdateSetConfig={(exerciseId, setConfigs) => {
                   // Actualizar estado local para que el resumen muestre los datos reales
                   setWorkoutExercises(prev => prev.map(e => 
-                    e.id === exerciseId ? { ...e, setConfigs } : e
+                    e.instanceKey === currentExercise.instanceKey ? { ...e, setConfigs } : e
                   ));
                   // También notificar al padre para persistencia
                   onUpdateSetConfig?.(exerciseId, setConfigs);
                 }}
                 initialCurrentSet={savedSetState?.currentSet}
                 initialCompletedSets={savedSetState?.completedSets}
-                onSetStateChange={handleSetStateChange}
+                onSetStateChange={(exerciseId, currentSet, completedSets) => handleSetStateChange(currentExercise.instanceKey, exerciseId, currentSet, completedSets)}
                 globalElapsedTime={elapsedTime}
                 globalIsRunning={isRunning}
                 onGlobalToggle={toggle}
