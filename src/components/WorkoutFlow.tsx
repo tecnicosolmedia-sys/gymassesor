@@ -137,7 +137,10 @@ export const WorkoutFlow = ({
   const [showCompletedReview, setShowCompletedReview] = useState(false);
   
   // Estado de series por ejercicio (para persistir y restaurar)
-  const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(initialExerciseSetStates);
+  const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(
+    () => initialExerciseSetStates.map(s => ({ ...s, instanceKey: s.instanceKey ?? `${s.exerciseId}#0` }))
+  );
+
   
   
   // Datos personales para cálculo de calorías
