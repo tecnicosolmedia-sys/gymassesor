@@ -166,30 +166,34 @@ export const exportWorkoutToPDF = (data: ExportData) => {
   doc.save(getWorkoutPDFFilename(data));
 };
 
-export const sessionToExportData = (session: WorkoutSession): ExportData => {
-  const totalKg = session.exercises.reduce(
-    (acc, e) => acc + e.completedSets.reduce((s, set) => s + set.weight * set.reps, 0),
-    0
-  );
+export const sessionToExportData = (
+  session: WorkoutSession,
+  exercises: Exercise[] = []
+): ExportData => {
+  const unilateralMap = buildUnilateralMap(exercises);
+  const { totalVolume } = getSessionStats(session);
   return {
     routineName: session.routineName || 'Entrenamiento libre',
     date: new Date(session.date),
     durationSeconds: session.totalDuration,
-    totalKg,
+    totalKg: totalVolume,
     exercises: session.exercises.map(e => ({
       name: e.exerciseName,
       muscleGroup: e.muscleGroup,
+      isUnilateral: unilateralMap[e.exerciseId],
       sets: e.completedSets.map(s => ({
         setNumber: s.setNumber,
         reps: s.reps,
         weight: s.weight,
         restTime: s.restTime,
+        isWarmup: isWarmupSet(e.exerciseName, s),
       })),
     })),
   };
 };
 
-export const exportSessionFromHistory = (session: WorkoutSession) => {
-  exportWorkoutToPDF(sessionToExportData(session));
+export const exportSessionFromHistory = (session: WorkoutSession, exercises: Exercise[] = []) => {
+  exportWorkoutToPDF(sessionToExportData(session, exercises));
 };
+
 
