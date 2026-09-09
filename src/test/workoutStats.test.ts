@@ -3,8 +3,10 @@ import {
   formatReps,
   formatRepsShort,
   getEffectiveConfigs,
+  getEffectiveSets,
   getSessionStats,
   isExercisePerformed,
+  isWarmupExerciseName,
   isWarmupSet,
 } from '@/utils/workoutStats';
 import type { WorkoutSession, ExerciseSession, CompletedSet } from '@/types/workoutHistory';
@@ -83,6 +85,23 @@ describe('calentamientos', () => {
       { setNumber: 2, reps: 10, weight: 60, restTime: 60 },
     ];
     expect(getEffectiveConfigs('Press banca', configs)).toHaveLength(1);
+  });
+
+  it('contador efectivo: excluye calentamientos explícitos y por nombre', () => {
+    const ex = exercise('Press banca', [set(1, 10, 20, true), set(2, 10, 60), set(3, 8, 60)]);
+    expect(getEffectiveSets(ex)).toHaveLength(2);
+    expect(ex.completedSets.length - getEffectiveSets(ex).length).toBe(1);
+
+    const legacy = exercise('Calentamiento movilidad', [set(1, 15, 0), set(2, 15, 0)]);
+    expect(getEffectiveSets(legacy)).toHaveLength(0);
+    expect(legacy.completedSets.length).toBe(2);
+  });
+
+  it('la regla por nombre no se desactiva con isWarmup: false', () => {
+    expect(isWarmupExerciseName('Calentamiento hombro')).toBe(true);
+    expect(isWarmupSet('Calentamiento hombro', { isWarmup: false })).toBe(true);
+    expect(isWarmupSet('Calentamiento hombro', {})).toBe(true);
+    expect(isWarmupSet('Press banca', { isWarmup: false })).toBe(false);
   });
 });
 
