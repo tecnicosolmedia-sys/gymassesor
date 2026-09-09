@@ -117,13 +117,15 @@ export const WorkoutFlow = ({
   workoutSessions = [],
   onDeleteCompletedSet,
 }: WorkoutFlowProps) => {
-  const [workoutExercises, setWorkoutExercises] = useState<Exercise[]>(initialExercises);
+  const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>(() => withInstanceKeys(initialExercises));
   // Estado para el diálogo de guardar ejercicio en rutina
   const [pendingExerciseToAdd, setPendingExerciseToAdd] = useState<Exercise | null>(null);
   const [showSaveToRoutineDialog, setShowSaveToRoutineDialog] = useState(false);
+  // Se guardan claves de instancia (compatibles con ids antiguos)
   const [completedExerciseIds, setCompletedExerciseIds] = useState<Set<string>>(
-    new Set(initialCompletedExerciseIds)
+    () => new Set(initialCompletedExerciseIds.map(normalizeKey))
   );
+
   const [flowState, setFlowState] = useState<FlowState>(
     initialFlowState || { type: 'exercising', exerciseIndex: 0 }
   );
