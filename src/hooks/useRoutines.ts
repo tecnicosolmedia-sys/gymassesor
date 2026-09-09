@@ -74,10 +74,19 @@ export const useRoutines = () => {
   const addExerciseToRoutine = async (routineId: string, exerciseId: string) => {
     const routine = routines.find(r => r.id === routineId);
     if (!routine) return;
+    // Evitar duplicados: si ya está en la rutina no se vuelve a insertar
+    if (routine.exerciseIds.includes(exerciseId)) {
+      toast({
+        title: 'Ya está en la rutina',
+        description: 'Este ejercicio ya forma parte de la rutina, no se ha añadido de nuevo.',
+      });
+      return;
+    }
     const newIds = [...routine.exerciseIds, exerciseId];
     await supabase.from('routines').update({ exercise_ids: newIds }).eq('id', routineId);
     setRoutines(prev => prev.map(r => r.id === routineId ? { ...r, exerciseIds: newIds } : r));
   };
+
 
   const removeExerciseFromRoutine = async (routineId: string, exerciseId: string) => {
     const routine = routines.find(r => r.id === routineId);
