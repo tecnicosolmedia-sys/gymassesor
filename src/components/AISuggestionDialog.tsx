@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Sparkles, ArrowRight, Clock, Loader2 } from 'lucide-react';
 import { AISuggestion } from '@/hooks/useAISuggestion';
 import { SetConfig } from '@/types/exercise';
+import { formatRepsShort } from '@/utils/workoutStats';
 
 interface Props {
   open: boolean;
@@ -12,9 +13,11 @@ interface Props {
   exerciseName: string;
   currentConfig: SetConfig[];
   currentRest?: number;
+  isUnilateral?: boolean;
 }
 
-export const AISuggestionDialog = ({ open, onOpenChange, loading, suggestion, exerciseName, currentConfig, currentRest }: Props) => {
+export const AISuggestionDialog = ({ open, onOpenChange, loading, suggestion, exerciseName, currentConfig, currentRest, isUnilateral }: Props) => {
+  const fmt = (reps: number) => formatRepsShort(isUnilateral === true, reps);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg border-primary/40">
@@ -49,11 +52,11 @@ export const AISuggestionDialog = ({ open, onOpenChange, loading, suggestion, ex
                   <div key={s.setNumber} className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2 px-3 py-2 border-t border-border text-sm">
                     <span className="font-semibold">#{s.setNumber}</span>
                     <span className="text-muted-foreground">
-                      {cur ? `${cur.reps} × ${cur.weight}kg` : '—'}
+                      {cur ? `${fmt(cur.reps)} × ${cur.weight}kg` : '—'}
                     </span>
                     <ArrowRight className="w-3.5 h-3.5 text-primary" />
                     <span className="font-semibold text-primary">
-                      {s.reps} × {s.weight}kg
+                      {fmt(s.reps)} × {s.weight}kg
                     </span>
                   </div>
                 );
