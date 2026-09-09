@@ -561,8 +561,11 @@ export const evaluateFeedback = (input: FeedbackInput): FeedbackResult => {
     if (trunk === null) {
       return build('warn', 'Colócate de lado para ver el tronco completo.');
     }
-    if (trunk > 55) return build('bad', 'No hiperextiendas: sube con control.');
+    // trunkLean usa valor absoluto: no distingue flexión de extensión, así que
+    // no se afirma "hiperextensión". Solo se avisa de amplitud excesiva.
+    if (trunk > 55) return build('bad', 'Recorrido excesivo: controla la amplitud del tronco.');
     if (trunk < 8 && phase !== 'start') return build('warn', 'Amplía el recorrido del tronco.');
+
     return build('good', 'Buen control lumbar.');
   }
 
