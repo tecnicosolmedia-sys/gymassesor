@@ -133,7 +133,7 @@ const Index = () => {
         // Guardados nuevos traen la instanceKey; los antiguos se renumeran después
         return id.includes('#') ? { ...base, instanceKey: id } : base;
       })
-      .filter((e): e is Exercise => Boolean(e));
+      .filter((e): e is Exercise & { instanceKey?: string } => Boolean(e));
   }, [savedWorkout, exercises]);
 
   // Obtener la rutina del entrenamiento guardado
