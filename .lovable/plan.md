@@ -1,83 +1,78 @@
+# Modificación 3 — Análisis previo y propuesta
 
-## Objetivo
+Análisis realizado sin tocar código ni datos. Todo lo que sigue está verificado leyendo el código y consultando la base de datos.
 
-Añadir un botón **✨ Sugerir IA** en la tarjeta de cada ejercicio (antes de empezar / durante el ejercicio) que consulte el histórico de ese ejercicio para el usuario y devuelva una sugerencia informativa (no aplica cambios automáticamente) sobre:
+## Respuestas a tus preguntas
 
-- Peso por serie (respetando pasos de 0.5 kg)
-- Repeticiones por serie
-- Descanso entre series
-- Comentario breve de coaching/progresión
+### 1. ¿Existe hoy algún campo de "unilateral" o de tipo de serie / calentamiento?
+No. No existe absolutamente ningún campo, ni en la base de datos ni en el código:
+- Un ejercicio guarda: nombre, series, repeticiones, peso, configuración por serie (nº de serie, reps, peso, descanso), descansos, notas, calorías, grupo muscular, imágenes.
+- Una serie registrada guarda: nº de serie, reps, peso, descanso y fecha.
+No hay marca de "por lado", ni de "calentamiento", ni de tipo de serie en ninguna tabla.
 
-## Arquitectura
+### 2. ¿Dónde se duplican o transforman las repeticiones?
+En ningún sitio. Las repeticiones viajan intactas desde que las escribes hasta el historial: tarjeta de serie → tarjeta de ejercicio → sesión de entrenamiento → guardado en la nube → historial y gráficas. No hay ninguna multiplicación de repeticiones en toda la aplicación. Las únicas multiplicaciones que existen son el volumen (peso × repeticiones, que es lo normal) y el redondeo del peso a medios kilos.
 
-```text
-ExerciseCard (botón ✨)
-      │
-      ▼
-supabase.functions.invoke('suggest-exercise-progression')
-      │  { exerciseId, exerciseName, muscleGroup, currentConfig, historyDigest }
-      ▼
-Edge Function (verify_jwt = true)
-      │  Lovable AI Gateway (google/gemini-3.5-flash)
-      ▼
-JSON estructurado → Dialog de sugerencia
-```
+### 3. ¿Por qué "Press inferior polea alta unilateral" muestra 24 en lugar de 12 por lado?
+Porque el 24 está literalmente guardado así. Consulté el ejercicio y sus sesiones: su configuración guardada es 24, 24, 20, 20 repeticiones, y las series registradas en el historial también son 24, 24, 20, 20. Es decir, el valor se introdujo sumando ambos lados a mano (12 + 12). La aplicación no dobla nada; simplemente no sabe que ese ejercicio se hace por lados, así que muestra el número tal cual. Lo mismo ocurre en otros ejercicios unilaterales (Hombro Posterior Unilateral, Remo unilateral, Vuelo Unilateral...).
 
-## Cambios
+Consecuencia real: el volumen de esos ejercicios sí es correcto (24 repeticiones totales a ese peso), pero la lectura es engañosa, porque "24 reps" no dice que fueron 12 por lado, y los récords se comparan contra números que mezclan convenciones.
 
-### 1. Edge Function: `supabase/functions/suggest-exercise-progression/index.ts` (nuevo)
+### 4. ¿Ejercicios con 0 series completadas contados como completados?
+Hoy, en el uso normal, un ejercicio no puede marcarse como completado sin al menos una serie registrada. Pero hay dos puntos frágiles confirmados:
+- Al borrar series de una sesión del historial, la fila del ejercicio se queda en la nube aunque ya no tenga ninguna serie (hoy no hay ninguna de estas filas huérfanas: comprobado, 0 casos).
+- El contador global de estadísticas suma un ejercicio por cada fila de ejercicio, sin comprobar si tiene series. Si aparece una fila vacía, la cuenta se infla.
 
-- CORS + validación de JWT en código (obtiene `user_id`).
-- Recibe: `exerciseId`, `exerciseName`, `muscleGroup`, `currentConfig` (setConfigs actuales + descanso), y opcionalmente ya un `historyDigest` compacto desde el cliente. Si no llega, la función consulta las últimas ~10 sesiones del usuario para ese `exerciseId` (`workout_session_exercises` + `workout_completed_sets`) usando el service role.
-- Llama a Lovable AI Gateway con `google/gemini-3.5-flash` vía AI SDK (`generateText` + `Output.object` con Zod, esquema pequeño sin bounds; los rangos se explican en el prompt y se clampan en código: peso 0–999 en pasos de 0.5, reps 1–99, descanso 15–300s).
-- System prompt: entrenador de fuerza; principio de sobrecarga progresiva conservador; si últimas 2 sesiones completaron todas las reps objetivo → subir peso 2.5 kg (o 1.25 en aislamiento); si fallaron reps → mantener peso y buscar completar; ajustar descanso según reps altas/bajas.
-- Respuesta JSON:
-  ```ts
-  {
-    setSuggestions: { setNumber, reps, weight }[],
-    restBetweenSets: number,
-    coaching: string, // 1–2 frases
-    basis: string     // resumen del histórico usado
-  }
-  ```
-- Manejo de errores 429 / 402 con mensajes claros. `LOVABLE_API_KEY` ya está en secrets.
+### 5. Solución mínima y retrocompatible propuesta
+Tres piezas independientes, todas opcionales y sin tocar nada de lo ya guardado:
 
-### 2. Hook: `src/hooks/useAISuggestion.ts` (nuevo)
+**a) Ejercicio unilateral (por lado)**
+- Nueva marca opcional en el ejercicio: "Este ejercicio se realiza por lado".
+- Cuando está activada, la aplicación muestra las repeticiones como "12 × 2 lados" y etiqueta "por lado" en la tarjeta, el resumen, el historial y las gráficas.
+- Como los datos antiguos guardan el total sumado, la marca no reinterpreta nada del pasado por defecto: solo cambia la presentación de las series nuevas y muestra el histórico tal como se guardó, con una nota de que son repeticiones totales. Así ninguna sesión antigua cambia de valor.
+- El volumen se sigue calculando con las repeticiones totales, que es lo correcto.
 
-- Estado: `loading`, `error`, `suggestion`.
-- `requestSuggestion(exercise)`: construye payload con `setConfigs` actuales y llama a la edge function con `supabase.functions.invoke`.
+**b) Serie de calentamiento**
+- Nueva marca opcional por serie: "calentamiento".
+- Las series de calentamiento se siguen viendo en el detalle de la sesión, claramente identificadas, pero quedan fuera del volumen total, del recuento de series efectivas y de la detección de récords personales.
+- Todo lo ya guardado se considera serie normal, así que ningún dato histórico cambia.
 
-### 3. UI: `src/components/AISuggestionDialog.tsx` (nuevo)
+**c) Ejercicios sin series**
+- Un ejercicio sin ninguna serie registrada no cuenta como ejercicio completado ni aporta series/volumen en ninguna estadística, y se muestra como "no realizado" en el detalle si aparece.
+- Al borrar la última serie de un ejercicio del historial, se limpia también su ficha vacía.
 
-- Dialog con estética neon/lime del proyecto.
-- Muestra:
-  - Tabla comparativa **Actual → Sugerido** por serie (peso, reps).
-  - Descanso sugerido entre series.
-  - Bloque de coaching (texto).
-  - Pie con `basis` (resumen del histórico usado).
-- Solo informativo: botón **Cerrar** (sin "Aplicar"). Copiable no necesario.
-- Estado de carga (spinner + "Analizando tu histórico…") y estado de error (con toast).
-
-### 4. `src/components/ExerciseCard.tsx`
-
-- Añadir botón **✨ Sugerir IA** en la cabecera de la tarjeta, visible antes de empezar la primera serie y durante el ejercicio (no en pantalla de resumen final).
-- Al pulsar: llama al hook y abre `AISuggestionDialog`.
-- Deshabilitado si no hay histórico previo del ejercicio (mostrar tooltip "Sin histórico todavía") — se detecta con `getExerciseHistory(exerciseId).length === 0` pasado como prop desde `Index.tsx`.
-
-### 5. `src/pages/Index.tsx`
-
-- Pasar `getExerciseHistory` (o el count) a `ExerciseCard` a través de `WorkoutFlow` para saber si habilitar el botón.
+Nada de esto modifica rutinas, sesiones ni el historial existente, ni requiere migrar datos.
 
 ## Detalles técnicos
 
-- Modelo: `google/gemini-3.5-flash` (rápido, económico, calidad suficiente).
-- Se envía sólo el digest de histórico (últimas ~10 sesiones, series completadas con reps/peso/fecha) para minimizar tokens.
-- Todo el peso sugerido se clampa a múltiplos de 0.5 en el servidor antes de devolver.
-- Errores del gateway se muestran como toast; el dialog se cierra.
-- Nada persiste en DB: la sugerencia es solo informativa.
+Esquema (aditivo, sin migración de datos):
+- `exercises`: nueva columna `is_unilateral boolean not null default false`.
+- `workout_completed_sets`: nueva columna `is_warmup boolean not null default false`.
+- Marca de calentamiento también en `SetConfig` (dentro del `set_configs` jsonb, opcional) para poder planificarla en la rutina.
+- Los valores por defecto garantizan que todas las filas existentes se comporten exactamente como hoy.
 
-## Fuera de alcance
+Archivos a tocar:
+- `src/types/exercise.ts` — `isUnilateral?` en `Exercise`; `isWarmup?` en `SetConfig`.
+- `src/types/workoutHistory.ts` — `isWarmup?` en `CompletedSet`.
+- `src/hooks/useExercises.ts` — leer/guardar `is_unilateral`.
+- `src/components/ExerciseForm.tsx` — interruptor "Se realiza por lado" y marca de calentamiento por serie.
+- `src/components/SetCard.tsx` — etiqueta "por lado" y marca de calentamiento en la serie activa.
+- `src/components/ExerciseCard.tsx` — excluir calentamiento de la detección de récord; etiquetado por lado.
+- `src/components/ExerciseSummary.tsx`, `src/components/CompletedExercisesReview.tsx` — volumen y series efectivas sin calentamiento; formato por lado.
+- `src/hooks/useWorkoutHistory.ts` — persistir `is_warmup`; excluir calentamiento del volumen; no contar ejercicios sin series; borrar la ficha de ejercicio cuando se queda sin series.
+- `src/components/WorkoutHistory.tsx` — mostrar calentamiento identificado, no realizado, y "por lado".
+- `src/components/PersonalRecordsView.tsx` — ignorar series de calentamiento.
+- `src/components/ExerciseProgressChart.tsx` — ignorar calentamiento en la progresión.
+- `src/components/WorkoutFlow.tsx` — no marcar como completado un ejercicio sin series.
+- `src/utils/exportWorkoutPDF.ts` — reflejar calentamiento y "por lado".
 
-- Aplicar automáticamente las sugerencias a la sesión o rutina.
-- Sugerencias globales de rutina completa (solo por ejercicio).
-- Historial de sugerencias previas.
+Pruebas necesarias:
+1. Volumen y series de una sesión con y sin series de calentamiento.
+2. Récord personal no dispara con una serie de calentamiento más pesada.
+3. Ejercicio sin series: no cuenta como completado ni suma volumen; sigue visible en el detalle.
+4. Borrar la última serie de un ejercicio limpia su ficha y las estadísticas.
+5. Formato "por lado" en ejercicio marcado como unilateral y formato normal en el resto.
+6. Retrocompatibilidad: sesiones y ejercicios antiguos (sin las nuevas marcas) muestran y calculan exactamente los mismos valores que hoy.
+7. TypeScript, build y suite de pruebas.
+
+Sin publicar y sin migración de datos.
