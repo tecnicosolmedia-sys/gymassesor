@@ -348,6 +348,11 @@ export const VirtualCoach = ({ exerciseName, onClose }: VirtualCoachProps) => {
           // Si la GPU falla (WebGL no disponible en el dispositivo), CPU.
           closeLandmarker(localLandmarker);
           localLandmarker = null;
+          // Si este arranque ya quedó obsoleto, no se crea CPU ni se toca estado.
+          if (isStale()) {
+            stopStream(localStream);
+            return;
+          }
           localLandmarker = await create('CPU');
         }
 
@@ -364,18 +369,20 @@ export const VirtualCoach = ({ exerciseName, onClose }: VirtualCoachProps) => {
         setStatus('no-person');
         rafRef.current = requestAnimationFrame(loop);
       } catch (err) {
-        // Fallo en cualquier fase: siempre se liberan pistas locales, se
-        // desasocia el vídeo y se cierra cualquier landmarker parcial.
+        // Fallo en cualquier fase: se liberan SOLO los recursos propios de este
+        // arranque. Un arranque obsoleto nunca desasocia el vídeo de la sesión
+        // vigente ni modifica su estado.
         closeLandmarker(localLandmarker);
         stopStream(localStream);
         if (streamRef.current === localStream) streamRef.current = null;
-        if (videoRef.current) {
+        if (videoRef.current && localStream && videoRef.current.srcObject === localStream) {
           try {
             videoRef.current.srcObject = null;
           } catch {
             /* noop */
           }
         }
+
         if (isStale()) return;
         const name = (err as { name?: string })?.name;
         setStatus(name === 'NotAllowedError' || name === 'SecurityError' ? 'denied' : 'error');
