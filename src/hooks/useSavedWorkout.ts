@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
+import { SetConfig } from '@/types/exercise';
 
 const WORKOUT_STATE_KEY = 'gym-tracker-active-workout';
 
 export interface ExerciseSetState {
   exerciseId: string;
+  /** Clave única de la aparición del ejercicio dentro del entrenamiento (opcional, retrocompatible) */
+  instanceKey?: string;
   currentSet: number;
   completedSets: number[];
+  /** Configuración aplicada SOLO a esa aparición durante el entrenamiento (opcional) */
+  sessionSetConfigs?: SetConfig[];
 }
 
 export interface SavedWorkoutState {

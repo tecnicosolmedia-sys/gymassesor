@@ -5,7 +5,7 @@ import { isWarmupSet } from './workoutStats';
 /**
  * Helpers puros para la sugerencia IA de progresión.
  * Reglas:
- * - Solo se usan datos realmente registrados (carga, reps, fechas).
+ * - Solo se usan datos realmente registrados (carga, reps, descanso registrado, fechas).
  * - Los calentamientos (explícitos o por nombre) nunca entran en el digest.
  * - En unilaterales, reps es SIEMPRE el total de ambos lados: no se divide ni multiplica.
  */
@@ -14,6 +14,8 @@ export interface AIHistorySet {
   setNumber: number;
   reps: number;
   weight: number;
+  /** Descanso REGISTRADO en la serie (valor guardado, no medición real) */
+  restTime?: number;
 }
 
 export interface AIHistoryEntry {
@@ -25,6 +27,7 @@ export interface AISetSuggestion {
   setNumber: number;
   reps: number;
   weight: number;
+  restTime: number;
 }
 
 /** Número finito estricto: rechaza null, undefined, '', booleanos y textos no numéricos. */
@@ -55,9 +58,24 @@ export const clampRest = (n: number): number => {
   return Math.max(15, Math.min(600, Math.round(n)));
 };
 
+/** Descanso en pasos de 5 s, acotado a 15-600. */
+export const roundRest5 = (n: number): number => {
+  if (!Number.isFinite(n)) return 90;
+  return Math.max(15, Math.min(600, Math.round(n / 5) * 5));
+};
+
 /** Límites conservadores de cambio respecto a la configuración actual. */
 export const MAX_WEIGHT_DELTA_KG = 2.5;
 export const MAX_REPS_DELTA = 2;
+export const MAX_REST_DELTA_S = 30;
+
+/** Rango permitido de descanso (pasos de 5 s) alrededor del descanso actual. */
+const restBounds = (current: number) => {
+  const cur = clampRest(Number.isFinite(current) ? current : 90);
+  const lo = Math.max(15, Math.ceil((cur - MAX_REST_DELTA_S) / 5) * 5);
+  const hi = Math.min(600, Math.floor((cur + MAX_REST_DELTA_S) / 5) * 5);
+  return { lo: Math.min(lo, hi), hi: Math.max(lo, hi) };
+};
 
 const toDateValue = (d: Date | string): number => {
   const t = new Date(d).getTime();
@@ -69,6 +87,7 @@ const toDateValue = (d: Date | string): number => {
  * - ordena por fecha descendente
  * - reúne TODAS las apariciones del mismo exerciseId dentro de una sesión
  * - excluye calentamientos (explícitos o por nombre)
+ * - incluye el descanso registrado cuando es un número finito
  * - omite sesiones sin series efectivas
  * - devuelve como máximo las 10 sesiones más recientes
  * No muta ningún objeto de entrada.
@@ -93,10 +112,12 @@ export const buildAIHistory = (
       (app.completedSets ?? []).forEach(cs => {
         if (isWarmupSet(app.exerciseName, cs)) return;
         if (!Number.isFinite(cs.reps) || !Number.isFinite(cs.weight)) return;
+        const rest = strictNumber(cs.restTime);
         sets.push({
           setNumber: sets.length + 1,
           reps: cs.reps,
           weight: cs.weight,
+          ...(rest !== undefined ? { restTime: rest } : {}),
         });
       });
     });
@@ -118,7 +139,9 @@ export const buildAIHistory = (
  * Canonicaliza la salida del modelo:
  * - exactamente una sugerencia por serie actual, en el mismo orden y setNumber
  * - descarta duplicados, faltantes, NaN e infinitos
- * - aplica pasos de 0.5 kg, reps 1-99 y límites conservadores de cambio
+ * - pasos de 0.5 kg, reps 1-99, descanso en pasos de 5 s (15-600)
+ * - límites conservadores: ±2.5 kg, ±2 reps y ±30 s respecto a esa serie
+ * - las series de calentamiento conservan EXACTAMENTE sus valores
  * - fallback seguro: la configuración actual (nunca ceros ni tabla vacía)
  */
 export const canonicalizeSetSuggestions = (
@@ -137,12 +160,19 @@ export const canonicalizeSetSuggestions = (
   const usePositional = bySetNumber.size === 0;
 
   return (currentConfig ?? []).map((cfg, idx) => {
-    const candidate = bySetNumber.get(cfg.setNumber) ?? (usePositional ? list[idx] : undefined);
     const curReps = clampReps(Number(cfg.reps));
     const curWeight = roundHalfKg(Number(cfg.weight));
+    const curRest = clampRest(Number(cfg.restTime));
 
+    // Los calentamientos no se modifican ni justifican progresión.
+    if (cfg.isWarmup === true) {
+      return { setNumber: cfg.setNumber, reps: curReps, weight: curWeight, restTime: curRest };
+    }
+
+    const candidate = bySetNumber.get(cfg.setNumber) ?? (usePositional ? list[idx] : undefined);
     const rawReps = strictNumber((candidate as any)?.reps);
     const rawWeight = strictNumber((candidate as any)?.weight);
+    const rawRest = strictNumber((candidate as any)?.restTime);
 
     const reps = rawReps !== undefined
       ? Math.max(
@@ -158,14 +188,78 @@ export const canonicalizeSetSuggestions = (
         )
       : curWeight;
 
-    return { setNumber: cfg.setNumber, reps, weight };
+    let restTime = curRest;
+    if (rawRest !== undefined) {
+      const { lo, hi } = restBounds(curRest);
+      restTime = Math.max(lo, Math.min(hi, roundRest5(rawRest)));
+    }
+
+    return { setNumber: cfg.setNumber, reps, weight, restTime };
   });
 };
 
-/** Descanso canonicalizado con fallback al actual. */
+/** Descanso global canonicalizado con fallback al actual. */
 export const canonicalizeRest = (raw: unknown, currentRest?: number): number => {
   const n = strictNumber(raw);
   if (n !== undefined) return clampRest(n);
   const cur = strictNumber(currentRest);
   return clampRest(cur !== undefined ? cur : 90);
+};
+
+/**
+ * Aplica la sugerencia canonicalizada a la configuración actual:
+ * reemplaza weight/reps/restTime preservando setNumber e isWarmup.
+ * Las series de calentamiento no se modifican.
+ */
+export const applySuggestionToConfigs = (
+  currentConfig: SetConfig[],
+  suggestions: AISetSuggestion[],
+): SetConfig[] => {
+  const canonical = canonicalizeSetSuggestions(currentConfig, suggestions);
+  return (currentConfig ?? []).map((cfg, idx) => {
+    if (cfg.isWarmup === true) return { ...cfg };
+    const s = canonical[idx];
+    if (!s) return { ...cfg };
+    return { ...cfg, reps: s.reps, weight: s.weight, restTime: s.restTime };
+  });
+};
+
+/** Firma estable de la configuración: detecta respuestas obsoletas. */
+export const configSignature = (configs: SetConfig[], completedCount = 0): string =>
+  `${completedCount}|${(configs ?? [])
+    .map(c => `${c.setNumber}:${c.reps}:${c.weight}:${c.restTime}:${c.isWarmup === true ? 'w' : ''}`)
+    .join(',')}`;
+
+export interface SessionSetStateLike {
+  exerciseId: string;
+  instanceKey?: string;
+  currentSet: number;
+  completedSets: number[];
+  /** Configuración aplicada SOLO a esta aparición del entrenamiento */
+  sessionSetConfigs?: SetConfig[];
+}
+
+/**
+ * Guarda la configuración de sesión de UNA sola aparición (instanceKey),
+ * sin tocar el resto de apariciones del mismo exerciseId.
+ * Retrocompatible: los estados antiguos sin instanceKey se conservan intactos.
+ */
+export const upsertSessionSetConfigs = <T extends SessionSetStateLike>(
+  states: T[],
+  instanceKey: string,
+  exerciseId: string,
+  configs: SetConfig[],
+): T[] => {
+  const list = states ?? [];
+  const idx = list.findIndex(s => s.instanceKey === instanceKey);
+  const clone = configs.map(c => ({ ...c }));
+  if (idx >= 0) {
+    const updated = [...list];
+    updated[idx] = { ...list[idx], sessionSetConfigs: clone };
+    return updated;
+  }
+  return [
+    ...list,
+    { instanceKey, exerciseId, currentSet: 1, completedSets: [], sessionSetConfigs: clone } as T,
+  ];
 };
