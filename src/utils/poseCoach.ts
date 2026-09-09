@@ -335,7 +335,20 @@ export const elbowAngle = (landmarks: Landmark[], side: 'left' | 'right'): numbe
   return angle2D(landmarks[s], landmarks[e], landmarks[w]);
 };
 
+/** Visibilidad media del torso (hombros + caderas). Usada en lumbar. */
+export const torsoVisibility = (landmarks: Landmark[]): number => {
+  const idx = [LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER, LM.LEFT_HIP, LM.RIGHT_HIP];
+  let sum = 0;
+  for (const i of idx) {
+    const lm = landmarks[i];
+    if (!lm || !finite(lm.x) || !finite(lm.y)) continue;
+    sum += lm.visibility === undefined ? 1 : finite(lm.visibility) ? lm.visibility : 0;
+  }
+  return sum / idx.length;
+};
+
 export const sideVisibility = (landmarks: Landmark[], side: 'left' | 'right'): number => {
+
   const idx =
     side === 'left'
       ? [LM.LEFT_SHOULDER, LM.LEFT_ELBOW, LM.LEFT_WRIST]
