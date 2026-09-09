@@ -82,8 +82,8 @@ export const CompletedExercisesReview = ({
                   <div className="flex-1 text-left">
                     <p className="font-semibold text-sm">{exercise.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {completedSetNums.length} series · {totalKg.toLocaleString()} kg
-                    </p>
+                      {effectiveCompleted.length} series · {totalKg.toLocaleString()} kg
+
                   </div>
                   {isExpanded ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
