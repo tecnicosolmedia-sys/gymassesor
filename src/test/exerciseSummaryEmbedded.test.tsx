@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { ExerciseSummary } from '@/components/ExerciseSummary';
 
 const baseProps = {
@@ -32,7 +32,7 @@ describe('ExerciseSummary: modo embedded', () => {
   });
 
   it('los botones siguen accesibles en modo embedded', () => {
-    render(<ExerciseSummary {...baseProps} embedded onGoBack={() => {}} />);
-    expect(screen.getAllByRole('button').length).toBeGreaterThan(0);
+    const { container } = render(<ExerciseSummary {...baseProps} embedded onGoBack={() => {}} />);
+    expect(container.querySelectorAll('button').length).toBeGreaterThan(0);
   });
 });
