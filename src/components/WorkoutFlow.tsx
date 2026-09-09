@@ -448,7 +448,7 @@ export const WorkoutFlow = ({
   // Renderizar resumen del ejercicio completado
   if (flowState.type === 'exercise-summary') {
     const summaryExercise = workoutExercises[flowState.completedExerciseIndex];
-    const savedSetState = exerciseSetStates.find(s => s.exerciseId === summaryExercise?.id);
+    const savedSetState = exerciseSetStates.find(s => s.instanceKey === summaryExercise?.instanceKey);
     
     if (summaryExercise) {
       const configs = summaryExercise.setConfigs || Array.from({ length: summaryExercise.sets }, (_, i) => ({
@@ -466,7 +466,7 @@ export const WorkoutFlow = ({
           setConfigs={configs}
           completedSets={savedSetState?.completedSets || []}
           onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
-          onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.id)}
+          onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.instanceKey)}
           historySessions={workoutSessions}
           onDeleteCompletedSet={onDeleteCompletedSet}
         />
@@ -534,7 +534,7 @@ export const WorkoutFlow = ({
           <div className="space-y-3">
             {remainingExercises.map((exercise, idx) => (
               <div
-                key={exercise.id}
+                key={exercise.instanceKey}
                 className="w-full p-4 rounded-2xl bg-card border border-border hover:border-primary transition-all flex items-center gap-3 group"
               >
                 {/* Reorder controls */}
@@ -542,7 +542,7 @@ export const WorkoutFlow = ({
                   <div className="flex flex-col gap-0.5 flex-shrink-0">
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); handleReorderRemaining(exercise.id, 'up'); }}
+                      onClick={(e) => { e.stopPropagation(); handleReorderRemaining(exercise.instanceKey, 'up'); }}
                       disabled={idx === 0}
                       className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       title="Subir"
@@ -551,7 +551,7 @@ export const WorkoutFlow = ({
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); handleReorderRemaining(exercise.id, 'down'); }}
+                      onClick={(e) => { e.stopPropagation(); handleReorderRemaining(exercise.instanceKey, 'down'); }}
                       disabled={idx === remainingExercises.length - 1}
                       className="p-1 rounded hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       title="Bajar"
@@ -726,7 +726,7 @@ export const WorkoutFlow = ({
           <div className="space-y-3">
             <button
               onClick={() => {
-                const completedExs = workoutExercises.filter(e => completedExerciseIds.has(e.id));
+                const completedExs = workoutExercises.filter(e => completedExerciseIds.has(e.instanceKey));
                 exportWorkoutToPDF({
                   routineName,
                   date: new Date(),
@@ -734,7 +734,7 @@ export const WorkoutFlow = ({
                   totalKg: workoutStats.totalKgMoved,
                   calories: personalData ? workoutStats.caloriesBurned : undefined,
                   exercises: completedExs.map(ex => {
-                    const setState = exerciseSetStates.find(s => s.exerciseId === ex.id);
+                    const setState = exerciseSetStates.find(s => s.instanceKey === ex.instanceKey);
                     const configs = ex.setConfigs || Array.from({ length: ex.sets }, (_, i) => ({
                       setNumber: i + 1,
                       reps: ex.reps,
@@ -915,7 +915,10 @@ export const WorkoutFlow = ({
                         if (routineId && onAddExerciseToRoutine) {
                           onAddExerciseToRoutine(exercise.id);
                         }
-                        setWorkoutExercises((prev) => [...prev, exercise]);
+                        setWorkoutExercises((prev) => [
+                          ...prev,
+                          { ...exercise, instanceKey: nextInstanceKey(prev, exercise.id) },
+                        ]);
                         setExtraExercises((prev) => [...prev, exercise]);
                         const newIndex = workoutExercises.length;
                         setFlowState({ type: 'exercising', exerciseIndex: newIndex });
@@ -959,7 +962,7 @@ export const WorkoutFlow = ({
   if (flowState.type === 'substitute-exercise') {
     const exerciseBeingSubstituted = workoutExercises[flowState.substituteIndex];
     const availableForSubstitution = allExercises.filter(
-      (e) => e.id !== exerciseBeingSubstituted?.id && !completedExerciseIds.has(e.id)
+      (e) => e.id !== exerciseBeingSubstituted?.id && !completedOriginalIds.has(e.id)
     );
     const filteredSubstitutes = substituteMuscleFilter === 'todos'
       ? availableForSubstitution
@@ -1192,7 +1195,7 @@ export const WorkoutFlow = ({
 
           {/* Exercise card con props para flujo de entrenamiento */}
           {(() => {
-            const savedSetState = exerciseSetStates.find(s => s.exerciseId === currentExercise.id);
+            const savedSetState = exerciseSetStates.find(s => s.instanceKey === currentExercise.instanceKey);
             return (
               <ExerciseCard
                 exercise={currentExercise}
@@ -1210,18 +1213,18 @@ export const WorkoutFlow = ({
                 }}
                 isActive={true}
                 skipExerciseRestTimer={true}
-                onExerciseComplete={() => handleExerciseComplete(currentExercise.id)}
+                onExerciseComplete={() => handleExerciseComplete(currentExercise.instanceKey)}
                 onUpdateSetConfig={(exerciseId, setConfigs) => {
                   // Actualizar estado local para que el resumen muestre los datos reales
                   setWorkoutExercises(prev => prev.map(e => 
-                    e.id === exerciseId ? { ...e, setConfigs } : e
+                    e.instanceKey === currentExercise.instanceKey ? { ...e, setConfigs } : e
                   ));
                   // También notificar al padre para persistencia
                   onUpdateSetConfig?.(exerciseId, setConfigs);
                 }}
                 initialCurrentSet={savedSetState?.currentSet}
                 initialCompletedSets={savedSetState?.completedSets}
-                onSetStateChange={handleSetStateChange}
+                onSetStateChange={(exerciseId, currentSet, completedSets) => handleSetStateChange(currentExercise.instanceKey, exerciseId, currentSet, completedSets)}
                 globalElapsedTime={elapsedTime}
                 globalIsRunning={isRunning}
                 onGlobalToggle={toggle}
