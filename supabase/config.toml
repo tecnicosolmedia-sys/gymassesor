@@ -1,1 +1,4 @@
 project_id = "diqjtzmssamzeblnpcrl"
+
+[functions.suggest-exercise-progression]
+verify_jwt = true

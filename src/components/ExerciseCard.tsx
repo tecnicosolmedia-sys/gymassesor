@@ -22,6 +22,7 @@ import { PersonalRecordDialog } from './PersonalRecordDialog';
 import { useAISuggestion } from '@/hooks/useAISuggestion';
 import { AISuggestionDialog } from './AISuggestionDialog';
 import { isWarmupSet } from '@/utils/workoutStats';
+import { buildAIHistory } from '@/utils/aiSuggestion';
 
 
 import {
@@ -93,7 +94,11 @@ export const ExerciseCard = ({
   const [showChart, setShowChart] = useState(false);
   const [chartMetric, setChartMetric] = useState<'weight' | 'reps'>('weight');
   const ai = useAISuggestion();
-  const hasHistory = workoutSessions.some(s => s.exercises.some(e => e.exerciseId === exercise.id && e.completedSets.length > 0));
+  // Misma regla única que usa la petición IA: sin series efectivas válidas no hay sugerencia.
+  const hasHistory = useMemo(
+    () => buildAIHistory(exercise.id, workoutSessions).length > 0,
+    [exercise.id, workoutSessions],
+  );
 
   // Récord personal
   const [recordFlash, setRecordFlash] = useState(false);

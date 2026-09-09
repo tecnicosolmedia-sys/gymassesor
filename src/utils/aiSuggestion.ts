@@ -56,8 +56,8 @@ export const clampRest = (n: number): number => {
 };
 
 /** Límites conservadores de cambio respecto a la configuración actual. */
-export const MAX_WEIGHT_DELTA_KG = 5;
-export const MAX_REPS_DELTA = 3;
+export const MAX_WEIGHT_DELTA_KG = 2.5;
+export const MAX_REPS_DELTA = 2;
 
 const toDateValue = (d: Date | string): number => {
   const t = new Date(d).getTime();
