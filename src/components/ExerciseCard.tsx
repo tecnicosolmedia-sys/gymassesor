@@ -495,7 +495,7 @@ export const ExerciseCard = ({
               onClick={(e) => {
                 e.stopPropagation();
                 if (!hasHistory) return;
-                ai.request(exercise, workoutSessions, localSetConfigs, currentSetConfig?.restTime ?? exercise.restBetweenSets);
+                ai.request(exercise, workoutSessions, localSetConfigs, getCurrentSetConfig().restTime ?? exercise.restBetweenSets);
               }}
               disabled={!hasHistory}
               title={hasHistory ? 'Sugerencia IA' : 'Sin histórico todavía'}

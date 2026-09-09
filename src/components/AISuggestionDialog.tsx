@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Sparkles, ArrowRight, Clock, Loader2 } from 'lucide-react';
 import { AISuggestion } from '@/hooks/useAISuggestion';
 import { SetConfig } from '@/types/exercise';
+import { formatRepsShort } from '@/utils/workoutStats';
 
 interface Props {
   open: boolean;
@@ -12,9 +13,11 @@ interface Props {
   exerciseName: string;
   currentConfig: SetConfig[];
   currentRest?: number;
+  isUnilateral?: boolean;
 }
 
-export const AISuggestionDialog = ({ open, onOpenChange, loading, suggestion, exerciseName, currentConfig, currentRest }: Props) => {
+export const AISuggestionDialog = ({ open, onOpenChange, loading, suggestion, exerciseName, currentConfig, currentRest, isUnilateral }: Props) => {
+  const fmt = (reps: number) => formatRepsShort(isUnilateral === true, reps);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg border-primary/40">
