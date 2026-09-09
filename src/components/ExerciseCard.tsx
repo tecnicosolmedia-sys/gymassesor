@@ -495,7 +495,7 @@ export const ExerciseCard = ({
               onClick={(e) => {
                 e.stopPropagation();
                 if (!hasHistory) return;
-                ai.request(exercise, workoutSessions);
+                ai.request(exercise, workoutSessions, localSetConfigs, currentSetConfig?.restTime ?? exercise.restBetweenSets);
               }}
               disabled={!hasHistory}
               title={hasHistory ? 'Sugerencia IA' : 'Sin histórico todavía'}
@@ -824,8 +824,9 @@ export const ExerciseCard = ({
         loading={ai.loading}
         suggestion={ai.suggestion}
         exerciseName={exercise.name}
-        currentConfig={exercise.setConfigs}
-        currentRest={exercise.restBetweenSets}
+        currentConfig={ai.requestedConfig}
+        currentRest={ai.requestedRest}
+        isUnilateral={exercise.isUnilateral === true}
       />
     </>
   );
