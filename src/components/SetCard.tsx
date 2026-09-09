@@ -59,6 +59,11 @@ export const SetCard = ({
   const [isEditingCompleted, setIsEditingCompleted] = useState(false);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [directInputValue, setDirectInputValue] = useState('');
+
+  // Calentamiento visual: marca explícita o regla legacy por nombre de ejercicio.
+  // La regla por nombre no se puede desactivar desde el control de la serie.
+  const isNameWarmup = isWarmupExerciseName(exerciseName);
+  const displayWarmup = isWarmupSet(exerciseName, config);
   
   // Refs para long press
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
