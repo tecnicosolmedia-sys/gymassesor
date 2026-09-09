@@ -214,11 +214,11 @@ export const WorkoutFlow = ({
     localStorage.setItem(WORKOUT_STATE_KEY, JSON.stringify(stateToSave));
   }, [routineId, routineName, workoutExercises, completedExerciseIds, flowState, elapsedTime, extraExercises, exerciseSetStates]);
 
-  // Actualizar estado de series de un ejercicio
-  const handleSetStateChange = useCallback((exerciseId: string, currentSet: number, completedSets: number[]) => {
+  // Actualizar estado de series de una aparición concreta del ejercicio
+  const handleSetStateChange = useCallback((instanceKey: string, exerciseId: string, currentSet: number, completedSets: number[]) => {
     setExerciseSetStates(prev => {
-      const existing = prev.findIndex(s => s.exerciseId === exerciseId);
-      const newState = { exerciseId, currentSet, completedSets };
+      const existing = prev.findIndex(s => s.instanceKey === instanceKey);
+      const newState = { instanceKey, exerciseId, currentSet, completedSets };
       if (existing >= 0) {
         const updated = [...prev];
         updated[existing] = newState;
@@ -227,6 +227,7 @@ export const WorkoutFlow = ({
       return [...prev, newState];
     });
   }, []);
+
 
   // Limpiar estado guardado al finalizar
   const clearSavedState = useCallback(() => {
