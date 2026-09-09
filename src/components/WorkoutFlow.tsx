@@ -170,15 +170,18 @@ export const WorkoutFlow = ({
   const { elapsedTime, isRunning, toggle, stop, setTime } = useWorkoutStopwatch(true, initialElapsedTime);
 
   // Estado para guardar las series completadas con peso
-  const [completedSetsData, setCompletedSetsData] = useState<{exerciseId: string; weight: number; reps: number}[]>([]);
+  const [completedSetsData, setCompletedSetsData] = useState<{exerciseId: string; exerciseName?: string; weight: number; reps: number; isWarmup?: boolean}[]>([]);
 
   // Calcular kg totales movidos y calorías
   const workoutStats = useMemo(() => {
     let totalKgMoved = 0;
-    
+
     completedSetsData.forEach(set => {
+      // Los calentamientos no suman volumen
+      if (isWarmupSet(set.exerciseName ?? '', set)) return;
       totalKgMoved += set.weight * set.reps;
     });
+
     
     let caloriesBurned = 0;
     if (personalData) {
@@ -1215,9 +1218,12 @@ export const WorkoutFlow = ({
                   // Registrar los datos de la serie para calcular kg totales
                   setCompletedSetsData(prev => [...prev, {
                     exerciseId,
+                    exerciseName,
                     weight: setData.weight,
                     reps: setData.reps,
+                    isWarmup: setData.isWarmup,
                   }]);
+
                   // Llamar al callback original
                   onSetComplete(exerciseId, exerciseName, muscleGroup, setData, totalSets);
                 }}
