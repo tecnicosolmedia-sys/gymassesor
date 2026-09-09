@@ -560,6 +560,8 @@ const Index = () => {
         <WorkoutHistory
           sessions={sessions}
           routineNames={routines.map(r => r.name)}
+          exercises={exercises}
+
           onDeleteSession={deleteSession}
           onDeleteCompletedSet={deleteCompletedSet}
           onUpdateCompletedSet={updateCompletedSet}
@@ -575,6 +577,8 @@ const Index = () => {
       {showRecords && (
         <PersonalRecordsView
           sessions={sessions}
+          exercises={exercises}
+
           onClose={() => setShowRecords(false)}
         />
       )}

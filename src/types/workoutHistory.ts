@@ -4,7 +4,10 @@ export interface CompletedSet {
   weight: number;
   restTime: number;
   completedAt: Date;
+  /** Serie de calentamiento: excluida de volumen, series efectivas y récords */
+  isWarmup?: boolean;
 }
+
 
 export interface ExerciseSession {
   exerciseId: string;

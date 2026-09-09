@@ -21,6 +21,7 @@ export type Database = {
           id: string
           image_url: string | null
           image_urls: Json
+          is_unilateral: boolean
           muscle_group: string
           name: string
           notes: string
@@ -39,6 +40,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           image_urls?: Json
+          is_unilateral?: boolean
           muscle_group?: string
           name: string
           notes?: string
@@ -57,6 +59,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           image_urls?: Json
+          is_unilateral?: boolean
           muscle_group?: string
           name?: string
           notes?: string
@@ -166,6 +169,7 @@ export type Database = {
           completed_at: string
           exercise_session_id: string
           id: string
+          is_warmup: boolean
           reps: number
           rest_time: number
           set_number: number
@@ -175,6 +179,7 @@ export type Database = {
           completed_at?: string
           exercise_session_id: string
           id?: string
+          is_warmup?: boolean
           reps: number
           rest_time?: number
           set_number: number
@@ -184,6 +189,7 @@ export type Database = {
           completed_at?: string
           exercise_session_id?: string
           id?: string
+          is_warmup?: boolean
           reps?: number
           rest_time?: number
           set_number?: number

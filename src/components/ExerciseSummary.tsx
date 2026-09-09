@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ExerciseProgressChart } from '@/components/ExerciseProgressChart';
 import { WorkoutSession } from '@/types/workoutHistory';
+import { getEffectiveConfigs, getVolume, formatReps } from '@/utils/workoutStats';
+
 
 interface ExerciseSummaryProps {
   exerciseName: string;
@@ -14,6 +16,8 @@ interface ExerciseSummaryProps {
   muscleGroup: string;
   setConfigs: SetConfig[];
   completedSets: number[]; // indices of completed sets (1-based)
+  /** El ejercicio se realiza por lado (las reps son el total de ambos lados) */
+  isUnilateral?: boolean;
   onContinue: (updatedConfigs: SetConfig[]) => void;
   onGoBack?: () => void;
   historySessions?: WorkoutSession[];
@@ -26,6 +30,7 @@ export const ExerciseSummary = ({
   muscleGroup,
   setConfigs,
   completedSets,
+  isUnilateral = false,
   onContinue,
   onGoBack,
   historySessions = [],
@@ -37,8 +42,11 @@ export const ExerciseSummary = ({
   const [editValue, setEditValue] = useState('');
 
   const completedConfigs = localConfigs.filter((_, i) => completedSets.includes(i + 1));
+  // Las series de calentamiento no suman volumen ni series efectivas
+  const effectiveConfigs = getEffectiveConfigs(exerciseName, completedConfigs);
 
-  const totalKg = completedConfigs.reduce((sum, c) => sum + c.weight * c.reps, 0);
+  const totalKg = getVolume(effectiveConfigs);
+
 
   const handleUpdateField = (index: number, field: 'reps' | 'weight', delta: number) => {
     setLocalConfigs(prev => prev.map((c, i) => {
@@ -87,7 +95,11 @@ export const ExerciseSummary = ({
             {muscleGroup}
           </span>
           <p className="text-muted-foreground text-sm mt-2">
-            {completedSets.length} series completadas · {totalKg.toLocaleString()} kg totales
+            {effectiveConfigs.length} series completadas · {totalKg.toLocaleString()} kg totales
+            {completedConfigs.length > effectiveConfigs.length && (
+              <> · {completedConfigs.length - effectiveConfigs.length} calentamiento</>
+            )}
+
           </p>
         </div>
 
@@ -116,7 +128,11 @@ export const ExerciseSummary = ({
                   <div className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
                     {index + 1}
                   </div>
+                  {config.isWarmup && (
+                    <span className="text-[9px] text-warning font-semibold">Cal.</span>
+                  )}
                 </div>
+
 
                 {/* Reps - editable */}
                 <div className="flex items-center justify-center gap-1">
@@ -132,6 +148,11 @@ export const ExerciseSummary = ({
                   >
                     {config.reps}
                   </span>
+                  {isUnilateral && (
+                    <span className="text-[9px] text-muted-foreground ml-1">
+                      {formatReps(true, config.reps)}
+                    </span>
+                  )}
                   <button
                     onClick={() => handleUpdateField(index, 'reps', 1)}
                     className="w-6 h-6 rounded bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground"
@@ -181,6 +202,8 @@ export const ExerciseSummary = ({
               reps: cfg.reps,
               weight: cfg.weight,
               restTime: cfg.restTime,
+              isWarmup: cfg.isWarmup,
+
               completedAt: new Date(),
             } : null;
           }).filter(Boolean);

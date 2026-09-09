@@ -472,6 +472,8 @@ export const WorkoutFlow = ({
           exerciseId={summaryExercise.id}
           muscleGroup={summaryExercise.muscleGroup}
           setConfigs={configs}
+          isUnilateral={summaryExercise.isUnilateral}
+
           completedSets={savedSetState?.completedSets || []}
           onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
           onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.instanceKey)}

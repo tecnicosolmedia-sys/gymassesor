@@ -3,11 +3,16 @@ import { WorkoutSession } from '@/types/workoutHistory';
 import { Trophy, Calendar, Dumbbell, Crown, Flame, X } from 'lucide-react';
 import { MUSCLE_GROUPS, MuscleGroup } from '@/types/exercise';
 import { cn } from '@/lib/utils';
+import { isWarmupSet, formatReps, buildUnilateralMap } from '@/utils/workoutStats';
+import { Exercise } from '@/types/exercise';
 
 interface PersonalRecordsViewProps {
   sessions: WorkoutSession[];
+  /** Catálogo actual de ejercicios, para saber si son unilaterales */
+  exercises?: Exercise[];
   onClose: () => void;
 }
+
 
 interface RecordEntry {
   date: Date;
@@ -20,7 +25,9 @@ interface RecordEntry {
   previous: number; // récord histórico previo (0 si no había)
 }
 
-export const PersonalRecordsView = ({ sessions, onClose }: PersonalRecordsViewProps) => {
+export const PersonalRecordsView = ({ sessions, exercises = [], onClose }: PersonalRecordsViewProps) => {
+  const unilateralMap = useMemo(() => buildUnilateralMap(exercises), [exercises]);
+
   const [filter, setFilter] = useState<'all' | 'all-time' | 'session'>('all');
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
 
@@ -47,6 +54,8 @@ export const PersonalRecordsView = ({ sessions, onClose }: PersonalRecordsViewPr
 
       session.exercises.forEach((ex) => {
         ex.completedSets.forEach((s) => {
+          // Los calentamientos no generan récords
+          if (isWarmupSet(ex.exerciseName, s)) return;
           setsInSession.push({
             exerciseId: ex.exerciseId,
             exerciseName: ex.exerciseName,
@@ -57,6 +66,7 @@ export const PersonalRecordsView = ({ sessions, onClose }: PersonalRecordsViewPr
           });
         });
       });
+
 
       setsInSession.sort(
         (a, b) => a.completedAt.getTime() - b.completedAt.getTime()
@@ -197,7 +207,7 @@ export const PersonalRecordsView = ({ sessions, onClose }: PersonalRecordsViewPr
                     </div>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    × {r.reps} reps · {r.date.toLocaleDateString('es-ES')}
+                    × {formatReps(unilateralMap[r.exerciseId], r.reps)} reps · {r.date.toLocaleDateString('es-ES')}
                   </p>
                 </div>
               ))}
@@ -327,7 +337,7 @@ export const PersonalRecordsView = ({ sessions, onClose }: PersonalRecordsViewPr
                       </span>
                       <span className="flex items-center gap-1">
                         <Dumbbell className="w-3 h-3" />
-                        {r.reps} reps
+                        {formatReps(unilateralMap[r.exerciseId], r.reps)} reps
                       </span>
                       {r.previous > 0 && (
                         <span>antes: {r.previous} kg</span>

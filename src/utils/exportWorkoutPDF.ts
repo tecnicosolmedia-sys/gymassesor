@@ -1,7 +1,9 @@
 import jsPDF from 'jspdf';
 import { WorkoutSession } from '@/types/workoutHistory';
+import { Exercise } from '@/types/exercise';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { buildUnilateralMap, formatRepsShort, getSessionStats, isWarmupSet } from '@/utils/workoutStats';
 
 export interface ExportData {
   routineName: string;
@@ -12,9 +14,11 @@ export interface ExportData {
   exercises: {
     name: string;
     muscleGroup: string;
-    sets: { setNumber: number; reps: number; weight: number; restTime?: number }[];
+    isUnilateral?: boolean;
+    sets: { setNumber: number; reps: number; weight: number; restTime?: number; isWarmup?: boolean }[];
   }[];
 }
+
 
 const formatDuration = (s: number) => {
   const h = Math.floor(s / 3600);
@@ -126,8 +130,9 @@ export const buildWorkoutPDF = (data: ExportData) => {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(0, 0, 0);
-      doc.text(`#${set.setNumber}`, c1, y + 12);
-      doc.text(`${set.reps}`, c2, y + 12);
+      doc.text(`#${set.setNumber}${set.isWarmup ? ' (cal.)' : ''}`, c1, y + 12);
+      doc.text(formatRepsShort(ex.isUnilateral, set.reps), c2, y + 12);
+
       doc.text(`${set.weight}`, c3, y + 12);
       doc.text(set.restTime !== undefined ? `${set.restTime}s` : '-', c4, y + 12);
       doc.setDrawColor(230, 230, 230);

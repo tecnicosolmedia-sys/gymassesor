@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { SetConfig } from '@/types/exercise';
-import { Check, Minus, Plus, Edit2, Dumbbell, Clock, Play, Copy, Trash2 } from 'lucide-react';
+import { Check, Minus, Plus, Edit2, Dumbbell, Clock, Play, Copy, Trash2, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -10,6 +10,10 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { formatReps } from '@/utils/workoutStats';
+
+/** Campos numéricos editables de una serie */
+export type NumericSetField = 'reps' | 'weight' | 'restTime';
 
 interface SetCardProps {
   config: SetConfig;
@@ -19,14 +23,18 @@ interface SetCardProps {
   currentSet: number;
   currentWeight: number;
   previousConfig?: SetConfig; // Configuración de la serie anterior
-  onUpdateConfig: (index: number, field: keyof Omit<SetConfig, 'setNumber'>, delta: number) => void;
+  /** El ejercicio se realiza por lado (las reps almacenadas son el total) */
+  isUnilateral?: boolean;
+  onUpdateConfig: (index: number, field: NumericSetField, delta: number) => void;
   onCompleteSet: () => void;
-  onSetDirectValue?: (index: number, field: keyof Omit<SetConfig, 'setNumber'>, value: number) => void;
+  onSetDirectValue?: (index: number, field: NumericSetField, value: number) => void;
   onCopyFromPrevious?: (index: number) => void; // Callback para copiar de la serie anterior
   onRemoveSet?: (index: number) => void; // Callback para eliminar esta serie
+  /** Marcar/desmarcar esta serie como calentamiento */
+  onToggleWarmup?: (index: number) => void;
 }
 
-type EditableField = 'reps' | 'weight' | 'restTime';
+type EditableField = NumericSetField;
 
 export const SetCard = ({
   config,
@@ -36,12 +44,15 @@ export const SetCard = ({
   currentSet,
   currentWeight,
   previousConfig,
+  isUnilateral = false,
   onUpdateConfig,
   onCompleteSet,
   onSetDirectValue,
   onCopyFromPrevious,
   onRemoveSet,
+  onToggleWarmup,
 }: SetCardProps) => {
+
   const [isEditingCompleted, setIsEditingCompleted] = useState(false);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [directInputValue, setDirectInputValue] = useState('');
@@ -130,6 +141,32 @@ export const SetCard = ({
               )}
             </div>
             <span className="text-sm font-medium">Serie {index + 1}</span>
+            {config.isWarmup && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-warning/20 text-warning font-semibold flex items-center gap-1">
+                <Flame className="w-3 h-3" />
+                Calentamiento
+              </span>
+            )}
+            {!isCompleted && onToggleWarmup && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleWarmup(index);
+                }}
+                className={cn(
+                  "text-[10px] px-2 py-1 rounded-full transition-colors flex items-center gap-1",
+                  config.isWarmup
+                    ? "bg-warning/20 text-warning"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                )}
+                title="Marcar esta serie como calentamiento"
+              >
+                <Flame className="w-3 h-3" />
+                {config.isWarmup ? 'Quitar' : 'Calentamiento'}
+              </button>
+            )}
+
             {isCurrent && (
               <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary font-medium ml-auto">
                 Actual
@@ -196,6 +233,12 @@ export const SetCard = ({
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
+                {isUnilateral && (
+                  <span className="text-[10px] text-muted-foreground mt-1 text-center">
+                    {formatReps(true, config.reps)}
+                  </span>
+                )}
+
               </div>
               
               {/* Peso */}
@@ -269,7 +312,8 @@ export const SetCard = ({
           ) : isCompleted ? (
             // Vista compacta para series completadas
             <div className="flex items-center gap-4 text-sm pl-11">
-              <span className="text-muted-foreground">{config.reps} reps</span>
+              <span className="text-muted-foreground">{formatReps(isUnilateral, config.reps)} reps</span>
+
               <span className="flex items-center gap-1">
                 <Dumbbell className="w-3.5 h-3.5 text-primary" />
                 <span className="font-semibold">{config.weight}kg</span>
@@ -282,7 +326,7 @@ export const SetCard = ({
           ) : (
             // Vista compacta para series futuras (no current)
             <div className="flex items-center gap-4 text-sm pl-11 opacity-60">
-              <span className="text-muted-foreground">{config.reps} reps</span>
+              <span className="text-muted-foreground">{formatReps(isUnilateral, config.reps)} reps</span>
               <span className="flex items-center gap-1">
                 <Dumbbell className="w-3.5 h-3.5 text-muted-foreground" />
                 <span>{config.weight}kg</span>

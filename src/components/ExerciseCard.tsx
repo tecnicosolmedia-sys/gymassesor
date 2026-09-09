@@ -1,6 +1,6 @@
 import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
-import { SetCard } from './SetCard';
+import { SetCard, NumericSetField } from './SetCard';
 import { useState, useEffect, useMemo } from 'react';
 import { 
   Trash2, 
@@ -21,6 +21,8 @@ import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { PersonalRecordDialog } from './PersonalRecordDialog';
 import { useAISuggestion } from '@/hooks/useAISuggestion';
 import { AISuggestionDialog } from './AISuggestionDialog';
+import { isWarmupSet } from '@/utils/workoutStats';
+
 
 import {
   Carousel,
@@ -41,7 +43,7 @@ interface ExerciseCardProps {
     exerciseId: string,
     exerciseName: string,
     muscleGroup: string,
-    setData: { setNumber: number; reps: number; weight: number; restTime: number },
+    setData: { setNumber: number; reps: number; weight: number; restTime: number; isWarmup?: boolean },
     totalSets: number
   ) => void;
   // Si es true, no muestra el temporizador de ejercicio completo (lo maneja el padre)
@@ -109,6 +111,7 @@ export const ExerciseCard = ({
       s.exercises.forEach((e) => {
         if (e.exerciseId === exercise.id) {
           e.completedSets.forEach((set) => {
+            if (isWarmupSet(e.exerciseName, set)) return;
             if (set.weight > max) max = set.weight;
           });
         }
@@ -116,6 +119,7 @@ export const ExerciseCard = ({
     });
     return max;
   }, [workoutSessions, exercise.id]);
+
 
   // Mejor peso conseguido en la sesión EN CURSO (para no disparar el récord
   // varias veces con la misma marca dentro del mismo entrenamiento).
@@ -199,7 +203,7 @@ export const ExerciseCard = ({
   };
 
   // Actualizar configuración de una serie
-  const updateSetConfig = (index: number, field: keyof Omit<SetConfig, 'setNumber'>, delta: number) => {
+  const updateSetConfig = (index: number, field: NumericSetField, delta: number) => {
     setLocalSetConfigs((prev) => {
       const updated = prev.map((config, i) => {
         if (i === index) {
@@ -223,7 +227,7 @@ export const ExerciseCard = ({
   };
 
   // Establecer valor directo en una serie (para edición mediante long press)
-  const setDirectValue = (index: number, field: keyof Omit<SetConfig, 'setNumber'>, value: number) => {
+  const setDirectValue = (index: number, field: NumericSetField, value: number) => {
     setLocalSetConfigs((prev) => {
       const updated = prev.map((config, i) => {
         if (i === index) {
@@ -308,9 +312,23 @@ export const ExerciseCard = ({
     });
   };
 
+  // Marcar/desmarcar una serie como calentamiento
+  const toggleWarmup = (index: number) => {
+    setLocalSetConfigs((prev) => {
+      const updated = prev.map((config, i) =>
+        i === index ? { ...config, isWarmup: !config.isWarmup } : config
+      );
+      onUpdateSetConfig?.(exercise.id, updated);
+      return updated;
+    });
+  };
+
+
+
   const handleSetComplete = () => {
     const config = getCurrentSetConfig();
-    
+    const setIsWarmup = isWarmupSet(exercise.name, config);
+
     // Registrar en el historial
     onSetComplete?.(
       exercise.id,
@@ -321,14 +339,16 @@ export const ExerciseCard = ({
         reps: config.reps,
         weight: config.weight,
         restTime: config.restTime,
+        isWarmup: setIsWarmup,
       },
       exercise.sets
     );
 
     // Detección de récord personal: peso superior al máximo histórico
     // y mejor que cualquier marca ya conseguida en esta misma sesión.
+    // Los calentamientos nunca generan récord.
     const benchmark = Math.max(previousMaxWeight, sessionBestWeight);
-    if (config.weight > 0 && benchmark > 0 && config.weight > benchmark) {
+    if (!setIsWarmup && config.weight > 0 && benchmark > 0 && config.weight > benchmark) {
       setSessionBestWeight(config.weight);
       setRecordDialog({
         open: true,
@@ -338,9 +358,10 @@ export const ExerciseCard = ({
       });
       setRecordFlash(true);
       window.setTimeout(() => setRecordFlash(false), 3000);
-    } else if (config.weight > sessionBestWeight) {
+    } else if (!setIsWarmup && config.weight > sessionBestWeight) {
       setSessionBestWeight(config.weight);
     }
+
 
     const newCompletedSets = [...completedSets, currentSet];
     setCompletedSets(newCompletedSets);
@@ -550,6 +571,8 @@ export const ExerciseCard = ({
                       reps: cfg.reps,
                       weight: cfg.weight,
                       restTime: cfg.restTime,
+                      isWarmup: cfg.isWarmup,
+
                       completedAt: new Date(),
                     } : null;
                   }).filter(Boolean);
@@ -584,6 +607,9 @@ export const ExerciseCard = ({
                         currentSet={currentSet}
                         currentWeight={currentConfig.weight}
                         previousConfig={previousConfig}
+                        isUnilateral={exercise.isUnilateral}
+                        onToggleWarmup={toggleWarmup}
+
                         onUpdateConfig={updateSetConfig}
                         onCompleteSet={handleSetComplete}
                         onSetDirectValue={setDirectValue}
@@ -647,6 +673,8 @@ export const ExerciseCard = ({
                   reps: cfg.reps,
                   weight: cfg.weight,
                   restTime: cfg.restTime,
+                  isWarmup: cfg.isWarmup,
+
                   completedAt: new Date(),
                 } : null;
               }).filter(Boolean);
@@ -727,6 +755,8 @@ export const ExerciseCard = ({
             reps: cfg.reps,
             weight: cfg.weight,
             restTime: cfg.restTime,
+            isWarmup: cfg.isWarmup,
+
             completedAt: new Date(),
           } : null;
         }).filter(Boolean);

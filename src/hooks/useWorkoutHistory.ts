@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { WorkoutSession, ExerciseSession, CompletedSet, WorkoutStats } from '@/types/workoutHistory';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAggregatedStats, isWarmupSet } from '@/utils/workoutStats';
+
 
 export const useWorkoutHistory = () => {
   const { user } = useAuth();
@@ -55,7 +57,9 @@ export const useWorkoutHistory = () => {
             weight: Number(set.weight),
             restTime: set.rest_time,
             completedAt: new Date(set.completed_at),
+            isWarmup: (set as any).is_warmup === true,
           })),
+
           totalSets: e.total_sets,
           startedAt: new Date(e.started_at),
           completedAt: e.completed_at ? new Date(e.completed_at) : undefined,
@@ -193,7 +197,9 @@ export const useWorkoutHistory = () => {
             weight: s.weight,
             rest_time: s.restTime,
             completed_at: s.completedAt.toISOString(),
+            is_warmup: isWarmupSet(ex.exerciseName, s),
           }));
+
           await supabase.from('workout_completed_sets').insert(setsToInsert);
         }
       }
@@ -213,23 +219,9 @@ export const useWorkoutHistory = () => {
     return history.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
   }, [sessions]);
 
-  const getStats = useCallback((): WorkoutStats => {
-    let totalSets = 0, totalWeight = 0, totalDuration = 0, totalExercises = 0;
-    sessions.forEach(session => {
-      totalDuration += session.totalDuration;
-      session.exercises.forEach(exercise => {
-        totalExercises++;
-        exercise.completedSets.forEach(set => {
-          totalSets++;
-          totalWeight += set.weight * set.reps;
-        });
-      });
-    });
-    return {
-      totalWorkouts: sessions.length, totalExercises, totalSets, totalWeight,
-      averageWorkoutDuration: sessions.length > 0 ? totalDuration / sessions.length : 0,
-    };
-  }, [sessions]);
+  // Estadísticas: solo ejercicios con series registradas y sin contar calentamientos
+  const getStats = useCallback((): WorkoutStats => getAggregatedStats(sessions), [sessions]);
+
 
   const deleteSession = useCallback(async (sessionId: string) => {
     await supabase.from('workout_sessions').delete().eq('id', sessionId);
@@ -257,6 +249,29 @@ export const useWorkoutHistory = () => {
       .delete()
       .eq('exercise_session_id', exSessionId)
       .eq('set_number', setNumber);
+
+    // Si era la última serie, limpiar la ficha de ejercicio vacía de esa sesión
+    const { data: remainingSets } = await supabase
+      .from('workout_completed_sets')
+      .select('id')
+      .eq('exercise_session_id', exSessionId)
+      .limit(1);
+
+    if (!remainingSets || remainingSets.length === 0) {
+      await supabase.from('workout_session_exercises').delete().eq('id', exSessionId);
+
+      // Y si la sesión se queda sin ejercicios, eliminarla también
+      const { data: remainingExercises } = await supabase
+        .from('workout_session_exercises')
+        .select('id')
+        .eq('session_id', sessionId)
+        .limit(1);
+      if (!remainingExercises || remainingExercises.length === 0) {
+        await supabase.from('workout_sessions').delete().eq('id', sessionId);
+      }
+    }
+
+
 
     // Update local state
     setSessions(prev => prev.map(s => {
