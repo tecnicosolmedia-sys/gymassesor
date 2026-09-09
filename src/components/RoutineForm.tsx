@@ -78,13 +78,16 @@ interface RoutineFormProps {
   onClose: () => void;
 }
 
+/** Aparición concreta de un ejercicio dentro de la rutina */
+type RoutineExerciseInstance = Exercise & { instanceKey: string };
+
 interface SortableRoutineExerciseItemProps {
-  exercise: Exercise;
+  exercise: RoutineExerciseInstance;
   index: number;
   expandedExerciseId: string | null;
   setExpandedExerciseId: (id: string | null) => void;
   onUpdateExercise?: (id: string, updates: Partial<Exercise>) => void;
-  onToggleExercise: (exerciseId: string) => void;
+  onToggleExercise: (instanceKey: string) => void;
   handleUpdateSets: (exerciseId: string, delta: number) => void;
   handleCopySetToNext: (exerciseId: string, setIndex: number) => void;
   handleCopyFromPrevious: (exerciseId: string, setIndex: number) => void;
@@ -101,7 +104,7 @@ const SortableRoutineExerciseItem = ({
   handleCopySetToNext,
   handleCopyFromPrevious,
 }: SortableRoutineExerciseItemProps) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: exercise.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: exercise.instanceKey });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -112,7 +115,7 @@ const SortableRoutineExerciseItem = ({
     <div
       ref={setNodeRef}
       style={style}
-      data-routine-sortable-id={exercise.id}
+      data-routine-sortable-id={exercise.instanceKey}
       className={cn(
         'space-y-0 select-none',
         isDragging && 'z-20 opacity-70 scale-[0.98]'
@@ -163,11 +166,11 @@ const SortableRoutineExerciseItem = ({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
-              setExpandedExerciseId(expandedExerciseId === exercise.id ? null : exercise.id);
+              setExpandedExerciseId(expandedExerciseId === exercise.instanceKey ? null : exercise.instanceKey);
             }}
             className={cn(
               'p-1.5 rounded-lg transition-colors flex-shrink-0',
-              expandedExerciseId === exercise.id
+              expandedExerciseId === exercise.instanceKey
                 ? 'bg-primary/20 text-primary'
                 : 'bg-secondary text-muted-foreground hover:text-foreground'
             )}
@@ -181,7 +184,7 @@ const SortableRoutineExerciseItem = ({
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
-            onToggleExercise(exercise.id);
+            onToggleExercise(exercise.instanceKey);
           }}
           className="p-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
         >
@@ -189,7 +192,7 @@ const SortableRoutineExerciseItem = ({
         </button>
       </div>
 
-      {expandedExerciseId === exercise.id && onUpdateExercise && (
+      {expandedExerciseId === exercise.instanceKey && onUpdateExercise && (
         <div className="mx-2 p-3 rounded-b-lg bg-card/50 border border-t-0 border-border animate-fade-in">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-medium text-muted-foreground">Nº de Series</span>
@@ -291,10 +294,17 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
   }, [exercises, muscleFilter]);
 
   // Obtener ejercicios seleccionados en orden
-  const orderedSelectedExercises = useMemo(() => {
+  const orderedSelectedExercises = useMemo<RoutineExerciseInstance[]>(() => {
+    const counts = new Map<string, number>();
     return selectedExercises
-      .map(id => exercises.find(e => e.id === id))
-      .filter((e): e is Exercise => e !== undefined);
+      .map((id) => {
+        const found = exercises.find(e => e.id === id);
+        if (!found) return undefined;
+        const n = counts.get(id) ?? 0;
+        counts.set(id, n + 1);
+        return { ...found, instanceKey: `${id}#${n}` };
+      })
+      .filter((e): e is RoutineExerciseInstance => e !== undefined);
   }, [selectedExercises, exercises]);
 
   const handleUpdateSets = (exerciseId: string, delta: number) => {
@@ -356,6 +366,21 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
         : [...prev, exerciseId]
     );
   };
+
+  // Quitar una aparición concreta (no todas las del mismo ejercicio)
+  const removeExerciseInstance = (instanceKey: string) => {
+    const position = orderedSelectedExercises.findIndex(e => e.instanceKey === instanceKey);
+    if (position === -1) return;
+    const target = orderedSelectedExercises[position];
+    setSelectedExercises((prev) => {
+      let seen = 0;
+      const occurrence = Number(instanceKey.split('#')[1] ?? 0);
+      return prev.filter((id) => {
+        if (id !== target.id) return true;
+        return seen++ !== occurrence;
+      });
+    });
+  };
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: { distance: 5 },
@@ -386,16 +411,20 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
     const activeId = String(active.id);
     const overId = String(over.id);
 
+    const visualKeys = orderedSelectedExercises.map((e) => e.instanceKey);
+    const oldIndex = visualKeys.indexOf(activeId);
+    const newIndex = visualKeys.indexOf(overId);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reorderedIds = arrayMove(
+      orderedSelectedExercises.map((e) => e.id),
+      oldIndex,
+      newIndex
+    );
+
     setSelectedExercises((prev) => {
-      const visualIds = prev.filter((id) => exercises.some((e) => e.id === id));
       const orphanIds = prev.filter((id) => !exercises.some((e) => e.id === id));
-
-      const oldIndex = visualIds.indexOf(activeId);
-      const newIndex = visualIds.indexOf(overId);
-      if (oldIndex === -1 || newIndex === -1) return prev;
-
-      const reordered = arrayMove(visualIds, oldIndex, newIndex);
-      return [...reordered, ...orphanIds];
+      return [...reorderedIds, ...orphanIds];
     });
   };
 
@@ -449,17 +478,17 @@ export const RoutineForm = ({ routine, exercises, onSave, onUpdateExercise, onCl
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                 >
-                  <SortableContext items={orderedSelectedExercises.map((e) => e.id)} strategy={verticalListSortingStrategy}>
+                  <SortableContext items={orderedSelectedExercises.map((e) => e.instanceKey)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-2 p-3 rounded-xl bg-secondary/50 border border-border">
                       {orderedSelectedExercises.map((exercise, index) => (
                         <SortableRoutineExerciseItem
-                          key={exercise.id}
+                          key={exercise.instanceKey}
                           exercise={exercise}
                           index={index}
                           expandedExerciseId={expandedExerciseId}
                           setExpandedExerciseId={setExpandedExerciseId}
                           onUpdateExercise={onUpdateExercise}
-                          onToggleExercise={toggleExercise}
+                          onToggleExercise={removeExerciseInstance}
                           handleUpdateSets={handleUpdateSets}
                           handleCopySetToNext={handleCopySetToNext}
                           handleCopyFromPrevious={handleCopyFromPrevious}
