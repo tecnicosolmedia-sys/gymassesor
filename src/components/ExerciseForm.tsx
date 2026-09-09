@@ -147,7 +147,9 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
     notes: '',
     caloriesPerSet: 5,
     muscleGroup: 'Pecho',
+    isUnilateral: false,
   });
+
   
   const [setConfigs, setSetConfigs] = useState<SetConfig[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -173,7 +175,9 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
         notes: exercise.notes,
         caloriesPerSet: exercise.caloriesPerSet,
         muscleGroup: exercise.muscleGroup,
+        isUnilateral: exercise.isUnilateral === true,
       });
+
       
       // Usar la configuración guardada del ejercicio (que ya tiene la última sesión)
       if (exercise.setConfigs && exercise.setConfigs.length > 0) {
@@ -226,13 +230,23 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
     });
   };
 
-  const updateSetConfig = (index: number, field: keyof Omit<SetConfig, 'setNumber'>, value: number) => {
+  const updateSetConfig = (index: number, field: 'reps' | 'weight' | 'restTime', value: number) => {
     setSetConfigs((prev) => 
       prev.map((config, i) => 
         i === index ? { ...config, [field]: value } : config
       )
     );
   };
+
+  // Marcar/desmarcar una serie como calentamiento
+  const toggleSetWarmup = (index: number) => {
+    setSetConfigs((prev) =>
+      prev.map((config, i) =>
+        i === index ? { ...config, isWarmup: !config.isWarmup } : config
+      )
+    );
+  };
+
 
   // Copiar configuración de una serie a la siguiente
   const copyConfigToNext = (sourceIndex: number) => {
@@ -540,6 +554,34 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
               </div>
             </div>
 
+            {/* Ejercicio unilateral */}
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-secondary/50 border border-border">
+              <div>
+                <p className="text-sm font-medium">Ejercicio unilateral</p>
+                <p className="text-xs text-muted-foreground">
+                  Se realiza por lado. Introduce el total de repeticiones de ambos lados.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={formData.isUnilateral}
+                onClick={() => setFormData((prev) => ({ ...prev, isUnilateral: !prev.isUnilateral }))}
+                className={cn(
+                  "relative w-12 h-7 rounded-full transition-colors flex-shrink-0",
+                  formData.isUnilateral ? "bg-primary" : "bg-muted"
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-1 w-5 h-5 rounded-full bg-background transition-all",
+                    formData.isUnilateral ? "left-6" : "left-1"
+                  )}
+                />
+              </button>
+            </div>
+
+
             {/* Individual set configuration with collapsible tabs */}
             <div>
               <label className="block text-sm font-medium mb-3">Configuración por serie</label>
@@ -564,9 +606,15 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
                           <span className="text-sm font-bold text-primary">{index + 1}</span>
                         </div>
                         <span className="text-sm font-medium">Serie {index + 1}</span>
+                        {config.isWarmup && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-warning/20 text-warning font-semibold">
+                            Calentamiento
+                          </span>
+                        )}
                         <span className="text-xs text-muted-foreground">
                           {config.reps} reps · {config.weight}kg · {config.restTime}s
                         </span>
+
                       </div>
                       <ChevronDown className={cn(
                         "w-5 h-5 text-muted-foreground transition-transform",
@@ -603,6 +651,22 @@ export const ExerciseForm = ({ exercise, onSave, onClose }: ExerciseFormProps) =
                             parentRef={formRef}
                           />
                         </div>
+
+                        {/* Warmup toggle */}
+                        <button
+                          type="button"
+                          onClick={() => toggleSetWarmup(index)}
+                          className={cn(
+                            "w-full py-2 mb-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-colors",
+                            config.isWarmup
+                              ? "bg-warning/20 text-warning"
+                              : "bg-secondary text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          {config.isWarmup ? 'Serie de calentamiento ✓' : 'Marcar como calentamiento'}
+                        </button>
+
+
                         
                         {/* Copy to next set button */}
                         {index < setConfigs.length - 1 && (

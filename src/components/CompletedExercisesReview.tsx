@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { cn } from '@/lib/utils';
+import { formatRepsShort, isWarmupSet } from '@/utils/workoutStats';
+
 
 interface CompletedExercisesReviewProps {
   open: boolean;
@@ -53,10 +55,15 @@ export const CompletedExercisesReview = ({
             const completedSetNums = setState?.completedSets || [];
             const isExpanded = expandedId === exercise.instanceKey;
             const muscleIcon = getMuscleGroupIcon(exercise.muscleGroup);
-            const totalKg = completedSetNums.reduce((sum, setNum) => {
+            const effectiveCompleted = completedSetNums.filter(setNum => {
+              const cfg = configs[setNum - 1];
+              return cfg ? !isWarmupSet(exercise.name, cfg) : false;
+            });
+            const totalKg = effectiveCompleted.reduce((sum, setNum) => {
               const cfg = configs[setNum - 1];
               return cfg ? sum + cfg.weight * cfg.reps : sum;
             }, 0);
+
 
             return (
               <div key={exercise.instanceKey} className="rounded-xl border border-border overflow-hidden">
@@ -75,8 +82,10 @@ export const CompletedExercisesReview = ({
                   <div className="flex-1 text-left">
                     <p className="font-semibold text-sm">{exercise.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {completedSetNums.length} series · {totalKg.toLocaleString()} kg
+                      {effectiveCompleted.length} series · {totalKg.toLocaleString()} kg
                     </p>
+
+
                   </div>
                   {isExpanded ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -103,11 +112,17 @@ export const CompletedExercisesReview = ({
                             <div className="w-6 h-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
                               {setNum}
                             </div>
+                            {cfg.isWarmup && (
+                              <span className="text-[9px] text-warning font-semibold">Cal.</span>
+                            )}
                           </div>
-                          <span className="text-center font-medium">{cfg.reps}</span>
+                          <span className="text-center font-medium">
+                            {formatRepsShort(exercise.isUnilateral, cfg.reps)}
+                          </span>
                           <span className="text-center font-medium">{cfg.weight}</span>
                         </div>
                       );
+
                     })}
 
                     {/* Edit button */}

@@ -1,0 +1,2 @@
+ALTER TABLE public.exercises ADD COLUMN IF NOT EXISTS is_unilateral boolean NOT NULL DEFAULT false;
+ALTER TABLE public.workout_completed_sets ADD COLUMN IF NOT EXISTS is_warmup boolean NOT NULL DEFAULT false;

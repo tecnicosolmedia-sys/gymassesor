@@ -6,6 +6,8 @@ import { es } from 'date-fns/locale';
 import { BarChart3, X, TrendingUp, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
+import { isWarmupSet } from '@/utils/workoutStats';
+
 
 interface ExerciseProgressChartProps {
   exerciseId: string;
@@ -85,6 +87,8 @@ export const ExerciseProgressChart = ({
     if (!exercise || exercise.completedSets.length === 0) return;
 
     exercise.completedSets.forEach(set => {
+      // Los calentamientos no entran en la progresión
+      if (isWarmupSet(exercise.exerciseName, set)) return;
       if (set.setNumber > maxSets) maxSets = set.setNumber;
       if (!perSetData.has(set.setNumber)) perSetData.set(set.setNumber, []);
       perSetData.get(set.setNumber)!.push({
@@ -97,6 +101,7 @@ export const ExerciseProgressChart = ({
       });
     });
   });
+
 
   if (perSetData.size === 0) {
     const emptyContent = (

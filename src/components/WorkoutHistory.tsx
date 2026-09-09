@@ -2,7 +2,15 @@ import { useState, useMemo } from 'react';
 import { WorkoutSession, ExerciseSession } from '@/types/workoutHistory';
 import { ExerciseProgressChart } from './ExerciseProgressChart';
 import { MuscleFilterTabs } from './MuscleFilterTabs';
-import { MuscleGroup } from '@/types/exercise';
+import { MuscleGroup, Exercise } from '@/types/exercise';
+import {
+  buildUnilateralMap,
+  formatRepsShort,
+  getSessionStats,
+  isExercisePerformed,
+  isWarmupSet,
+} from '@/utils/workoutStats';
+
 import { 
   Calendar, 
   Clock, 
@@ -28,11 +36,14 @@ import { EditCompletedSetDialog, EditableSetTarget } from './EditCompletedSetDia
 interface WorkoutHistoryProps {
   sessions: WorkoutSession[];
   routineNames?: string[];
+  /** Catálogo actual de ejercicios (para saber si son unilaterales) */
+  exercises?: Exercise[];
   onDeleteSession: (id: string) => void;
   onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
   onUpdateCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number, updates: { reps: number; weight: number }) => void | Promise<void>;
   onClose: () => void;
 }
+
 
 type ViewMode = 'routines' | 'exercises';
 
@@ -48,7 +59,9 @@ interface ExerciseHistoryEntry {
   }[];
 }
 
-export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, onDeleteSession, onDeleteCompletedSet, onUpdateCompletedSet, onClose }: WorkoutHistoryProps) => {
+export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, exercises = [], onDeleteSession, onDeleteCompletedSet, onUpdateCompletedSet, onClose }: WorkoutHistoryProps) => {
+  const unilateralMap = useMemo(() => buildUnilateralMap(exercises), [exercises]);
+
   const [editingSet, setEditingSet] = useState<EditableSetTarget | null>(null);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
@@ -144,15 +157,12 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
     return `${mins} min`;
   };
 
-  const getTotalWeight = (session: WorkoutSession) => {
-    return session.exercises.reduce((total, exercise) => {
-      return total + exercise.completedSets.reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0);
-    }, 0);
-  };
+  const getTotalWeight = (session: WorkoutSession) => getSessionStats(session).totalVolume;
 
-  const getTotalSets = (session: WorkoutSession) => {
-    return session.exercises.reduce((total, exercise) => total + exercise.completedSets.length, 0);
-  };
+  const getTotalSets = (session: WorkoutSession) => getSessionStats(session).totalSets;
+
+  const getExerciseCount = (session: WorkoutSession) => getSessionStats(session).exerciseCount;
+
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm overflow-y-auto">
@@ -324,7 +334,7 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                         </span>
                         <span className="flex items-center gap-1">
                           <Dumbbell className="w-3.5 h-3.5" />
-                          {session.exercises.length} ejercicio{session.exercises.length !== 1 ? 's' : ''}
+                          {getExerciseCount(session)} ejercicio{getExerciseCount(session) !== 1 ? 's' : ''}
                         </span>
                         <span className="flex items-center gap-1">
                           <Weight className="w-3.5 h-3.5" />
@@ -368,7 +378,10 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                                   <BarChart3 className="w-3.5 h-3.5" />
                                 </button>
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                                  {exercise.completedSets.length} series
+                                  {isExercisePerformed(exercise)
+                                    ? `${exercise.completedSets.length} series`
+                                    : 'No realizado'}
+
                                 </span>
                               </div>
                             </div>
@@ -392,7 +405,13 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                                   className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-secondary/50 text-xs hover:bg-secondary/80 hover:ring-1 hover:ring-primary/40 transition-all"
                                 >
                                   <span className="font-medium text-muted-foreground">S{set.setNumber}</span>
-                                  <span className="font-semibold">{set.reps}x{set.weight}kg</span>
+                                  <span className="font-semibold">
+                                    {formatRepsShort(unilateralMap[exercise.exerciseId], set.reps)}x{set.weight}kg
+                                    {isWarmupSet(exercise.exerciseName, set) && (
+                                      <span className="text-warning ml-1">cal.</span>
+                                    )}
+                                  </span>
+
                                 </button>
                               ))}
                             </div>
@@ -409,7 +428,7 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                             <p className="text-xs text-muted-foreground">Series totales</p>
                           </div>
                           <div className="text-center p-3 rounded-xl bg-secondary/30">
-                            <p className="text-2xl font-lcd font-bold text-primary">{session.exercises.length}</p>
+                            <p className="text-2xl font-lcd font-bold text-primary">{getExerciseCount(session)}</p>
                             <p className="text-xs text-muted-foreground">Ejercicios</p>
                           </div>
                           <div className="text-center p-3 rounded-xl bg-secondary/30">
@@ -424,7 +443,7 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            exportSessionFromHistory(session);
+                            exportSessionFromHistory(session, exercises);
                           }}
                           className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
                         >
@@ -538,7 +557,13 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, o
                                   className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-secondary/50 text-xs hover:bg-secondary/80 hover:ring-1 hover:ring-primary/40 transition-all"
                                 >
                                   <span className="font-medium text-muted-foreground">S{set.setNumber}</span>
-                                  <span className="font-semibold">{set.reps}x{set.weight}kg</span>
+                                  <span className="font-semibold">
+                                    {formatRepsShort(unilateralMap[exHistory.exerciseId], set.reps)}x{set.weight}kg
+                                    {isWarmupSet(exHistory.exerciseName, set) && (
+                                      <span className="text-warning ml-1">cal.</span>
+                                    )}
+                                  </span>
+
                                 </button>
                               ))}
                             </div>

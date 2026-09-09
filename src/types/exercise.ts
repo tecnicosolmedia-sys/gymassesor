@@ -15,6 +15,8 @@ export interface SetConfig {
   reps: number; // repeticiones (1-99)
   weight: number; // peso en kg (0-999, intervalos de 0.5)
   restTime: number; // segundos de descanso
+  /** Serie de calentamiento: no suma volumen ni series efectivas ni genera récords */
+  isWarmup?: boolean;
 }
 
 export interface Exercise {
@@ -32,8 +34,11 @@ export interface Exercise {
   notes: string;
   caloriesPerSet: number;
   muscleGroup: string;
+  /** Ejercicio unilateral: las reps almacenadas son el TOTAL de ambos lados */
+  isUnilateral?: boolean;
   createdAt: Date;
 }
+
 
 export interface WorkoutSession {
   id: string;
