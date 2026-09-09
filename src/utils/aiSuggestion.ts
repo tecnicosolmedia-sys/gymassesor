@@ -27,6 +27,16 @@ export interface AISetSuggestion {
   weight: number;
 }
 
+/** Número finito estricto: rechaza null, undefined, '', booleanos y textos no numéricos. */
+export const strictNumber = (v: unknown): number | undefined => {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : undefined;
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  return undefined;
+};
+
 /** Peso en pasos de 0.5 kg, 0-999. */
 export const roundHalfKg = (n: number): number => {
   if (!Number.isFinite(n)) return 0;
@@ -118,28 +128,30 @@ export const canonicalizeSetSuggestions = (
   const list = Array.isArray(raw) ? raw : [];
   const bySetNumber = new Map<number, any>();
   list.forEach(item => {
-    const n = Number((item as any)?.setNumber);
-    if (!Number.isFinite(n)) return;
+    const n = strictNumber((item as any)?.setNumber);
+    if (n === undefined) return;
     const key = Math.round(n);
     if (!bySetNumber.has(key)) bySetNumber.set(key, item); // primer valor gana, duplicados descartados
   });
+  // Solo se usa la posición cuando ninguna entrada trae setNumber utilizable.
+  const usePositional = bySetNumber.size === 0;
 
   return (currentConfig ?? []).map((cfg, idx) => {
-    const candidate = bySetNumber.get(cfg.setNumber) ?? list[idx];
+    const candidate = bySetNumber.get(cfg.setNumber) ?? (usePositional ? list[idx] : undefined);
     const curReps = clampReps(Number(cfg.reps));
     const curWeight = roundHalfKg(Number(cfg.weight));
 
-    const rawReps = Number((candidate as any)?.reps);
-    const rawWeight = Number((candidate as any)?.weight);
+    const rawReps = strictNumber((candidate as any)?.reps);
+    const rawWeight = strictNumber((candidate as any)?.weight);
 
-    const reps = Number.isFinite(rawReps)
+    const reps = rawReps !== undefined
       ? Math.max(
           clampReps(curReps - MAX_REPS_DELTA),
           Math.min(clampReps(curReps + MAX_REPS_DELTA), clampReps(rawReps)),
         )
       : curReps;
 
-    const weight = Number.isFinite(rawWeight)
+    const weight = rawWeight !== undefined
       ? Math.max(
           roundHalfKg(Math.max(0, curWeight - MAX_WEIGHT_DELTA_KG)),
           Math.min(roundHalfKg(curWeight + MAX_WEIGHT_DELTA_KG), roundHalfKg(rawWeight)),
@@ -152,7 +164,8 @@ export const canonicalizeSetSuggestions = (
 
 /** Descanso canonicalizado con fallback al actual. */
 export const canonicalizeRest = (raw: unknown, currentRest?: number): number => {
-  const n = Number(raw);
-  if (Number.isFinite(n)) return clampRest(n);
-  return clampRest(Number.isFinite(Number(currentRest)) ? Number(currentRest) : 90);
+  const n = strictNumber(raw);
+  if (n !== undefined) return clampRest(n);
+  const cur = strictNumber(currentRest);
+  return clampRest(cur !== undefined ? cur : 90);
 };

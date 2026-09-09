@@ -36,6 +36,16 @@ const clampRest = (n: number) =>
 
 const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
+/** Número finito estricto: rechaza null, '', booleanos y textos no numéricos. */
+const strictNumber = (v: unknown): number | undefined => {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : undefined;
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  return undefined;
+};
+
 /** Valida la entrada sin confiar en el cliente. */
 const validate = (body: any): { ok: true; value: RequestBody } | { ok: false; reason: string } => {
   if (!body || typeof body !== 'object') return { ok: false, reason: 'body' };
@@ -89,25 +99,26 @@ const canonicalize = (currentConfig: CurrentSet[], raw: unknown) => {
   const list = Array.isArray(raw) ? raw : [];
   const bySet = new Map<number, any>();
   list.forEach((item: any) => {
-    const n = Number(item?.setNumber);
-    if (!Number.isFinite(n)) return;
+    const n = strictNumber(item?.setNumber);
+    if (n === undefined) return;
     const key = Math.round(n);
     if (!bySet.has(key)) bySet.set(key, item);
   });
+  const usePositional = bySet.size === 0;
 
   return currentConfig.map((cfg, idx) => {
-    const candidate = bySet.get(cfg.setNumber) ?? list[idx];
-    const rawReps = Number(candidate?.reps);
-    const rawWeight = Number(candidate?.weight);
+    const candidate = bySet.get(cfg.setNumber) ?? (usePositional ? list[idx] : undefined);
+    const rawReps = strictNumber(candidate?.reps);
+    const rawWeight = strictNumber(candidate?.weight);
 
-    const reps = Number.isFinite(rawReps)
+    const reps = rawReps !== undefined
       ? Math.max(
           clampReps(cfg.reps - MAX_REPS_DELTA),
           Math.min(clampReps(cfg.reps + MAX_REPS_DELTA), clampReps(rawReps)),
         )
       : cfg.reps;
 
-    const weight = Number.isFinite(rawWeight)
+    const weight = rawWeight !== undefined
       ? Math.max(
           roundHalf(Math.max(0, cfg.weight - MAX_WEIGHT_DELTA_KG)),
           Math.min(roundHalf(cfg.weight + MAX_WEIGHT_DELTA_KG), roundHalf(rawWeight)),
