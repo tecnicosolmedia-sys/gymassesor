@@ -602,6 +602,7 @@ export const ExerciseCard = ({
                       <SetCard
                         config={config}
                         index={index}
+                        exerciseName={exercise.name}
                         isCompleted={isCompleted}
                         isCurrent={isCurrent}
                         currentSet={currentSet}

@@ -149,13 +149,13 @@ export const SetCard = ({
               )}
             </div>
             <span className="text-sm font-medium">Serie {index + 1}</span>
-            {config.isWarmup && (
+            {displayWarmup && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-warning/20 text-warning font-semibold flex items-center gap-1">
                 <Flame className="w-3 h-3" />
                 Calentamiento
               </span>
             )}
-            {!isCompleted && onToggleWarmup && (
+            {!isCompleted && onToggleWarmup && !isNameWarmup && (
               <button
                 type="button"
                 onClick={(e) => {
