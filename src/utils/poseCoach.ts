@@ -111,7 +111,29 @@ const BASE: Omit<ExerciseCoachConfig, 'category' | 'label' | 'side' | 'plane' | 
   maxShoulderTilt: 0.12,
 };
 
+/* ------------------------------------------------------------------ */
+/* Lumbar: driver explícito por inclinación de tronco                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Convierte la inclinación del tronco (grados respecto a la vertical) en un
+ * "driver" con la misma escala que un ángulo articular, para reutilizar la
+ * máquina de estados: 180 = erguido, valores menores = más flexión.
+ */
+export const trunkDriver = (lean: number | null): number | null => {
+  if (lean === null || !Number.isFinite(lean)) return null;
+  return 180 - Math.max(0, lean) * 2;
+};
+
+/** Umbral de extensión del lumbar (tronco erguido, lean <= ~7.5º). */
+export const LOWER_BACK_EXTENDED = 165;
+/** Umbral de flexión del lumbar (lean >= ~35º). */
+export const LOWER_BACK_FLEXED = 110;
+/** Rango mínimo del driver lumbar (~20º reales de tronco). */
+export const LOWER_BACK_MIN_RANGE = 40;
+
 const CONFIGS: Record<ExerciseCategory, ExerciseCoachConfig> = {
+
   chest_press: {
     ...BASE,
     category: 'chest_press',
