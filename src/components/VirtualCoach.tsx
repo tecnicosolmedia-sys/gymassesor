@@ -8,10 +8,13 @@ import {
   elbowAngle,
   evaluateFeedback,
   getCoachConfig,
+  isVisible,
   pickSide,
   POSE_CONNECTIONS,
   shoulderTilt,
   sideVisibility,
+  torsoVisibility,
+  trunkDriver,
   trunkLean,
   wristDrift,
   type FeedbackResult,
@@ -56,6 +59,24 @@ interface VirtualCoachProps {
   onClose: () => void;
 }
 
+const stopStream = (stream: MediaStream | null) => {
+  stream?.getTracks().forEach(t => {
+    try {
+      t.stop();
+    } catch {
+      /* noop */
+    }
+  });
+};
+
+const closeLandmarker = (landmarker: { close?: () => void } | null) => {
+  try {
+    landmarker?.close?.();
+  } catch {
+    /* noop */
+  }
+};
+
 export const VirtualCoach = ({ exerciseName, onClose }: VirtualCoachProps) => {
   const config = useMemo(() => getCoachConfig(exerciseName), [exerciseName]);
 
@@ -67,6 +88,8 @@ export const VirtualCoach = ({ exerciseName, onClose }: VirtualCoachProps) => {
   const lastInferenceRef = useRef(0);
   const lastVideoTimeRef = useRef(-1);
   const mountedRef = useRef(true);
+  /** Token de arranque: invalida inicializaciones obsoletas. */
+  const genRef = useRef(0);
 
   const counterRef = useRef(
     createRepCounter({
@@ -94,22 +117,28 @@ export const VirtualCoach = ({ exerciseName, onClose }: VirtualCoachProps) => {
   const voiceOnRef = useRef(voiceOn);
   voiceOnRef.current = voiceOn;
 
+  /* --------------------- reinicio del estado de análisis --------------------- */
+  const resetAnalysisState = useCallback(() => {
+    counterRef.current.reset();
+    elbowSmootherRef.current.reset();
+    trunkSmootherRef.current.reset();
+    speechGateRef.current.reset();
+    movementRef.current = { left: 0, right: 0 };
+    lastAnglesRef.current = { left: null, right: null };
+    lastInferenceRef.current = 0;
+    lastVideoTimeRef.current = -1;
+  }, []);
+
   /* --------------------------- limpieza total --------------------------- */
   const stopEverything = useCallback(() => {
+    // Cualquier inicialización en vuelo queda invalidada.
+    genRef.current += 1;
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => {
-        try {
-          t.stop();
-        } catch {
-          /* noop */
-        }
-      });
-      streamRef.current = null;
-    }
+    stopStream(streamRef.current);
+    streamRef.current = null;
     if (videoRef.current) {
       try {
         videoRef.current.srcObject = null;
@@ -117,20 +146,15 @@ export const VirtualCoach = ({ exerciseName, onClose }: VirtualCoachProps) => {
         /* noop */
       }
     }
-    if (landmarkerRef.current) {
-      try {
-        landmarkerRef.current.close?.();
-      } catch {
-        /* noop */
-      }
-      landmarkerRef.current = null;
-    }
+    closeLandmarker(landmarkerRef.current);
+    landmarkerRef.current = null;
     try {
       window.speechSynthesis?.cancel();
     } catch {
       /* noop */
     }
-  }, []);
+    resetAnalysisState();
+  }, [resetAnalysisState]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -169,20 +193,24 @@ export const VirtualCoach = ({ exerciseName, onClose }: VirtualCoachProps) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!landmarks) return;
 
+    // Solo se dibuja lo que tiene coordenadas finitas y visibilidad suficiente:
+    // evita esqueletos espurios cuando el modelo no ve una articulación.
+    const drawable = (i: number) => isVisible(landmarks[i], 0.4);
+
     ctx.strokeStyle = 'rgba(163, 230, 53, 0.9)';
     ctx.lineWidth = Math.max(2, canvas.width / 240);
     POSE_CONNECTIONS.forEach(([a, b]) => {
+      if (!drawable(a) || !drawable(b)) return;
       const pa = landmarks[a];
       const pb = landmarks[b];
-      if (!pa || !pb) return;
       ctx.beginPath();
       ctx.moveTo(pa.x * canvas.width, pa.y * canvas.height);
       ctx.lineTo(pb.x * canvas.width, pb.y * canvas.height);
       ctx.stroke();
     });
     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    landmarks.forEach(p => {
-      if (!p) return;
+    landmarks.forEach((p, i) => {
+      if (!drawable(i)) return;
       ctx.beginPath();
       ctx.arc(p.x * canvas.width, p.y * canvas.height, Math.max(2, canvas.width / 320), 0, Math.PI * 2);
       ctx.fill();
@@ -202,11 +230,17 @@ export const VirtualCoach = ({ exerciseName, onClose }: VirtualCoachProps) => {
 
       const side = pickSide(landmarks, config, movementRef.current);
       const rawElbow = side === 'left' ? lAngle : rAngle;
+      const rawTrunk = trunkLean(landmarks);
+      // El suavizado es solo para el feedback visual/hablado.
       const elbow = elbowSmootherRef.current.push(rawElbow);
-      const trunk = trunkSmootherRef.current.push(trunkLean(landmarks));
+      const trunk = trunkSmootherRef.current.push(rawTrunk);
 
-      const driver = config.category === 'lower_back' ? (trunk === null ? null : 180 - trunk * 2) : elbow;
-      const update = counterRef.current.update(driver, nowMs, sideVisibility(landmarks, side));
+      const isLumbar = config.category === 'lower_back';
+      // El contador recibe SIEMPRE el valor crudo del fotograma: si es null o la
+      // visibilidad requerida es baja, no puede contar con el último promedio.
+      const driver = isLumbar ? trunkDriver(rawTrunk) : rawElbow;
+      const visibility = isLumbar ? torsoVisibility(landmarks) : sideVisibility(landmarks, side);
+      const update = counterRef.current.update(driver, nowMs, visibility);
 
       setReps(update.reps);
       setPhase(update.phase);
@@ -265,56 +299,104 @@ export const VirtualCoach = ({ exerciseName, onClose }: VirtualCoachProps) => {
         return;
       }
       setStatus('loading');
+      // stopEverything incrementa la generación: cualquier arranque anterior
+      // queda obsoleto y no podrá tocar refs, estado ni RAF.
       stopEverything();
-      counterRef.current.reset();
-      elbowSmootherRef.current.reset();
-      trunkSmootherRef.current.reset();
-      speechGateRef.current.reset();
+      const myGen = genRef.current;
+      const isStale = () => !mountedRef.current || genRef.current !== myGen;
+
+      let localStream: MediaStream | null = null;
+      let localLandmarker: { close?: () => void } | null = null;
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        localStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: mode, width: { ideal: 640 }, height: { ideal: 480 } },
           audio: false,
         });
-        if (!mountedRef.current) {
-          stream.getTracks().forEach(t => t.stop());
+        if (isStale()) {
+          stopStream(localStream);
           return;
         }
-        streamRef.current = stream;
+        streamRef.current = localStream;
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+          videoRef.current.srcObject = localStream;
           await videoRef.current.play?.().catch(() => undefined);
+        }
+        if (isStale()) {
+          stopStream(localStream);
+          return;
         }
 
         // Import dinámico: no engorda el bundle inicial.
         const vision = await import('@mediapipe/tasks-vision');
         const fileset = await vision.FilesetResolver.forVisionTasks(WASM_BASE);
-        const landmarker = await vision.PoseLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
-          runningMode: 'VIDEO',
-          numPoses: 1,
-        });
-        if (!mountedRef.current) {
-          landmarker.close?.();
+        if (isStale()) {
+          stopStream(localStream);
           return;
         }
-        landmarkerRef.current = landmarker;
-        lastVideoTimeRef.current = -1;
+
+        const create = (delegate: 'GPU' | 'CPU') =>
+          vision.PoseLandmarker.createFromOptions(fileset, {
+            baseOptions: { modelAssetPath: MODEL_URL, delegate },
+            runningMode: 'VIDEO',
+            numPoses: 1,
+          });
+
+        try {
+          localLandmarker = await create('GPU');
+        } catch {
+          // Si la GPU falla (WebGL no disponible en el dispositivo), CPU.
+          closeLandmarker(localLandmarker);
+          localLandmarker = null;
+          localLandmarker = await create('CPU');
+        }
+
+        if (isStale()) {
+          closeLandmarker(localLandmarker);
+          stopStream(localStream);
+          return;
+        }
+
+        landmarkerRef.current = localLandmarker;
+        resetAnalysisState();
+        setReps(0);
+        setPhase('start');
         setStatus('no-person');
         rafRef.current = requestAnimationFrame(loop);
       } catch (err) {
-        if (!mountedRef.current) return;
+        // Fallo en cualquier fase: siempre se liberan pistas locales, se
+        // desasocia el vídeo y se cierra cualquier landmarker parcial.
+        closeLandmarker(localLandmarker);
+        stopStream(localStream);
+        if (streamRef.current === localStream) streamRef.current = null;
+        if (videoRef.current) {
+          try {
+            videoRef.current.srcObject = null;
+          } catch {
+            /* noop */
+          }
+        }
+        if (isStale()) return;
         const name = (err as { name?: string })?.name;
         setStatus(name === 'NotAllowedError' || name === 'SecurityError' ? 'denied' : 'error');
       }
     },
-    [loop, stopEverything],
+    [loop, resetAnalysisState, stopEverything],
   );
 
   const handleSwitchCamera = () => {
+    if (status === 'loading') return; // evita interacciones conflictivas
     const next = facing === 'user' ? 'environment' : 'user';
     setFacing(next);
+    setReps(0);
+    setPhase('start');
     void start(next);
+  };
+
+  const handleResetCounter = () => {
+    resetAnalysisState();
+    setReps(0);
+    setPhase('start');
   };
 
   const handleClose = () => {
@@ -463,18 +545,15 @@ export const VirtualCoach = ({ exerciseName, onClose }: VirtualCoachProps) => {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleSwitchCamera}
+                disabled={status === 'loading'}
                 aria-label="Cambiar entre cámara frontal y trasera"
-                className="flex-1 min-w-[9rem] py-2.5 rounded-xl bg-secondary text-sm font-medium flex items-center justify-center gap-2"
+                className="flex-1 min-w-[9rem] py-2.5 rounded-xl bg-secondary text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <SwitchCamera className="w-4 h-4" aria-hidden="true" />
                 {facing === 'user' ? 'Frontal' : 'Trasera'}
               </button>
               <button
-                onClick={() => {
-                  counterRef.current.reset();
-                  setReps(0);
-                  setPhase('start');
-                }}
+                onClick={handleResetCounter}
                 aria-label="Reiniciar contador de repeticiones"
                 className="flex-1 min-w-[9rem] py-2.5 rounded-xl bg-secondary text-sm font-medium flex items-center justify-center gap-2"
               >
