@@ -195,4 +195,77 @@ describe('VirtualCoach', () => {
     expect(closeMock).toHaveBeenCalled();
     expect(b.stop).not.toHaveBeenCalled();
   });
+
+  it('el fallo tardío de un arranque obsoleto no toca el vídeo ni el estado de la sesión nueva', async () => {
+    const a = makeStream();
+    const b = makeStream();
+    getUserMedia = vi.fn(async () => a.stream);
+    setMediaDevices({ getUserMedia });
+
+    // El fileset de A queda pendiente y fallará tarde.
+    let rejectFileset: ((e: Error) => void) | null = null;
+    vision.forVisionTasks.mockImplementation(
+      () =>
+        new Promise((_res, rej) => {
+          rejectFileset = rej;
+        }),
+    );
+
+    const { container } = render(
+      <VirtualCoach exerciseName="CHEST PRESS TECHNOGYM" onClose={() => {}} />,
+    );
+    await userEvent.click(screen.getByLabelText('Iniciar cámara'));
+    const video = container.querySelector('video') as HTMLVideoElement;
+    await waitFor(() => expect(video.srcObject).toBe(a.stream));
+
+    // Cierre: A queda obsoleto. Después llega una sesión nueva (B) al vídeo.
+    await userEvent.click(screen.getByLabelText('Cerrar entrenador virtual'));
+    video.srcObject = b.stream;
+
+    await act(async () => {
+      rejectFileset?.(new Error('wasm KO tardío'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // No desasocia el vídeo de B ni cambia su estado, y no crea detector alguno.
+    expect(video.srcObject).toBe(b.stream);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(vision.createFromOptions).not.toHaveBeenCalled();
+    // Solo se liberan los recursos de A.
+    expect(a.stop).toHaveBeenCalled();
+    expect(b.stop).not.toHaveBeenCalled();
+  });
+
+  it('si el arranque quedó obsoleto tras fallar la GPU no intenta CPU', async () => {
+    const a = makeStream();
+    getUserMedia = vi.fn(async () => a.stream);
+    setMediaDevices({ getUserMedia });
+
+    let rejectGpu: ((e: Error) => void) | null = null;
+    vision.createFromOptions.mockImplementation(
+      (_f: unknown, opts: any) =>
+        new Promise((res, rej) => {
+          if (opts.baseOptions.delegate === 'GPU') rejectGpu = rej;
+          else res({ detectForVideo: vi.fn(() => ({ landmarks: [] })), close: closeMock });
+        }),
+    );
+
+    render(<VirtualCoach exerciseName="CHEST PRESS TECHNOGYM" onClose={() => {}} />);
+    await userEvent.click(screen.getByLabelText('Iniciar cámara'));
+    await waitFor(() => expect(vision.createFromOptions).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(screen.getByLabelText('Cerrar entrenador virtual'));
+
+    await act(async () => {
+      rejectGpu?.(new Error('sin WebGL'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(vision.createFromOptions).toHaveBeenCalledTimes(1); // no hubo CPU
+    expect(a.stop).toHaveBeenCalled();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });
+
