@@ -177,7 +177,7 @@ export const RoutineCard = ({
                   {routineExercises.map((exercise, index) => {
                     const primaryImage = exercise.imageUrls?.[0] || exercise.imageUrl;
                     return (
-                    <li key={exercise.id} className="flex items-center gap-2">
+                    <li key={`${exercise.id}#${index}`} className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0">
                         {primaryImage ? (
                           <img
@@ -229,9 +229,9 @@ export const RoutineCard = ({
                   Iniciar Entrenamiento
                 </button>
                 
-                {routineExercises.map((exercise) => (
+                {routineExercises.map((exercise, index) => (
                   <ExerciseCard
-                    key={exercise.id}
+                    key={`${exercise.id}#${index}`}
                     exercise={exercise}
                     onEdit={onEditExercise}
                     onDelete={onDeleteExercise}

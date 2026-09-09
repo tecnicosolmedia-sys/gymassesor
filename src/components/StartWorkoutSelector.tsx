@@ -52,7 +52,7 @@ export const StartWorkoutSelector = ({
                 const primaryImage = exercise.imageUrls?.[0] || exercise.imageUrl;
                 return (
                 <button
-                  key={exercise.id}
+                  key={`${exercise.id}#${index}`}
                   onClick={() => setSelectedIndex(index)}
                   className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all text-left ${
                     selectedIndex === index
