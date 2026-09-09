@@ -760,6 +760,7 @@ export const WorkoutFlow = ({
                     return {
                       name: ex.name,
                       muscleGroup: ex.muscleGroup,
+                      isUnilateral: ex.isUnilateral,
                       sets: completedNums.map(n => {
                         const cfg = configs[n - 1];
                         return {
@@ -767,8 +768,10 @@ export const WorkoutFlow = ({
                           reps: cfg?.reps ?? ex.reps,
                           weight: cfg?.weight ?? ex.weight,
                           restTime: cfg?.restTime ?? ex.restBetweenSets,
+                          isWarmup: cfg ? isWarmupSet(ex.name, cfg) : false,
                         };
                       }),
+
                     };
                   }),
                 });
