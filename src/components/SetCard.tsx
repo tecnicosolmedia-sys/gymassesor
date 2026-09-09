@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { formatReps } from '@/utils/workoutStats';
+import { formatReps, isWarmupExerciseName, isWarmupSet } from '@/utils/workoutStats';
 
 /** Campos numéricos editables de una serie */
 export type NumericSetField = 'reps' | 'weight' | 'restTime';
@@ -18,6 +18,8 @@ export type NumericSetField = 'reps' | 'weight' | 'restTime';
 interface SetCardProps {
   config: SetConfig;
   index: number;
+  /** Nombre del ejercicio, para detectar calentamientos por nombre (regla legacy) */
+  exerciseName?: string;
   isCompleted: boolean;
   isCurrent: boolean;
   currentSet: number;
@@ -39,6 +41,7 @@ type EditableField = NumericSetField;
 export const SetCard = ({
   config,
   index,
+  exerciseName = '',
   isCompleted,
   isCurrent,
   currentSet,

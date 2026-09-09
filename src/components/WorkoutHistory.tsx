@@ -6,6 +6,7 @@ import { MuscleGroup, Exercise } from '@/types/exercise';
 import {
   buildUnilateralMap,
   formatRepsShort,
+  getEffectiveSets,
   getSessionStats,
   isExercisePerformed,
   isWarmupSet,
