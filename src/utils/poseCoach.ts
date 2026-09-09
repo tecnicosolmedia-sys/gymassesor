@@ -197,13 +197,18 @@ const CONFIGS: Record<ExerciseCategory, ExerciseCoachConfig> = {
     plane: 'lateral',
     bilateral: true,
     placement: 'Cámara lateral, tronco y caderas visibles, a 2–3 m.',
-    // El lumbar se mide por inclinación del tronco, no por el codo.
-    extendedAngle: 0,
-    flexedAngle: 0,
-    minRange: 20,
+    // El lumbar no se mide por el codo: el "driver" del contador es
+    // trunkDriver(inclinación del tronco) = 180 - 2 * lean, de modo que:
+    //   tronco erguido (lean ~0º)   -> driver ~180 (extensión)
+    //   tronco flexionado (lean 45º) -> driver ~90  (flexión)
+    // Umbrales explícitos y coherentes con ese driver:
+    extendedAngle: LOWER_BACK_EXTENDED, // lean <= ~7.5º (con histéresis)
+    flexedAngle: LOWER_BACK_FLEXED, // lean >= ~35º
+    minRange: LOWER_BACK_MIN_RANGE, // ~20º reales de tronco
     maxTrunkLean: 90,
   },
 };
+
 
 /** ¿El nombre indica trabajo unilateral? (no se exige simetría). */
 export const isUnilateralName = (name: string): boolean => {
