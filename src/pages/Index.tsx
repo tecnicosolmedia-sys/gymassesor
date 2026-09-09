@@ -143,6 +143,14 @@ const Index = () => {
     return routines.find(r => r.id === savedWorkout.routineId);
   }, [savedWorkout, routines]);
 
+  // Snapshot del cronómetro calculado UNA vez por sesión guardada (usa Date.now()):
+  // no debe recalcularse en renders normales de la sesión activa.
+  const restoredStopwatch = useMemo(
+    () => resolveRestoredStopwatch(savedWorkout),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [savedWorkout?.savedAt, savedWorkout?.routineId, savedWorkout?.stopwatchUpdatedAt]
+  );
+
   const handleAddExercise = () => {
     setEditingExercise(null);
     setCreatingExerciseForWorkout(false);
@@ -730,8 +738,8 @@ const Index = () => {
            onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
           initialCompletedExerciseIds={savedWorkout.completedExerciseIds}
           initialFlowState={savedWorkout.flowState as FlowState}
-          initialElapsedTime={resolveRestoredStopwatch(savedWorkout).elapsedTime}
-          initialIsRunning={resolveRestoredStopwatch(savedWorkout).isRunning}
+          initialElapsedTime={restoredStopwatch.elapsedTime}
+          initialIsRunning={restoredStopwatch.isRunning}
           initialExerciseSetStates={(savedWorkout.exerciseSetStates || []) as ExerciseSetState[]}
           workoutSessions={sessions}
           onDeleteCompletedSet={deleteCompletedSet}

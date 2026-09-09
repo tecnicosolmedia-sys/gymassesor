@@ -18,6 +18,8 @@ interface ExerciseSummaryProps {
   completedSets: number[]; // indices of completed sets (1-based)
   /** El ejercicio se realiza por lado (las reps son el total de ambos lados) */
   isUnilateral?: boolean;
+  /** Se renderiza dentro de otro contenedor (sin capa fija propia) */
+  embedded?: boolean;
   onContinue: (updatedConfigs: SetConfig[]) => void;
   onGoBack?: () => void;
   historySessions?: WorkoutSession[];
@@ -31,6 +33,7 @@ export const ExerciseSummary = ({
   setConfigs,
   completedSets,
   isUnilateral = false,
+  embedded = false,
   onContinue,
   onGoBack,
   historySessions = [],
@@ -81,7 +84,11 @@ export const ExerciseSummary = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-background z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div className={cn(
+      embedded
+        ? "w-full min-h-full bg-background flex items-start justify-center p-4"
+        : "fixed inset-0 bg-background z-50 flex items-center justify-center p-4 overflow-y-auto"
+    )}>
       <div className="w-full max-w-md py-6">
         {/* Header */}
         <div className="text-center mb-6">

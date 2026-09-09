@@ -9,7 +9,6 @@ import {
   parseTimeParts,
   resolveRestoredStopwatch,
   isStopwatchRunning,
-  MAX_RESTORE_GAP_SECONDS,
 } from '@/utils/stopwatch';
 
 const T0 = 1_700_000_000_000;
@@ -122,14 +121,39 @@ describe('stopwatch: restauración de sesiones guardadas', () => {
     ).toEqual({ elapsedTime: 0, isRunning: true });
   });
 
-  it('limita huecos absurdos de restauración', () => {
+  it('no trunca intervalos largos (>12 h) al restaurar', () => {
     const saved = {
       elapsedTime: 60,
       stopwatchIsRunning: true,
       stopwatchUpdatedAt: new Date(T0).toISOString(),
     };
-    const r = resolveRestoredStopwatch(saved, T0 + 5 * 24 * 3_600_000);
-    expect(r.elapsedTime).toBe(60 + MAX_RESTORE_GAP_SECONDS);
+    const gapSeconds = 5 * 24 * 3600;
+    const r = resolveRestoredStopwatch(saved, T0 + gapSeconds * 1000);
+    expect(r.elapsedTime).toBe(60 + gapSeconds);
+    const r13h = resolveRestoredStopwatch(saved, T0 + 13 * 3600 * 1000);
+    expect(r13h.elapsedTime).toBe(60 + 13 * 3600);
+  });
+
+  it('ignora marcas temporales futuras (no resta tiempo)', () => {
+    const saved = {
+      elapsedTime: 300,
+      stopwatchIsRunning: true,
+      stopwatchUpdatedAt: new Date(T0 + 60_000).toISOString(),
+    };
+    expect(resolveRestoredStopwatch(saved, T0)).toEqual({ elapsedTime: 300, isRunning: true });
+  });
+
+  it('produce el mismo snapshot para el mismo guardado y momento (estable ante rerenders)', () => {
+    const saved = {
+      elapsedTime: 300,
+      stopwatchIsRunning: false,
+      stopwatchUpdatedAt: new Date(T0).toISOString(),
+    };
+    const first = resolveRestoredStopwatch(saved, T0 + 10_000);
+    const rerender = resolveRestoredStopwatch(saved, T0 + 900_000);
+    expect(first).toEqual({ elapsedTime: 300, isRunning: false });
+    // Pausado: aunque se recalculara, nunca avanza
+    expect(rerender).toEqual(first);
   });
 
   it('mantiene continuidad al cambiar de pantalla (mismo snapshot)', () => {

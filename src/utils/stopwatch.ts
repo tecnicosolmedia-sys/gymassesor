@@ -11,9 +11,6 @@ export interface StopwatchSnapshot {
   startedAt: number | null;
 }
 
-/** Límite razonable al restaurar (12 h) para evitar valores absurdos. */
-export const MAX_RESTORE_GAP_SECONDS = 12 * 3600;
-
 export const sanitizeSeconds = (value: unknown): number => {
   const n = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(n) || n <= 0) return 0;
@@ -130,9 +127,7 @@ export const resolveRestoredStopwatch = (
   if (!Number.isFinite(ts)) {
     return { elapsedTime: base, isRunning: true };
   }
-  const gap = Math.min(
-    MAX_RESTORE_GAP_SECONDS,
-    Math.max(0, Math.floor((now - ts) / 1000))
-  );
+  // Tiempo real completo, sin truncar. Protegido ante fechas futuras/inválidas.
+  const gap = Math.max(0, Math.floor((now - ts) / 1000));
   return { elapsedTime: base + gap, isRunning: true };
 };

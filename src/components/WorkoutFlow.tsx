@@ -517,6 +517,7 @@ export const WorkoutFlow = ({
           </div>
           <div className="flex-1 overflow-y-auto">
             <ExerciseSummary
+              embedded
               exerciseName={summaryExercise.name}
               exerciseId={summaryExercise.id}
               muscleGroup={summaryExercise.muscleGroup}
