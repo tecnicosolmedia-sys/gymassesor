@@ -11,12 +11,24 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  StopwatchSnapshot,
+  computeElapsed,
+  createStopwatch,
+  isStopwatchRunning,
+  parseTimeParts,
+  setStopwatchElapsed,
+  setStopwatchRunning,
+} from '@/utils/stopwatch';
 
 interface WorkoutStopwatchProps {
   elapsedTime: number;
   isRunning: boolean;
   onToggle: () => void;
   onSetTime?: (seconds: number) => void;
+  /** Fija explícitamente corriendo/pausado (evita carreras al editar). */
+  onSetRunning?: (running: boolean) => void;
+  compact?: boolean;
   className?: string;
 }
 
@@ -36,51 +48,71 @@ export const WorkoutStopwatch = ({
   isRunning,
   onToggle,
   onSetTime,
+  onSetRunning,
+  compact = false,
   className 
 }: WorkoutStopwatchProps) => {
   const [editOpen, setEditOpen] = useState(false);
   const [h, setH] = useState('0');
   const [m, setM] = useState('0');
   const [s, setS] = useState('0');
+  const [error, setError] = useState<string | null>(null);
   const wasRunningRef = useRef(false);
+
+  // Aplica el estado corriendo/pausado de forma absoluta (sin depender del valor actual)
+  const applyRunning = useCallback((running: boolean) => {
+    if (onSetRunning) {
+      onSetRunning(running);
+      return;
+    }
+    if (running !== isRunning) onToggle();
+  }, [onSetRunning, onToggle, isRunning]);
 
   const openEdit = () => {
     if (!onSetTime) return;
     wasRunningRef.current = isRunning;
-    if (isRunning) onToggle(); // pausar mientras se edita
+    applyRunning(false); // pausar mientras se edita
     setH(String(Math.floor(elapsedTime / 3600)));
     setM(String(Math.floor((elapsedTime % 3600) / 60)));
     setS(String(elapsedTime % 60));
+    setError(null);
     setEditOpen(true);
   };
 
-  const closeEdit = (resume: boolean) => {
+  // Cierra el diálogo restaurando el estado previo (corriendo o pausado)
+  const closeEdit = useCallback(() => {
     setEditOpen(false);
-    if (resume && wasRunningRef.current && !isRunning) onToggle();
-  };
+    setError(null);
+    applyRunning(wasRunningRef.current);
+  }, [applyRunning]);
 
   const handleSave = () => {
-    const total =
-      Math.max(0, parseInt(h || '0', 10) || 0) * 3600 +
-      Math.max(0, parseInt(m || '0', 10) || 0) * 60 +
-      Math.max(0, parseInt(s || '0', 10) || 0);
+    const total = parseTimeParts(h, m, s);
+    if (total === null) {
+      setError('Introduce valores válidos (min/seg entre 0 y 59).');
+      return;
+    }
     onSetTime?.(total);
-    closeEdit(true);
+    closeEdit();
   };
 
   return (
     <>
       <div className={cn(
-        "flex items-center gap-4 px-5 py-2.5 rounded-xl bg-secondary/50 backdrop-blur-sm border border-border",
+        "flex items-center rounded-xl bg-secondary/50 backdrop-blur-sm border border-border",
+        compact ? "gap-2 px-3 py-2" : "gap-4 px-5 py-2.5",
         className
       )}>
-        <Timer className="w-6 h-6 text-primary" />
+        <Timer className={cn("text-primary", compact ? "w-5 h-5" : "w-6 h-6")} />
         
         <button
           type="button"
           onClick={openEdit}
           disabled={!onSetTime}
-          className="font-lcd text-3xl text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] min-w-[96px] text-center disabled:cursor-default"
+          className={cn(
+            "font-lcd text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] min-w-[96px] text-center disabled:cursor-default",
+            compact ? "text-2xl" : "text-3xl"
+          )}
           title={onSetTime ? 'Editar tiempo transcurrido' : undefined}
         >
           {formatTime(elapsedTime)}
@@ -89,7 +121,8 @@ export const WorkoutStopwatch = ({
         <button
           onClick={onToggle}
           className={cn(
-            "w-10 h-10 rounded-lg flex items-center justify-center transition-all",
+            "rounded-lg flex items-center justify-center transition-all",
+            compact ? "w-9 h-9" : "w-10 h-10",
             isRunning 
               ? "bg-warning/20 text-warning hover:bg-warning/30" 
               : "bg-primary/20 text-primary hover:bg-primary/30"
@@ -97,16 +130,19 @@ export const WorkoutStopwatch = ({
           title={isRunning ? "Pausar cronómetro" : "Reanudar cronómetro"}
         >
           {isRunning ? (
-            <Pause className="w-5 h-5" />
+            <Pause className={compact ? "w-4 h-4" : "w-5 h-5"} />
           ) : (
-            <Play className="w-5 h-5" />
+            <Play className={compact ? "w-4 h-4" : "w-5 h-5"} />
           )}
         </button>
 
         {onSetTime && (
           <button
             onClick={openEdit}
-            className="w-10 h-10 rounded-lg flex items-center justify-center bg-secondary text-muted-foreground hover:text-foreground transition-all"
+            className={cn(
+              "rounded-lg flex items-center justify-center bg-secondary text-muted-foreground hover:text-foreground transition-all",
+              compact ? "w-9 h-9" : "w-10 h-10"
+            )}
             title="Editar tiempo transcurrido"
           >
             <Pencil className="w-4 h-4" />
@@ -114,7 +150,7 @@ export const WorkoutStopwatch = ({
         )}
       </div>
 
-      <Dialog open={editOpen} onOpenChange={(o) => !o && closeEdit(true)}>
+      <Dialog open={editOpen} onOpenChange={(o) => !o && closeEdit()}>
         <DialogContent className="z-[10000] max-w-xs">
           <DialogHeader>
             <DialogTitle>Editar tiempo transcurrido</DialogTitle>
@@ -139,12 +175,13 @@ export const WorkoutStopwatch = ({
                 onChange={(e) => setS(e.target.value)} className="font-lcd text-center" />
             </div>
           </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter className="flex-row gap-2 sm:justify-end">
-            <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => closeEdit(true)}>
+            <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => closeEdit()}>
               Cancelar
             </Button>
             <Button className="flex-1 sm:flex-none" onClick={handleSave}>
-              Guardar y reanudar
+              Guardar
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -153,63 +190,81 @@ export const WorkoutStopwatch = ({
   );
 };
 
-// Hook para gestionar el tiempo del cronómetro desde el padre
+// Hook para gestionar el tiempo del cronómetro desde el padre (basado en reloj real)
 export const useWorkoutStopwatch = (autoStart = true, initialTime = 0) => {
-  const [elapsedTime, setElapsedTime] = useState(initialTime);
+  const snapshotRef = useRef<StopwatchSnapshot>(createStopwatch(initialTime, autoStart));
+  const [elapsedTime, setElapsedTime] = useState(() => computeElapsed(snapshotRef.current));
   const [isRunning, setIsRunning] = useState(autoStart);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const initialTimeRef = useRef(initialTime);
+
+  const sync = useCallback(() => {
+    setElapsedTime(computeElapsed(snapshotRef.current));
+    setIsRunning(isStopwatchRunning(snapshotRef.current));
+  }, []);
+
+  const apply = useCallback((next: StopwatchSnapshot) => {
+    snapshotRef.current = next;
+    sync();
+  }, [sync]);
 
   // Sincronizar tiempo inicial cuando se restaura una sesión
   useEffect(() => {
     if (initialTime !== initialTimeRef.current) {
-      setElapsedTime(initialTime);
       initialTimeRef.current = initialTime;
+      apply(setStopwatchElapsed(snapshotRef.current, initialTime));
     }
-  }, [initialTime]);
+  }, [initialTime, apply]);
 
+  // Tick de refresco visual: el valor siempre se recalcula desde el reloj
   useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        setElapsedTime((prev) => prev + 1);
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-    
+    if (!isRunning) return;
+    const id = setInterval(sync, 500);
+    return () => clearInterval(id);
+  }, [isRunning, sync]);
+
+  // Resincronizar al volver de segundo plano
+  useEffect(() => {
+    const onWake = () => sync();
+    document.addEventListener('visibilitychange', onWake);
+    window.addEventListener('focus', onWake);
+    window.addEventListener('pageshow', onWake);
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      document.removeEventListener('visibilitychange', onWake);
+      window.removeEventListener('focus', onWake);
+      window.removeEventListener('pageshow', onWake);
     };
-  }, [isRunning]);
+  }, [sync]);
+
+  const setRunning = useCallback((running: boolean) => {
+    apply(setStopwatchRunning(snapshotRef.current, running));
+  }, [apply]);
 
   const toggle = useCallback(() => {
-    setIsRunning((prev) => !prev);
-  }, []);
+    apply(setStopwatchRunning(snapshotRef.current, !isStopwatchRunning(snapshotRef.current)));
+  }, [apply]);
 
-  const stop = useCallback(() => {
-    setIsRunning(false);
-  }, []);
+  const stop = useCallback(() => setRunning(false), [setRunning]);
 
   const reset = useCallback(() => {
-    setElapsedTime(0);
-    setIsRunning(false);
-  }, []);
+    apply(createStopwatch(0, false));
+  }, [apply]);
 
   const setTime = useCallback((seconds: number) => {
-    setElapsedTime(Math.max(0, Math.round(seconds)));
-  }, []);
+    apply(setStopwatchElapsed(snapshotRef.current, seconds));
+  }, [apply]);
+
+  /** Valor exacto en este instante (para guardar la duración final). */
+  const getElapsedNow = useCallback(() => computeElapsed(snapshotRef.current), []);
 
   return {
     elapsedTime,
     isRunning,
     toggle,
+    setRunning,
     stop,
     reset,
     setTime,
+    getElapsedNow,
   };
 };
+

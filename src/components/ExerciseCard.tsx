@@ -61,6 +61,8 @@ interface ExerciseCardProps {
   globalElapsedTime?: number;
   globalIsRunning?: boolean;
   onGlobalToggle?: () => void;
+  onGlobalSetTime?: (seconds: number) => void;
+  onGlobalSetRunning?: (running: boolean) => void;
   // Historial para gráfica de progresión
   workoutSessions?: WorkoutSession[];
   onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
@@ -82,6 +84,8 @@ export const ExerciseCard = ({
   globalElapsedTime,
   globalIsRunning,
   onGlobalToggle,
+  onGlobalSetTime,
+  onGlobalSetRunning,
   workoutSessions = [],
   onDeleteCompletedSet,
 }: ExerciseCardProps) => {
@@ -801,6 +805,8 @@ export const ExerciseCard = ({
             globalElapsedTime={globalElapsedTime}
             globalIsRunning={globalIsRunning}
             onGlobalToggle={onGlobalToggle}
+            onGlobalSetTime={onGlobalSetTime}
+            onGlobalSetRunning={onGlobalSetRunning}
             chartExerciseId={showChartInTimer ? exercise.id : undefined}
             chartExerciseName={showChartInTimer ? exercise.name : undefined}
             chartSessions={showChartInTimer ? timerSessions : undefined}
