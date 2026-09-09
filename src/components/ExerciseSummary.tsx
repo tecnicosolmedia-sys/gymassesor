@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ExerciseProgressChart } from '@/components/ExerciseProgressChart';
 import { WorkoutSession } from '@/types/workoutHistory';
-import { getEffectiveConfigs, getVolume, formatReps } from '@/utils/workoutStats';
+import { getEffectiveConfigs, getVolume, formatReps, isWarmupSet } from '@/utils/workoutStats';
 
 
 interface ExerciseSummaryProps {
@@ -128,7 +128,7 @@ export const ExerciseSummary = ({
                   <div className="w-7 h-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
                     {index + 1}
                   </div>
-                  {config.isWarmup && (
+                  {isWarmupSet(exerciseName, config) && (
                     <span className="text-[9px] text-warning font-semibold">Cal.</span>
                   )}
                 </div>
