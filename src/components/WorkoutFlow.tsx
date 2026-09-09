@@ -7,6 +7,8 @@ import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
 import { AddExerciseDuringWorkoutDialog } from './AddExerciseDuringWorkoutDialog';
 import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff, Flame, Weight, RefreshCw, ClipboardList, FileDown, ListChecks, ChevronUp, ChevronDown } from 'lucide-react';
 import { exportWorkoutToPDF } from '@/utils/exportWorkoutPDF';
+import { isWarmupSet } from '@/utils/workoutStats';
+
 import { CompletedExercisesReview } from './CompletedExercisesReview';
 import { ExerciseSummary } from './ExerciseSummary';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
