@@ -73,6 +73,18 @@ const Index = () => {
   const [libraryChartExercise, setLibraryChartExercise] = useState<{ id: string; name: string } | null>(null);
   const [previewExercise, setPreviewExercise] = useState<Exercise | null>(null);
 
+  // Compatibilidad con guardados antiguos (sin instanceKey) y nuevos (`exerciseId#n`)
+  const baseExerciseId = (key: string) => (key.includes('#') ? key.split('#')[0] : key);
+  const findSetState = (states: ExerciseSetState[] | undefined, key: string) => {
+    if (!states) return undefined;
+    return (
+      states.find(s => s.instanceKey === key) ??
+      states.find(s => s.exerciseId === key) ??
+      states.find(s => (s.instanceKey ?? `${s.exerciseId}#0`) === key) ??
+      states.find(s => s.exerciseId === baseExerciseId(key))
+    );
+  };
+
   // Manejar restauración de entrenamiento
   const handleResumeWorkout = () => {
     if (savedWorkout) {
@@ -82,8 +94,8 @@ const Index = () => {
         
         // Replay de ejercicios completados antes de la interrupción
         savedWorkout.completedExerciseIds.forEach(exId => {
-          const exercise = exercises.find(e => e.id === exId);
-          const setStateData = savedWorkout.exerciseSetStates?.find(s => s.exerciseId === exId);
+          const exercise = exercises.find(e => e.id === baseExerciseId(exId));
+          const setStateData = findSetState(savedWorkout.exerciseSetStates as ExerciseSetState[] | undefined, exId);
           if (exercise && setStateData) {
             setStateData.completedSets.forEach((_, idx) => {
               const setConfig = exercise.setConfigs?.[idx];
@@ -114,7 +126,9 @@ const Index = () => {
   // Obtener ejercicios para el entrenamiento a restaurar
   const savedWorkoutExercises = useMemo(() => {
     if (!savedWorkout) return [];
-    return exercises.filter(e => savedWorkout.workoutExerciseIds.includes(e.id));
+    return savedWorkout.workoutExerciseIds
+      .map(id => exercises.find(e => e.id === baseExerciseId(id)))
+      .filter((e): e is Exercise => Boolean(e));
   }, [savedWorkout, exercises]);
 
   // Obtener la rutina del entrenamiento guardado
@@ -245,11 +259,11 @@ const Index = () => {
               if (!currentSession && savedWorkout) {
                 // Reconstruir ejercicios completados desde el estado guardado
                 const completedExercises = savedWorkout.completedExerciseIds.map(exId => {
-                  const exercise = exercises.find(e => e.id === exId);
-                  const setStateData = savedWorkout.exerciseSetStates?.find(s => s.exerciseId === exId);
+                  const exercise = exercises.find(e => e.id === baseExerciseId(exId));
+                  const setStateData = findSetState(savedWorkout.exerciseSetStates as ExerciseSetState[] | undefined, exId);
                   if (exercise && setStateData) {
                     return {
-                      exerciseId: exId,
+                      exerciseId: exercise.id,
                       exerciseName: exercise.name,
                       muscleGroup: exercise.muscleGroup,
                       completedSets: setStateData.completedSets.length,
@@ -263,8 +277,8 @@ const Index = () => {
                   startSession(savedWorkout.routineId, savedWorkout.routineName);
                   // Registrar cada ejercicio completado
                   savedWorkout.completedExerciseIds.forEach(exId => {
-                    const exercise = exercises.find(e => e.id === exId);
-                    const setStateData = savedWorkout.exerciseSetStates?.find(s => s.exerciseId === exId);
+                    const exercise = exercises.find(e => e.id === baseExerciseId(exId));
+                    const setStateData = findSetState(savedWorkout.exerciseSetStates as ExerciseSetState[] | undefined, exId);
                     if (exercise && setStateData) {
                       setStateData.completedSets.forEach((_, idx) => {
                         const setConfig = exercise.setConfigs?.[idx];
