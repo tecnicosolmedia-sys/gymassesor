@@ -1,5 +1,5 @@
 import { Exercise, SetConfig } from '@/types/exercise';
-import { ExerciseSetState } from './WorkoutFlow';
+import { ExerciseSetState, WorkoutExercise } from './WorkoutFlow';
 import { CheckCircle, ChevronDown, ChevronUp, Edit2, Dumbbell } from 'lucide-react';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -9,10 +9,11 @@ import { cn } from '@/lib/utils';
 interface CompletedExercisesReviewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  exercises: Exercise[];
+  exercises: WorkoutExercise[];
+  /** Claves de instancia de los ejercicios completados */
   completedExerciseIds: Set<string>;
   exerciseSetStates: ExerciseSetState[];
-  onGoToExercise: (exerciseIndex: number, exerciseId: string) => void;
+  onGoToExercise: (exerciseIndex: number, instanceKey: string) => void;
 }
 
 export const CompletedExercisesReview = ({
@@ -25,7 +26,7 @@ export const CompletedExercisesReview = ({
 }: CompletedExercisesReviewProps) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const completedExercises = exercises.filter(e => completedExerciseIds.has(e.id));
+  const completedExercises = exercises.filter(e => completedExerciseIds.has(e.instanceKey));
 
   if (completedExercises.length === 0) return null;
 
@@ -41,8 +42,8 @@ export const CompletedExercisesReview = ({
 
         <div className="space-y-3">
           {completedExercises.map((exercise, idx) => {
-            const exIndex = exercises.findIndex(e => e.id === exercise.id);
-            const setState = exerciseSetStates.find(s => s.exerciseId === exercise.id);
+            const exIndex = exercises.findIndex(e => e.instanceKey === exercise.instanceKey);
+            const setState = exerciseSetStates.find(s => s.instanceKey === exercise.instanceKey);
             const configs: SetConfig[] = exercise.setConfigs || Array.from({ length: exercise.sets }, (_, i) => ({
               setNumber: i + 1,
               reps: exercise.reps,
@@ -50,7 +51,7 @@ export const CompletedExercisesReview = ({
               restTime: exercise.restBetweenSets,
             }));
             const completedSetNums = setState?.completedSets || [];
-            const isExpanded = expandedId === exercise.id;
+            const isExpanded = expandedId === exercise.instanceKey;
             const muscleIcon = getMuscleGroupIcon(exercise.muscleGroup);
             const totalKg = completedSetNums.reduce((sum, setNum) => {
               const cfg = configs[setNum - 1];
@@ -58,10 +59,10 @@ export const CompletedExercisesReview = ({
             }, 0);
 
             return (
-              <div key={exercise.id} className="rounded-xl border border-border overflow-hidden">
+              <div key={exercise.instanceKey} className="rounded-xl border border-border overflow-hidden">
                 {/* Header */}
                 <button
-                  onClick={() => setExpandedId(isExpanded ? null : exercise.id)}
+                  onClick={() => setExpandedId(isExpanded ? null : exercise.instanceKey)}
                   className="w-full flex items-center gap-3 p-3 hover:bg-secondary/30 transition-colors"
                 >
                   <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center overflow-hidden">
@@ -114,7 +115,7 @@ export const CompletedExercisesReview = ({
                       <button
                         onClick={() => {
                           onOpenChange(false);
-                          onGoToExercise(exIndex, exercise.id);
+                          onGoToExercise(exIndex, exercise.instanceKey);
                         }}
                         className="w-full py-2.5 rounded-xl bg-primary/10 text-primary font-medium text-sm flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors"
                       >
