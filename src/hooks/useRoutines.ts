@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Routine } from '@/types/routine';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
+
 
 export const useRoutines = () => {
   const { user } = useAuth();
