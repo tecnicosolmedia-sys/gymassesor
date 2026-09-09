@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   LM,
+  LOWER_BACK_EXTENDED,
+  LOWER_BACK_FLEXED,
+  LOWER_BACK_MIN_RANGE,
   angle2D,
   angle3D,
   classifyExercise,
@@ -14,10 +17,14 @@ import {
   isVisible,
   pickSide,
   shoulderTilt,
+  sideVisibility,
+  torsoVisibility,
+  trunkDriver,
   trunkLean,
   wristDrift,
   type Landmark,
 } from '@/utils/poseCoach';
+
 
 const REAL_NAMES: Array<[string, string]> = [
   ['CHEST PRESS TECHNOGYM', 'chest_press'],
