@@ -1,7 +1,7 @@
 import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
 import { SetCard, NumericSetField } from './SetCard';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { 
   Trash2, 
   Edit2, 
@@ -13,7 +13,12 @@ import {
   CheckCircle,
   BarChart3,
 } from 'lucide-react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Camera } from 'lucide-react';
+import { isCoachAvailable } from '@/utils/poseCoach';
+// Carga diferida: el entrenador virtual (y MediaPipe) no entra en el bundle inicial.
+const VirtualCoach = lazy(() =>
+  import('./VirtualCoach').then(m => ({ default: m.VirtualCoach })),
+);
 import { WorkoutSession } from '@/types/workoutHistory';
 import { ExerciseProgressChart } from './ExerciseProgressChart';
 import { cn } from '@/lib/utils';
@@ -97,6 +102,9 @@ export const ExerciseCard = ({
   
   const [showChart, setShowChart] = useState(false);
   const [chartMetric, setChartMetric] = useState<'weight' | 'reps'>('weight');
+  // Entrenador virtual por cámara (Beta): solo en el ejercicio activo y no en calentamientos.
+  const [showCoach, setShowCoach] = useState(false);
+  const coachAvailable = useMemo(() => isCoachAvailable(exercise.name), [exercise.name]);
   const ai = useAISuggestion();
   // Misma regla única que usa la petición IA: sin series efectivas válidas no hay sugerencia.
   const hasHistory = useMemo(
@@ -555,7 +563,32 @@ export const ExerciseCard = ({
                 </p>
               </div>
             )}
-            
+
+            {/* Entrenador virtual por cámara (Beta) */}
+            {isActive && (
+              coachAvailable ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCoach(true);
+                  }}
+                  aria-label="Abrir entrenador virtual con cámara"
+                  className="w-full py-3 rounded-xl bg-secondary border border-primary/40 text-foreground font-semibold flex items-center justify-center gap-2"
+                >
+                  <Camera className="w-5 h-5 text-primary" aria-hidden="true" />
+                  Entrenador virtual
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold">
+                    Beta
+                  </span>
+                </button>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Entrenador virtual no disponible para este ejercicio.
+                </p>
+              )
+            )}
+
+
             {/* Set tracker with individual configs */}
             <div className="p-4 rounded-xl bg-secondary/30">
               <div className="flex items-center justify-between mb-4">
@@ -827,6 +860,12 @@ export const ExerciseCard = ({
 
       {recordFlash && (
         <div className="fixed inset-0 z-[300] pointer-events-none animate-strobe-flash" />
+      )}
+
+      {showCoach && coachAvailable && (
+        <Suspense fallback={null}>
+          <VirtualCoach exerciseName={exercise.name} onClose={() => setShowCoach(false)} />
+        </Suspense>
       )}
 
       <AISuggestionDialog
