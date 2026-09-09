@@ -112,7 +112,7 @@ export const CompletedExercisesReview = ({
                             <div className="w-6 h-6 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
                               {setNum}
                             </div>
-                            {cfg.isWarmup && (
+                            {isWarmupSet(exercise.name, cfg) && (
                               <span className="text-[9px] text-warning font-semibold">Cal.</span>
                             )}
                           </div>

@@ -6,6 +6,7 @@ import { MuscleGroup, Exercise } from '@/types/exercise';
 import {
   buildUnilateralMap,
   formatRepsShort,
+  getEffectiveSets,
   getSessionStats,
   isExercisePerformed,
   isWarmupSet,
@@ -378,10 +379,12 @@ export const WorkoutHistory = ({ sessions, routineNames: externalRoutineNames, e
                                   <BarChart3 className="w-3.5 h-3.5" />
                                 </button>
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                                  {isExercisePerformed(exercise)
-                                    ? `${exercise.completedSets.length} series`
-                                    : 'No realizado'}
-
+                                  {(() => {
+                                    if (!isExercisePerformed(exercise)) return 'No realizado';
+                                    const effective = getEffectiveSets(exercise).length;
+                                    const warmups = exercise.completedSets.length - effective;
+                                    return `${effective} series${warmups > 0 ? ` · ${warmups} cal.` : ''}`;
+                                  })()}
                                 </span>
                               </div>
                             </div>

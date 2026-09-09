@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { formatReps } from '@/utils/workoutStats';
+import { formatReps, isWarmupExerciseName, isWarmupSet } from '@/utils/workoutStats';
 
 /** Campos numéricos editables de una serie */
 export type NumericSetField = 'reps' | 'weight' | 'restTime';
@@ -18,6 +18,8 @@ export type NumericSetField = 'reps' | 'weight' | 'restTime';
 interface SetCardProps {
   config: SetConfig;
   index: number;
+  /** Nombre del ejercicio, para detectar calentamientos por nombre (regla legacy) */
+  exerciseName?: string;
   isCompleted: boolean;
   isCurrent: boolean;
   currentSet: number;
@@ -39,6 +41,7 @@ type EditableField = NumericSetField;
 export const SetCard = ({
   config,
   index,
+  exerciseName = '',
   isCompleted,
   isCurrent,
   currentSet,
@@ -56,6 +59,11 @@ export const SetCard = ({
   const [isEditingCompleted, setIsEditingCompleted] = useState(false);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [directInputValue, setDirectInputValue] = useState('');
+
+  // Calentamiento visual: marca explícita o regla legacy por nombre de ejercicio.
+  // La regla por nombre no se puede desactivar desde el control de la serie.
+  const isNameWarmup = isWarmupExerciseName(exerciseName);
+  const displayWarmup = isWarmupSet(exerciseName, config);
   
   // Refs para long press
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -141,13 +149,13 @@ export const SetCard = ({
               )}
             </div>
             <span className="text-sm font-medium">Serie {index + 1}</span>
-            {config.isWarmup && (
+            {displayWarmup && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-warning/20 text-warning font-semibold flex items-center gap-1">
                 <Flame className="w-3 h-3" />
                 Calentamiento
               </span>
             )}
-            {!isCompleted && onToggleWarmup && (
+            {!isCompleted && onToggleWarmup && !isNameWarmup && (
               <button
                 type="button"
                 onClick={(e) => {
