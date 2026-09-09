@@ -212,11 +212,17 @@ export const ExerciseCard = ({
   // Estado local para las configuraciones editables
   const [localSetConfigs, setLocalSetConfigs] = useState<SetConfig[]>(buildInitialConfigs);
 
-  // Sincronizar estado de series cuando cambia el ejercicio o se restaura sesión
+  // Sincronizar estado de series cuando cambia el ejercicio o se restaura sesión.
+  // Se comparan valores (no referencias) para no reescribir el estado en cada render.
   useEffect(() => {
-    setCurrentSet(initialCurrentSet);
-    setCompletedSets(initialCompletedSets);
+    setCurrentSet(prev => (prev === initialCurrentSet ? prev : initialCurrentSet));
+    setCompletedSets(prev => {
+      const next = initialCompletedSets ?? [];
+      const same = prev.length === next.length && prev.every((v, i) => v === next[i]);
+      return same ? prev : [...next];
+    });
   }, [instanceKey, exercise.id, initialCurrentSet, initialCompletedSets]);
+
 
 
   // Sincronizar SOLO cuando cambia la aparición del ejercicio (no cuando cambia el historial,
