@@ -290,7 +290,13 @@ export const WorkoutFlow = ({
   }, [newExerciseToAdd]);
 
   const remainingExercises = workoutExercises.filter(
-    (e) => !completedExerciseIds.has(e.id)
+    (e) => !completedExerciseIds.has(e.instanceKey)
+  );
+
+  // Ids de ejercicios (identidad histórica) con alguna aparición completada
+  const completedOriginalIds = useMemo(
+    () => new Set(workoutExercises.filter((e) => completedExerciseIds.has(e.instanceKey)).map((e) => e.id)),
+    [workoutExercises, completedExerciseIds]
   );
 
   const availableExtraExercises = allExercises.filter(
@@ -298,10 +304,10 @@ export const WorkoutFlow = ({
            !extraExercises.some((ee) => ee.id === e.id)
   );
 
-  const handleExerciseComplete = (exerciseId: string) => {
-    const exerciseIndex = workoutExercises.findIndex((e) => e.id === exerciseId);
+  const handleExerciseComplete = (instanceKey: string) => {
+    const exerciseIndex = workoutExercises.findIndex((e) => e.instanceKey === instanceKey);
     
-    setCompletedExerciseIds((prev) => new Set([...prev, exerciseId]));
+    setCompletedExerciseIds((prev) => new Set([...prev, instanceKey]));
     
     // Mostrar resumen del ejercicio antes de continuar
     setFlowState({ 
@@ -309,6 +315,7 @@ export const WorkoutFlow = ({
       completedExerciseIndex: exerciseIndex 
     });
   };
+
 
   const handleSummaryContinue = (completedExerciseIndex: number, updatedConfigs: SetConfig[]) => {
     const exercise = workoutExercises[completedExerciseIndex];
