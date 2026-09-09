@@ -24,9 +24,34 @@ const WORKOUT_STATE_KEY = 'gym-tracker-active-workout';
 
 export interface ExerciseSetState {
   exerciseId: string;
+  /** Clave única de la aparición del ejercicio dentro del entrenamiento */
+  instanceKey?: string;
   currentSet: number;
   completedSets: number[];
 }
+
+/** Ejercicio dentro de un entrenamiento, con clave de instancia única y estable */
+export type WorkoutExercise = Exercise & { instanceKey: string };
+
+/** Asigna claves de instancia deterministas: `${exerciseId}#${nºAparición}` */
+const withInstanceKeys = (list: Exercise[]): WorkoutExercise[] => {
+  const counts = new Map<string, number>();
+  return list.map((e) => {
+    const n = counts.get(e.id) ?? 0;
+    counts.set(e.id, n + 1);
+    return { ...e, instanceKey: `${e.id}#${n}` };
+  });
+};
+
+const nextInstanceKey = (list: WorkoutExercise[], exerciseId: string) => {
+  let n = 0;
+  while (list.some((e) => e.instanceKey === `${exerciseId}#${n}`)) n++;
+  return `${exerciseId}#${n}`;
+};
+
+/** Compatibilidad con entrenamientos guardados antes de las claves de instancia */
+const normalizeKey = (key: string) => (key.includes('#') ? key : `${key}#0`);
+
 
 interface WorkoutFlowProps {
   routineId?: string;
