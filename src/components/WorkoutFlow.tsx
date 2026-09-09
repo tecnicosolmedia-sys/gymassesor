@@ -768,7 +768,7 @@ export const WorkoutFlow = ({
                           reps: cfg?.reps ?? ex.reps,
                           weight: cfg?.weight ?? ex.weight,
                           restTime: cfg?.restTime ?? ex.restBetweenSets,
-                          isWarmup: cfg ? isWarmupSet(ex.name, cfg) : false,
+                          isWarmup: isWarmupSet(ex.name, { isWarmup: (cfg as SetConfig | undefined)?.isWarmup }),
                         };
                       }),
 
