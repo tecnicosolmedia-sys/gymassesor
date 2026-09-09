@@ -83,6 +83,8 @@ export const CompletedExercisesReview = ({
                     <p className="font-semibold text-sm">{exercise.name}</p>
                     <p className="text-xs text-muted-foreground">
                       {effectiveCompleted.length} series · {totalKg.toLocaleString()} kg
+                    </p>
+
 
                   </div>
                   {isExpanded ? (
