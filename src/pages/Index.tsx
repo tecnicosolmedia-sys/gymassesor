@@ -127,7 +127,12 @@ const Index = () => {
   const savedWorkoutExercises = useMemo(() => {
     if (!savedWorkout) return [];
     return savedWorkout.workoutExerciseIds
-      .map(id => exercises.find(e => e.id === baseExerciseId(id)))
+      .map(id => {
+        const base = exercises.find(e => e.id === baseExerciseId(id));
+        if (!base) return null;
+        // Guardados nuevos traen la instanceKey; los antiguos se renumeran después
+        return id.includes('#') ? { ...base, instanceKey: id } : base;
+      })
       .filter((e): e is Exercise => Boolean(e));
   }, [savedWorkout, exercises]);
 
