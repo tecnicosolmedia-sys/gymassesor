@@ -52,11 +52,11 @@ export const AISuggestionDialog = ({ open, onOpenChange, loading, suggestion, ex
                   <div key={s.setNumber} className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2 px-3 py-2 border-t border-border text-sm">
                     <span className="font-semibold">#{s.setNumber}</span>
                     <span className="text-muted-foreground">
-                      {cur ? `${cur.reps} × ${cur.weight}kg` : '—'}
+                      {cur ? `${fmt(cur.reps)} × ${cur.weight}kg` : '—'}
                     </span>
                     <ArrowRight className="w-3.5 h-3.5 text-primary" />
                     <span className="font-semibold text-primary">
-                      {s.reps} × {s.weight}kg
+                      {fmt(s.reps)} × {s.weight}kg
                     </span>
                   </div>
                 );
