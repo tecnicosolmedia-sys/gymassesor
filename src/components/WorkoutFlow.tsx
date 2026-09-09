@@ -33,12 +33,20 @@ export interface ExerciseSetState {
 /** Ejercicio dentro de un entrenamiento, con clave de instancia única y estable */
 export type WorkoutExercise = Exercise & { instanceKey: string };
 
-/** Asigna claves de instancia deterministas: `${exerciseId}#${nºAparición}` */
-const withInstanceKeys = (list: Exercise[]): WorkoutExercise[] => {
+/**
+ * Asigna claves de instancia deterministas: `${exerciseId}#${nºAparición}`.
+ * Respeta una instanceKey ya presente (guardados nuevos) y solo genera claves
+ * para entradas antiguas sin ella, evitando colisiones con las existentes.
+ */
+const withInstanceKeys = (list: (Exercise & { instanceKey?: string })[]): WorkoutExercise[] => {
+  const used = new Set<string>(list.map((e) => e.instanceKey).filter((k): k is string => Boolean(k)));
   const counts = new Map<string, number>();
   return list.map((e) => {
-    const n = counts.get(e.id) ?? 0;
+    if (e.instanceKey) return { ...e, instanceKey: e.instanceKey } as WorkoutExercise;
+    let n = counts.get(e.id) ?? 0;
+    while (used.has(`${e.id}#${n}`)) n++;
     counts.set(e.id, n + 1);
+    used.add(`${e.id}#${n}`);
     return { ...e, instanceKey: `${e.id}#${n}` };
   });
 };
@@ -206,7 +214,7 @@ export const WorkoutFlow = ({
     const stateToSave = {
       routineId,
       routineName,
-      workoutExerciseIds: workoutExercises.map(e => e.id),
+      workoutExerciseIds: workoutExercises.map(e => e.instanceKey),
       completedExerciseIds: Array.from(completedExerciseIds),
       flowState,
       elapsedTime,
