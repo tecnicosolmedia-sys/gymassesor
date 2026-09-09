@@ -7,11 +7,15 @@ import {
   buildAIHistory,
   canonicalizeRest,
   canonicalizeSetSuggestions,
+  configSignature,
 } from '@/utils/aiSuggestion';
 
 export interface AISuggestion {
-  setSuggestions: { setNumber: number; reps: number; weight: number }[];
+  setSuggestions: { setNumber: number; reps: number; weight: number; restTime: number }[];
   restBetweenSets: number;
+  weightAnalysis: string;
+  repsAnalysis: string;
+  restAnalysis: string;
   coaching: string;
   basis: string;
 }
@@ -23,6 +27,8 @@ export const useAISuggestion = () => {
   /** Copia inmutable de la configuración real usada en la petición (fuente del diálogo) */
   const [requestedConfig, setRequestedConfig] = useState<SetConfig[]>([]);
   const [requestedRest, setRequestedRest] = useState<number | undefined>(undefined);
+  /** Firma de la configuración/series completadas al lanzar la petición */
+  const [requestedSignature, setRequestedSignature] = useState<string>('');
 
   const inFlightRef = useRef(false);
   const requestIdRef = useRef(0);
@@ -44,6 +50,7 @@ export const useAISuggestion = () => {
     sessions: WorkoutSession[],
     currentConfig: SetConfig[],
     currentRest?: number,
+    completedCount = 0,
   ) => {
     if (inFlightRef.current) return; // evita doble petición accidental
 
@@ -63,6 +70,7 @@ export const useAISuggestion = () => {
     inFlightRef.current = true;
     setRequestedConfig(config);
     setRequestedRest(currentRest);
+    setRequestedSignature(configSignature(config, completedCount));
     setSuggestion(null);
     setLoading(true);
     setOpen(true);
@@ -80,6 +88,7 @@ export const useAISuggestion = () => {
             reps: c.reps,
             weight: c.weight,
             restTime: c.restTime,
+            isWarmup: c.isWarmup === true,
           })),
           currentRest: currentRest,
           history,
@@ -104,6 +113,9 @@ export const useAISuggestion = () => {
       const canonical: AISuggestion = {
         setSuggestions: canonicalizeSetSuggestions(config, (data as any)?.setSuggestions),
         restBetweenSets: canonicalizeRest((data as any)?.restBetweenSets, currentRest),
+        weightAnalysis: String((data as any)?.weightAnalysis ?? '').slice(0, 400),
+        repsAnalysis: String((data as any)?.repsAnalysis ?? '').slice(0, 400),
+        restAnalysis: String((data as any)?.restAnalysis ?? '').slice(0, 400),
         coaching: String((data as any)?.coaching ?? '').slice(0, 400),
         basis: String((data as any)?.basis ?? '').slice(0, 300),
       };
@@ -126,8 +138,10 @@ export const useAISuggestion = () => {
     suggestion,
     open,
     setOpen: handleOpenChange,
+    close,
     request,
     requestedConfig,
     requestedRest,
+    requestedSignature,
   };
 };

@@ -86,6 +86,15 @@ const Index = () => {
     );
   };
 
+  /** Configuración efectiva de una aparición: la aplicada en sesión (IA) o la del ejercicio */
+  const resolveConfigs = (
+    setStateData: ExerciseSetState | undefined,
+    exercise: Exercise,
+  ): SetConfig[] | undefined =>
+    (setStateData?.sessionSetConfigs && setStateData.sessionSetConfigs.length > 0)
+      ? setStateData.sessionSetConfigs
+      : exercise.setConfigs;
+
   // Manejar restauración de entrenamiento
   const handleResumeWorkout = () => {
     if (savedWorkout) {
@@ -99,7 +108,7 @@ const Index = () => {
           const setStateData = findSetState(savedWorkout.exerciseSetStates as ExerciseSetState[] | undefined, exId);
           if (exercise && setStateData) {
             setStateData.completedSets.forEach((_, idx) => {
-              const setConfig = exercise.setConfigs?.[idx];
+              const setConfig = resolveConfigs(setStateData, exercise)?.[idx];
               logCompletedSet(
                 exercise.id,
                 exercise.name,
@@ -295,7 +304,7 @@ const Index = () => {
                     const setStateData = findSetState(savedWorkout.exerciseSetStates as ExerciseSetState[] | undefined, exId);
                     if (exercise && setStateData) {
                       setStateData.completedSets.forEach((_, idx) => {
-                        const setConfig = exercise.setConfigs?.[idx];
+                        const setConfig = resolveConfigs(setStateData, exercise)?.[idx];
                         logCompletedSet(
                           exercise.id,
                           exercise.name,

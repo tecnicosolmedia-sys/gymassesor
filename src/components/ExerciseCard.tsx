@@ -1,7 +1,7 @@
 import { Exercise, SetConfig } from '@/types/exercise';
 import { FullscreenTimer } from './FullscreenTimer';
 import { SetCard, NumericSetField } from './SetCard';
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { 
   Trash2, 
   Edit2, 
@@ -27,7 +27,8 @@ import { PersonalRecordDialog } from './PersonalRecordDialog';
 import { useAISuggestion } from '@/hooks/useAISuggestion';
 import { AISuggestionDialog } from './AISuggestionDialog';
 import { isWarmupSet } from '@/utils/workoutStats';
-import { buildAIHistory } from '@/utils/aiSuggestion';
+import { toast } from 'sonner';
+import { applySuggestionToConfigs, buildAIHistory, configSignature } from '@/utils/aiSuggestion';
 
 
 import {
@@ -55,8 +56,15 @@ interface ExerciseCardProps {
   // Si es true, no muestra el temporizador de ejercicio completo (lo maneja el padre)
   skipExerciseRestTimer?: boolean;
   onExerciseComplete?: () => void;
-  // Callback para guardar cambios en la configuración
+  // Callback para guardar cambios en la configuración (persiste en la rutina maestra)
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
+  /**
+   * Callback SOLO de sesión: aplica una configuración a esta aparición del ejercicio
+   * dentro del entrenamiento en curso. No persiste en public.exercises.
+   */
+  onUpdateSessionSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
+  /** Configuración aplicada previamente en esta sesión (restauración) */
+  initialSessionSetConfigs?: SetConfig[];
   // Estado inicial para restaurar sesión (serie actual y series completadas)
   initialCurrentSet?: number;
   initialCompletedSets?: number[];
@@ -83,6 +91,8 @@ export const ExerciseCard = ({
   skipExerciseRestTimer = false,
   onExerciseComplete,
   onUpdateSetConfig,
+  onUpdateSessionSetConfig,
+  initialSessionSetConfigs,
   initialCurrentSet = 1,
   initialCompletedSets = [],
   onSetStateChange,
@@ -172,8 +182,12 @@ export const ExerciseCard = ({
     return null;
   };
 
-  // Construir configs iniciales: prioridad a última sesión > setConfigs > valores del ejercicio
+  // Construir configs iniciales: prioridad a config aplicada en esta sesión >
+  // última sesión > setConfigs > valores del ejercicio
   const buildInitialConfigs = (): SetConfig[] => {
+    if (initialSessionSetConfigs && initialSessionSetConfigs.length > 0) {
+      return initialSessionSetConfigs.map(c => ({ ...c }));
+    }
     const lastSession = getLastSessionConfigs();
     if (lastSession) return lastSession;
     return exercise.setConfigs && exercise.setConfigs.length > 0
@@ -217,6 +231,34 @@ export const ExerciseCard = ({
       weight: exercise.weight,
       restTime: exercise.restBetweenSets,
     };
+  };
+
+  // ---- Sugerencia IA: aplicar solo a esta aparición del entrenamiento ----
+  const canApplySuggestion =
+    isActive && completedSets.length === 0 && currentSet === 1 && !!onUpdateSessionSetConfig;
+
+  const applyBlockedReason = !isActive
+    ? 'Solo puede aplicarse en el ejercicio activo, antes de completar la primera serie'
+    : 'Solo puede aplicarse antes de completar la primera serie';
+
+  const applySuggestionRef = useRef(false);
+  const handleApplySuggestion = () => {
+    if (applySuggestionRef.current) return; // protección ante doble clic
+    if (!canApplySuggestion || !ai.suggestion) return;
+    // Respuesta obsoleta: la configuración o el progreso cambiaron mientras estaba abierta.
+    if (configSignature(localSetConfigs, completedSets.length) !== ai.requestedSignature) {
+      toast.error('La configuración cambió. Genera una nueva sugerencia.');
+      ai.close();
+      return;
+    }
+    applySuggestionRef.current = true;
+    const updated = applySuggestionToConfigs(localSetConfigs, ai.suggestion.setSuggestions);
+    setLocalSetConfigs(updated);
+    // SOLO sesión: nunca se llama a onUpdateSetConfig (no toca public.exercises).
+    onUpdateSessionSetConfig?.(exercise.id, updated);
+    ai.close();
+    toast.success('Sugerencia aplicada a este entrenamiento');
+    setTimeout(() => { applySuggestionRef.current = false; }, 500);
   };
 
   // Actualizar configuración de una serie
@@ -512,7 +554,13 @@ export const ExerciseCard = ({
               onClick={(e) => {
                 e.stopPropagation();
                 if (!hasHistory) return;
-                ai.request(exercise, workoutSessions, localSetConfigs, getCurrentSetConfig().restTime ?? exercise.restBetweenSets);
+                ai.request(
+                  exercise,
+                  workoutSessions,
+                  localSetConfigs,
+                  getCurrentSetConfig().restTime ?? exercise.restBetweenSets,
+                  completedSets.length,
+                );
               }}
               disabled={!hasHistory}
               title={hasHistory ? 'Sugerencia IA' : 'Sin histórico todavía'}
@@ -877,6 +925,9 @@ export const ExerciseCard = ({
         currentConfig={ai.requestedConfig}
         currentRest={ai.requestedRest}
         isUnilateral={exercise.isUnilateral === true}
+        canApply={canApplySuggestion}
+        blockedReason={applyBlockedReason}
+        onApply={handleApplySuggestion}
       />
     </>
   );

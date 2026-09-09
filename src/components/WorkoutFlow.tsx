@@ -20,6 +20,7 @@ import { calculateAge, calculateCaloriesBurned } from '@/types/personalData';
 
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { cn } from '@/lib/utils';
+import { upsertSessionSetConfigs } from '@/utils/aiSuggestion';
 
 // Clave para persistencia en localStorage
 const WORKOUT_STATE_KEY = 'gym-tracker-active-workout';
@@ -30,6 +31,8 @@ export interface ExerciseSetState {
   instanceKey?: string;
   currentSet: number;
   completedSets: number[];
+  /** Configuración aplicada SOLO a esta aparición del entrenamiento (IA) */
+  sessionSetConfigs?: SetConfig[];
 }
 
 /** Ejercicio dentro de un entrenamiento, con clave de instancia única y estable */
@@ -263,7 +266,13 @@ export const WorkoutFlow = ({
   const handleSetStateChange = useCallback((instanceKey: string, exerciseId: string, currentSet: number, completedSets: number[]) => {
     setExerciseSetStates(prev => {
       const existing = prev.findIndex(s => s.instanceKey === instanceKey);
-      const newState = { instanceKey, exerciseId, currentSet, completedSets };
+      const newState = {
+        instanceKey,
+        exerciseId,
+        currentSet,
+        completedSets,
+        sessionSetConfigs: existing >= 0 ? prev[existing].sessionSetConfigs : undefined,
+      };
       if (existing >= 0) {
         const updated = [...prev];
         updated[existing] = newState;
@@ -273,6 +282,17 @@ export const WorkoutFlow = ({
     });
   }, []);
 
+
+  /**
+   * Configuración aplicada por la IA a UNA aparición concreta del entrenamiento.
+   * No persiste en public.exercises ni afecta a otras apariciones del mismo ejercicio.
+   */
+  const handleSessionSetConfig = useCallback((instanceKey: string, exerciseId: string, setConfigs: SetConfig[]) => {
+    setExerciseSetStates(prev => upsertSessionSetConfigs(prev, instanceKey, exerciseId, setConfigs));
+    setWorkoutExercises(prev => prev.map(e =>
+      e.instanceKey === instanceKey ? { ...e, setConfigs: setConfigs.map(c => ({ ...c })) } : e
+    ));
+  }, []);
 
   // Limpiar estado guardado al finalizar
   const clearSavedState = useCallback(() => {
@@ -1296,6 +1316,10 @@ export const WorkoutFlow = ({
                   // También notificar al padre para persistencia
                   onUpdateSetConfig?.(exerciseId, setConfigs);
                 }}
+                onUpdateSessionSetConfig={(exerciseId, setConfigs) =>
+                  handleSessionSetConfig(currentExercise.instanceKey, exerciseId, setConfigs)
+                }
+                initialSessionSetConfigs={savedSetState?.sessionSetConfigs}
                 initialCurrentSet={savedSetState?.currentSet}
                 initialCompletedSets={savedSetState?.completedSets}
                 onSetStateChange={(exerciseId, currentSet, completedSets) => handleSetStateChange(currentExercise.instanceKey, exerciseId, currentSet, completedSets)}
