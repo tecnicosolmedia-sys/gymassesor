@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   LM,
+  LOWER_BACK_EXTENDED,
+  LOWER_BACK_FLEXED,
+  LOWER_BACK_MIN_RANGE,
   angle2D,
   angle3D,
   classifyExercise,
@@ -14,10 +17,14 @@ import {
   isVisible,
   pickSide,
   shoulderTilt,
+  sideVisibility,
+  torsoVisibility,
+  trunkDriver,
   trunkLean,
   wristDrift,
   type Landmark,
 } from '@/utils/poseCoach';
+
 
 const REAL_NAMES: Array<[string, string]> = [
   ['CHEST PRESS TECHNOGYM', 'chest_press'],
@@ -196,6 +203,75 @@ describe('contador de repeticiones', () => {
   });
 });
 
+describe('ciclo lumbar (driver por inclinación de tronco)', () => {
+  const lb = getCoachConfig('LOWER BACK (Lumbar) TECHNOGYM')!;
+  const make = () =>
+    createRepCounter({
+      extendedAngle: lb.extendedAngle,
+      flexedAngle: lb.flexedAngle,
+      minRange: lb.minRange,
+      cooldownMs: 600,
+    });
+
+  it('define umbrales explícitos coherentes con trunkDriver', () => {
+    expect(lb.extendedAngle).toBe(LOWER_BACK_EXTENDED);
+    expect(lb.flexedAngle).toBe(LOWER_BACK_FLEXED);
+    expect(lb.minRange).toBe(LOWER_BACK_MIN_RANGE);
+    expect(trunkDriver(0)).toBe(180);
+    expect(trunkDriver(45)).toBe(90);
+    expect(trunkDriver(null)).toBeNull();
+    expect(lb.extendedAngle).toBeGreaterThan(lb.flexedAngle);
+  });
+
+  it('un ciclo completo cuenta exactamente 1 repetición', () => {
+    const c = make();
+    c.update(trunkDriver(2), 0, 1); // erguido
+    c.update(trunkDriver(20), 100, 1); // recorrido
+    c.update(trunkDriver(40), 200, 1); // flexión
+    c.update(trunkDriver(20), 300, 1);
+    const r = c.update(trunkDriver(2), 400, 1); // vuelta a erguido
+    expect(r.counted).toBe(true);
+    expect(c.reps).toBe(1);
+  });
+
+  it('un recorrido insuficiente no cuenta', () => {
+    const c = make();
+    c.update(trunkDriver(2), 0, 1);
+    c.update(trunkDriver(18), 100, 1); // no llega a flexión
+    const r = c.update(trunkDriver(2), 200, 1);
+    expect(r.counted).toBe(false);
+    expect(c.reps).toBe(0);
+  });
+
+  it('baja visibilidad del torso no cuenta', () => {
+    const c = make();
+    const invisibleTorso = buildPose({
+      [LM.LEFT_HIP]: { x: 0.42, y: 0.7, visibility: 0.05 },
+      [LM.RIGHT_HIP]: { x: 0.58, y: 0.7, visibility: 0.05 },
+      [LM.LEFT_SHOULDER]: { x: 0.4, y: 0.3, visibility: 0.05 },
+      [LM.RIGHT_SHOULDER]: { x: 0.6, y: 0.3, visibility: 0.05 },
+    });
+    const vis = torsoVisibility(invisibleTorso);
+    expect(vis).toBeLessThan(0.4);
+    c.update(trunkDriver(2), 0, vis);
+    c.update(trunkDriver(40), 100, vis);
+    const r = c.update(trunkDriver(2), 200, vis);
+    expect(r.rejected).toBe('visibility');
+    expect(c.reps).toBe(0);
+  });
+
+  it('la visibilidad de torso no depende del brazo', () => {
+    const noArm = buildPose({
+      [LM.LEFT_WRIST]: { x: 0.4, y: 0.6, visibility: 0.05 },
+      [LM.RIGHT_WRIST]: { x: 0.6, y: 0.6, visibility: 0.05 },
+      [LM.LEFT_ELBOW]: { x: 0.4, y: 0.45, visibility: 0.05 },
+      [LM.RIGHT_ELBOW]: { x: 0.6, y: 0.45, visibility: 0.05 },
+    });
+    expect(torsoVisibility(noArm)).toBeGreaterThan(0.8);
+    expect(sideVisibility(noArm, 'left')).toBeLessThan(0.4);
+  });
+});
+
 describe('suavizado', () => {
   it('promedia la ventana y mantiene el último valor con datos nulos', () => {
     const s = createSmoother(3);
@@ -205,7 +281,21 @@ describe('suavizado', () => {
     s.reset();
     expect(s.push(null)).toBeNull();
   });
+
+  it('el contador no debe contar con el promedio antiguo si se pierde el brazo', () => {
+    // El suavizado sirve para el feedback, pero el contador recibe el valor crudo.
+    const s = createSmoother(5);
+    const c = createRepCounter({ extendedAngle: 160, flexedAngle: 90, minRange: 50, cooldownMs: 0 });
+    c.update(170, 0, 1);
+    c.update(80, 100, 1);
+    s.push(80);
+    // Fotograma sin brazo: el smoother devuelve 80, pero el crudo es null.
+    expect(s.push(null)).toBe(80);
+    expect(c.update(null, 200, 1).rejected).toBe('visibility');
+    expect(c.reps).toBe(0);
+  });
 });
+
 
 describe('reglas de feedback', () => {
   const bi = getCoachConfig('CHEST PRESS TECHNOGYM')!;

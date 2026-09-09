@@ -111,7 +111,29 @@ const BASE: Omit<ExerciseCoachConfig, 'category' | 'label' | 'side' | 'plane' | 
   maxShoulderTilt: 0.12,
 };
 
+/* ------------------------------------------------------------------ */
+/* Lumbar: driver explícito por inclinación de tronco                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Convierte la inclinación del tronco (grados respecto a la vertical) en un
+ * "driver" con la misma escala que un ángulo articular, para reutilizar la
+ * máquina de estados: 180 = erguido, valores menores = más flexión.
+ */
+export const trunkDriver = (lean: number | null): number | null => {
+  if (lean === null || !Number.isFinite(lean)) return null;
+  return 180 - Math.max(0, lean) * 2;
+};
+
+/** Umbral de extensión del lumbar (tronco erguido, lean <= ~7.5º). */
+export const LOWER_BACK_EXTENDED = 165;
+/** Umbral de flexión del lumbar (lean >= ~35º). */
+export const LOWER_BACK_FLEXED = 110;
+/** Rango mínimo del driver lumbar (~20º reales de tronco). */
+export const LOWER_BACK_MIN_RANGE = 40;
+
 const CONFIGS: Record<ExerciseCategory, ExerciseCoachConfig> = {
+
   chest_press: {
     ...BASE,
     category: 'chest_press',
@@ -197,13 +219,18 @@ const CONFIGS: Record<ExerciseCategory, ExerciseCoachConfig> = {
     plane: 'lateral',
     bilateral: true,
     placement: 'Cámara lateral, tronco y caderas visibles, a 2–3 m.',
-    // El lumbar se mide por inclinación del tronco, no por el codo.
-    extendedAngle: 0,
-    flexedAngle: 0,
-    minRange: 20,
+    // El lumbar no se mide por el codo: el "driver" del contador es
+    // trunkDriver(inclinación del tronco) = 180 - 2 * lean, de modo que:
+    //   tronco erguido (lean ~0º)   -> driver ~180 (extensión)
+    //   tronco flexionado (lean 45º) -> driver ~90  (flexión)
+    // Umbrales explícitos y coherentes con ese driver:
+    extendedAngle: LOWER_BACK_EXTENDED, // lean <= ~7.5º (con histéresis)
+    flexedAngle: LOWER_BACK_FLEXED, // lean >= ~35º
+    minRange: LOWER_BACK_MIN_RANGE, // ~20º reales de tronco
     maxTrunkLean: 90,
   },
 };
+
 
 /** ¿El nombre indica trabajo unilateral? (no se exige simetría). */
 export const isUnilateralName = (name: string): boolean => {
@@ -308,7 +335,20 @@ export const elbowAngle = (landmarks: Landmark[], side: 'left' | 'right'): numbe
   return angle2D(landmarks[s], landmarks[e], landmarks[w]);
 };
 
+/** Visibilidad media del torso (hombros + caderas). Usada en lumbar. */
+export const torsoVisibility = (landmarks: Landmark[]): number => {
+  const idx = [LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER, LM.LEFT_HIP, LM.RIGHT_HIP];
+  let sum = 0;
+  for (const i of idx) {
+    const lm = landmarks[i];
+    if (!lm || !finite(lm.x) || !finite(lm.y)) continue;
+    sum += lm.visibility === undefined ? 1 : finite(lm.visibility) ? lm.visibility : 0;
+  }
+  return sum / idx.length;
+};
+
 export const sideVisibility = (landmarks: Landmark[], side: 'left' | 'right'): number => {
+
   const idx =
     side === 'left'
       ? [LM.LEFT_SHOULDER, LM.LEFT_ELBOW, LM.LEFT_WRIST]
@@ -521,8 +561,11 @@ export const evaluateFeedback = (input: FeedbackInput): FeedbackResult => {
     if (trunk === null) {
       return build('warn', 'Colócate de lado para ver el tronco completo.');
     }
-    if (trunk > 55) return build('bad', 'No hiperextiendas: sube con control.');
+    // trunkLean usa valor absoluto: no distingue flexión de extensión, así que
+    // no se afirma "hiperextensión". Solo se avisa de amplitud excesiva.
+    if (trunk > 55) return build('bad', 'Recorrido excesivo: controla la amplitud del tronco.');
     if (trunk < 8 && phase !== 'start') return build('warn', 'Amplía el recorrido del tronco.');
+
     return build('good', 'Buen control lumbar.');
   }
 
