@@ -42,6 +42,12 @@ import {
 
 interface ExerciseCardProps {
   exercise: Exercise;
+  /**
+   * Clave estable de esta aparición dentro del entrenamiento. Garantiza que dos
+   * apariciones del mismo exerciseId no compartan estado de configuración.
+   */
+  instanceKey?: string;
+
   onEdit: (exercise: Exercise) => void;
   onDelete: (id: string) => void;
   isActive?: boolean;
@@ -83,6 +89,8 @@ interface ExerciseCardProps {
 
 export const ExerciseCard = ({ 
   exercise, 
+  instanceKey,
+
   onEdit, 
   onDelete,
   isActive = false,
@@ -153,7 +161,8 @@ export const ExerciseCard = ({
   const [sessionBestWeight, setSessionBestWeight] = useState(0);
   useEffect(() => {
     setSessionBestWeight(0);
-  }, [exercise.id]);
+  }, [instanceKey, exercise.id]);
+
 
   // Buscar la última sesión completada de este ejercicio para precargar pesos/reps
   const getLastSessionConfigs = (): SetConfig[] | null => {
@@ -207,14 +216,17 @@ export const ExerciseCard = ({
   useEffect(() => {
     setCurrentSet(initialCurrentSet);
     setCompletedSets(initialCompletedSets);
-  }, [exercise.id, initialCurrentSet, initialCompletedSets]);
+  }, [instanceKey, exercise.id, initialCurrentSet, initialCompletedSets]);
 
-  // Sincronizar SOLO cuando cambia el ejercicio activo (no cuando cambia el historial,
+
+  // Sincronizar SOLO cuando cambia la aparición del ejercicio (no cuando cambia el historial,
   // para no sobreescribir las ediciones del usuario durante el entrenamiento).
+  // instanceKey garantiza aislamiento entre apariciones duplicadas del mismo exerciseId.
   useEffect(() => {
     setLocalSetConfigs(buildInitialConfigs());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exercise.id, exercise.sets]);
+  }, [instanceKey, exercise.id, exercise.sets]);
+
 
   // Notificar cambios en el estado de las series al padre (para persistencia)
   useEffect(() => {

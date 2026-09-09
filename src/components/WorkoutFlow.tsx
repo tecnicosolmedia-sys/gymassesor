@@ -20,7 +20,12 @@ import { calculateAge, calculateCaloriesBurned } from '@/types/personalData';
 
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { cn } from '@/lib/utils';
-import { upsertSessionSetConfigs } from '@/utils/aiSuggestion';
+import {
+  upsertSessionSetConfigs,
+  resolveSummaryConfigTarget,
+  syncSessionOverrideOnManualEdit,
+} from '@/utils/aiSuggestion';
+
 
 // Clave para persistencia en localStorage
 const WORKOUT_STATE_KEY = 'gym-tracker-active-workout';
@@ -384,11 +389,18 @@ export const WorkoutFlow = ({
 
   const handleSummaryContinue = (completedExerciseIndex: number, updatedConfigs: SetConfig[]) => {
     const exercise = workoutExercises[completedExerciseIndex];
-    
-    // Actualizar configs si fueron editadas en el resumen
-    if (exercise && onUpdateSetConfig) {
-      onUpdateSetConfig(exercise.id, updatedConfigs);
+
+    // Actualizar configs si fueron editadas en el resumen.
+    // Con override de sesión (p. ej. sugerencia IA aplicada) NO se escribe en public.exercises.
+    if (exercise) {
+      const target = resolveSummaryConfigTarget(exerciseSetStates, exercise.instanceKey);
+      if (target === 'session') {
+        handleSessionSetConfig(exercise.instanceKey, exercise.id, updatedConfigs);
+      } else {
+        onUpdateSetConfig?.(exercise.id, updatedConfigs);
+      }
     }
+
     
     // Siempre ir al descanso entre ejercicios y luego al selector
     // Esto permite al usuario añadir más ejercicios o terminar la sesión
@@ -1289,7 +1301,11 @@ export const WorkoutFlow = ({
             const savedSetState = exerciseSetStates.find(s => s.instanceKey === currentExercise.instanceKey);
             return (
               <ExerciseCard
+                // Aislamiento estricto entre apariciones duplicadas del mismo ejercicio
+                key={currentExercise.instanceKey}
+                instanceKey={currentExercise.instanceKey}
                 exercise={currentExercise}
+
                 onEdit={onEditExercise}
                 onDelete={onDeleteExercise}
                 onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
@@ -1313,9 +1329,15 @@ export const WorkoutFlow = ({
                   setWorkoutExercises(prev => prev.map(e => 
                     e.instanceKey === currentExercise.instanceKey ? { ...e, setConfigs } : e
                   ));
+                  // Si esta aparición tiene override de sesión (IA), mantenerlo al día
+                  // para que el ajuste manual más reciente sobreviva navegación/recarga.
+                  setExerciseSetStates(prev => syncSessionOverrideOnManualEdit(
+                    prev, currentExercise.instanceKey, exerciseId, setConfigs,
+                  ));
                   // También notificar al padre para persistencia
                   onUpdateSetConfig?.(exerciseId, setConfigs);
                 }}
+
                 onUpdateSessionSetConfig={(exerciseId, setConfigs) =>
                   handleSessionSetConfig(currentExercise.instanceKey, exerciseId, setConfigs)
                 }

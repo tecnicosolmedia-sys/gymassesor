@@ -263,3 +263,37 @@ export const upsertSessionSetConfigs = <T extends SessionSetStateLike>(
     { instanceKey, exerciseId, currentSet: 1, completedSets: [], sessionSetConfigs: clone } as T,
   ];
 };
+
+/** ¿Esta aparición tiene una configuración de sesión aplicada (p. ej. por la IA)? */
+export const hasSessionOverride = (
+  states: SessionSetStateLike[] | undefined,
+  instanceKey: string,
+): boolean => {
+  const s = (states ?? []).find(st => st.instanceKey === instanceKey);
+  return Array.isArray(s?.sessionSetConfigs) && s!.sessionSetConfigs!.length > 0;
+};
+
+/**
+ * Decide a dónde deben ir los cambios confirmados desde el resumen del ejercicio.
+ * Con override de sesión NUNCA se escribe en public.exercises.
+ */
+export const resolveSummaryConfigTarget = (
+  states: SessionSetStateLike[] | undefined,
+  instanceKey: string,
+): 'session' | 'master' => (hasSessionOverride(states, instanceKey) ? 'session' : 'master');
+
+/**
+ * Sincroniza la configuración de sesión tras una edición manual, SOLO si esa
+ * aparición ya tenía override; así el valor efectivo más reciente sobrevive
+ * navegación, rerenders y recarga. Sin override no crea nada nuevo.
+ */
+export const syncSessionOverrideOnManualEdit = <T extends SessionSetStateLike>(
+  states: T[],
+  instanceKey: string,
+  exerciseId: string,
+  configs: SetConfig[],
+): T[] =>
+  hasSessionOverride(states, instanceKey)
+    ? upsertSessionSetConfigs(states, instanceKey, exerciseId, configs)
+    : states;
+
