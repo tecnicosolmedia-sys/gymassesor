@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
+import { resolveRestoredStopwatch } from '@/utils/stopwatch';
 import { Header } from '@/components/Header';
 import { MuscleFilterTabs } from '@/components/MuscleFilterTabs';
 import { RoutineCard } from '@/components/RoutineCard';
@@ -729,7 +730,8 @@ const Index = () => {
            onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
           initialCompletedExerciseIds={savedWorkout.completedExerciseIds}
           initialFlowState={savedWorkout.flowState as FlowState}
-          initialElapsedTime={savedWorkout.elapsedTime}
+          initialElapsedTime={resolveRestoredStopwatch(savedWorkout).elapsedTime}
+          initialIsRunning={resolveRestoredStopwatch(savedWorkout).isRunning}
           initialExerciseSetStates={(savedWorkout.exerciseSetStates || []) as ExerciseSetState[]}
           workoutSessions={sessions}
           onDeleteCompletedSet={deleteCompletedSet}

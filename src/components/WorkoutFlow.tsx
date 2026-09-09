@@ -89,6 +89,7 @@ interface WorkoutFlowProps {
   initialCompletedExerciseIds?: string[];
   initialFlowState?: FlowState;
   initialElapsedTime?: number;
+  initialIsRunning?: boolean;
   // Estado inicial de series por ejercicio
   initialExerciseSetStates?: ExerciseSetState[];
   workoutSessions?: WorkoutSession[];
@@ -123,6 +124,7 @@ export const WorkoutFlow = ({
   initialCompletedExerciseIds = [],
   initialFlowState,
   initialElapsedTime = 0,
+  initialIsRunning = true,
   initialExerciseSetStates = [],
   workoutSessions = [],
   onDeleteCompletedSet,
@@ -169,7 +171,7 @@ export const WorkoutFlow = ({
   } = useWorkoutNotification();
   
   // Cronómetro del entrenamiento (con tiempo inicial si se está restaurando)
-  const { elapsedTime, isRunning, toggle, stop, setTime } = useWorkoutStopwatch(true, initialElapsedTime);
+  const { elapsedTime, isRunning, toggle, setRunning, stop, setTime, getElapsedNow } = useWorkoutStopwatch(initialIsRunning, initialElapsedTime);
 
   // Estado para guardar las series completadas con peso
   const [completedSetsData, setCompletedSetsData] = useState<{exerciseId: string; exerciseName?: string; weight: number; reps: number; isWarmup?: boolean}[]>([]);
@@ -214,21 +216,48 @@ export const WorkoutFlow = ({
     return `${seconds}s`;
   };
 
-  // Persistir estado del entrenamiento en localStorage
-  useEffect(() => {
+  // Persistir estado del entrenamiento en localStorage (sin escribir cada segundo)
+  const finishedRef = useRef(false);
+  const persistRef = useRef<() => void>(() => {});
+  persistRef.current = () => {
+    if (finishedRef.current) return;
     const stateToSave = {
       routineId,
       routineName,
       workoutExerciseIds: workoutExercises.map(e => e.instanceKey),
       completedExerciseIds: Array.from(completedExerciseIds),
       flowState,
-      elapsedTime,
+      elapsedTime: getElapsedNow(),
+      stopwatchIsRunning: isRunning,
+      stopwatchUpdatedAt: new Date().toISOString(),
       extraExerciseIds: extraExercises.map(e => e.id),
       savedAt: new Date().toISOString(),
       exerciseSetStates,
     };
     localStorage.setItem(WORKOUT_STATE_KEY, JSON.stringify(stateToSave));
-  }, [routineId, routineName, workoutExercises, completedExerciseIds, flowState, elapsedTime, extraExercises, exerciseSetStates]);
+  };
+
+  // Guardar al cambiar cualquier estado relevante (incluido corriendo/pausado)
+  useEffect(() => {
+    persistRef.current();
+  }, [routineId, routineName, workoutExercises, completedExerciseIds, flowState, isRunning, extraExercises, exerciseSetStates]);
+
+  // Heartbeat moderado + guardado al ocultar la app
+  useEffect(() => {
+    const persist = () => persistRef.current();
+    const interval = setInterval(persist, 10000);
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') persist();
+    };
+    window.addEventListener('pagehide', persist);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('pagehide', persist);
+      document.removeEventListener('visibilitychange', onHide);
+      persist();
+    };
+  }, []);
 
   // Actualizar estado de series de una aparición concreta del ejercicio
   const handleSetStateChange = useCallback((instanceKey: string, exerciseId: string, currentSet: number, completedSets: number[]) => {
@@ -247,6 +276,7 @@ export const WorkoutFlow = ({
 
   // Limpiar estado guardado al finalizar
   const clearSavedState = useCallback(() => {
+    finishedRef.current = true;
     localStorage.removeItem(WORKOUT_STATE_KEY);
   }, []);
 
@@ -255,12 +285,13 @@ export const WorkoutFlow = ({
     setShowExitConfirmation(true);
   };
 
-  // Confirmar salida y finalizar
+  // Confirmar salida y finalizar (duración exacta en este instante)
   const handleConfirmExit = () => {
+    const finalElapsed = getElapsedNow();
     clearSavedState();
     stop();
-    onWorkoutComplete?.(elapsedTime);
-    onClose(elapsedTime);
+    onWorkoutComplete?.(finalElapsed);
+    onClose(finalElapsed);
   };
 
   // Cancelar salida
@@ -272,20 +303,21 @@ export const WorkoutFlow = ({
     ? workoutExercises[flowState.exerciseIndex] 
     : null;
 
-  // Actualizar notificación periódicamente cuando está activo
+  // Actualizar notificación periódicamente sin recrear el intervalo cada segundo
+  const notifyRef = useRef<() => void>(() => {});
+  notifyRef.current = () => {
+    updateWorkoutNotification(getElapsedNow(), currentExercise?.name);
+  };
+
   useEffect(() => {
     if (notificationPermission !== 'granted') return;
-    
-    // Actualizar notificación cada 5 segundos
-    const interval = setInterval(() => {
-      updateWorkoutNotification(elapsedTime, currentExercise?.name);
-    }, 5000);
-    
-    // Actualizar inmediatamente
-    updateWorkoutNotification(elapsedTime, currentExercise?.name);
-    
+
+    const tick = () => notifyRef.current();
+    tick();
+    const interval = setInterval(tick, 5000);
+
     return () => clearInterval(interval);
-  }, [elapsedTime, currentExercise?.name, notificationPermission, updateWorkoutNotification]);
+  }, [notificationPermission]);
   
   // Limpiar notificaciones al salir
   useEffect(() => {
@@ -472,19 +504,32 @@ export const WorkoutFlow = ({
       }));
       
       return (
-        <ExerciseSummary
-          exerciseName={summaryExercise.name}
-          exerciseId={summaryExercise.id}
-          muscleGroup={summaryExercise.muscleGroup}
-          setConfigs={configs}
-          isUnilateral={summaryExercise.isUnilateral}
-
-          completedSets={savedSetState?.completedSets || []}
-          onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
-          onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.instanceKey)}
-          historySessions={workoutSessions}
-          onDeleteCompletedSet={onDeleteCompletedSet}
-        />
+        <div className="fixed inset-0 bg-background z-50 flex flex-col">
+          {/* Cronómetro flotante */}
+          <div className="flex-none flex justify-center pt-4 pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+            <WorkoutStopwatch
+              elapsedTime={elapsedTime}
+              isRunning={isRunning}
+              onToggle={toggle}
+              onSetTime={setTime}
+              onSetRunning={setRunning}
+            />
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <ExerciseSummary
+              exerciseName={summaryExercise.name}
+              exerciseId={summaryExercise.id}
+              muscleGroup={summaryExercise.muscleGroup}
+              setConfigs={configs}
+              isUnilateral={summaryExercise.isUnilateral}
+              completedSets={savedSetState?.completedSets || []}
+              onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
+              onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.instanceKey)}
+              historySessions={workoutSessions}
+              onDeleteCompletedSet={onDeleteCompletedSet}
+            />
+          </div>
+        </div>
       );
     }
   }
@@ -506,6 +551,8 @@ export const WorkoutFlow = ({
         globalElapsedTime={elapsedTime}
         globalIsRunning={isRunning}
         onGlobalToggle={toggle}
+        onGlobalSetTime={setTime}
+        onGlobalSetRunning={setRunning}
       />
     );
   }
@@ -521,6 +568,7 @@ export const WorkoutFlow = ({
             isRunning={isRunning}
             onToggle={toggle}
             onSetTime={setTime}
+            onSetRunning={setRunning}
           />
         </div>
         <div className="flex-1 overflow-y-auto p-4">
@@ -792,10 +840,11 @@ export const WorkoutFlow = ({
             
             <button
               onClick={() => {
+                const finalElapsed = getElapsedNow();
                 clearSavedState();
                 stop();
-                onWorkoutComplete?.(elapsedTime);
-                onClose(elapsedTime);
+                onWorkoutComplete?.(finalElapsed);
+                onClose(finalElapsed);
               }}
               className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
             >
@@ -820,6 +869,7 @@ export const WorkoutFlow = ({
             isRunning={isRunning}
             onToggle={toggle}
             onSetTime={setTime}
+            onSetRunning={setRunning}
           />
         </div>
         <div className="flex-1 overflow-y-auto p-4">
@@ -995,6 +1045,7 @@ export const WorkoutFlow = ({
             isRunning={isRunning}
             onToggle={toggle}
             onSetTime={setTime}
+            onSetRunning={setRunning}
           />
         </div>
         <div className="flex-1 overflow-y-auto p-4">
@@ -1149,6 +1200,7 @@ export const WorkoutFlow = ({
             isRunning={isRunning}
             onToggle={toggle}
             onSetTime={setTime}
+            onSetRunning={setRunning}
           />
           {notificationsSupported && (
             <button
@@ -1249,6 +1301,8 @@ export const WorkoutFlow = ({
                 globalElapsedTime={elapsedTime}
                 globalIsRunning={isRunning}
                 onGlobalToggle={toggle}
+                onGlobalSetTime={setTime}
+                onGlobalSetRunning={setRunning}
                 workoutSessions={workoutSessions}
                 onDeleteCompletedSet={onDeleteCompletedSet}
               />

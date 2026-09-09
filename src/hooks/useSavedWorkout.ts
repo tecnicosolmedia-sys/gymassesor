@@ -19,6 +19,9 @@ export interface SavedWorkoutState {
     completedExerciseIndex?: number;
   };
   elapsedTime: number;
+  /** Estado del cronómetro general (opcional, retrocompatible) */
+  stopwatchIsRunning?: boolean;
+  stopwatchUpdatedAt?: string;
   extraExerciseIds: string[];
   savedAt: string;
   // Estado de series por ejercicio
