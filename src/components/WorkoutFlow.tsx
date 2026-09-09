@@ -343,18 +343,18 @@ export const WorkoutFlow = ({
     }
   };
 
-  const handleSelectNextExercise = (exercise: Exercise) => {
-    const exerciseIndex = workoutExercises.findIndex((e) => e.id === exercise.id);
+  const handleSelectNextExercise = (exercise: WorkoutExercise) => {
+    const exerciseIndex = workoutExercises.findIndex((e) => e.instanceKey === exercise.instanceKey);
     setFlowState({ type: 'exercising', exerciseIndex });
   };
 
   // Reordenar ejercicios pendientes durante la sesión
-  const handleReorderRemaining = (exerciseId: string, direction: 'up' | 'down') => {
+  const handleReorderRemaining = (instanceKey: string, direction: 'up' | 'down') => {
     setWorkoutExercises((prev) => {
       const pendingIndices = prev
         .map((e, i) => ({ e, i }))
-        .filter(({ e }) => !completedExerciseIds.has(e.id));
-      const posInPending = pendingIndices.findIndex(({ e }) => e.id === exerciseId);
+        .filter(({ e }) => !completedExerciseIds.has(e.instanceKey));
+      const posInPending = pendingIndices.findIndex(({ e }) => e.instanceKey === instanceKey);
       if (posInPending === -1) return prev;
       const targetPosInPending = direction === 'up' ? posInPending - 1 : posInPending + 1;
       if (targetPosInPending < 0 || targetPosInPending >= pendingIndices.length) return prev;
@@ -380,7 +380,10 @@ export const WorkoutFlow = ({
       // Sustitución: reemplazar el ejercicio solo en la sesión actual
       setWorkoutExercises((prev) => {
         const updated = [...prev];
-        updated[substituteOriginalIndex] = pendingExerciseToAdd;
+        updated[substituteOriginalIndex] = {
+          ...pendingExerciseToAdd,
+          instanceKey: nextInstanceKey(prev, pendingExerciseToAdd.id),
+        };
         return updated;
       });
       
@@ -395,9 +398,13 @@ export const WorkoutFlow = ({
       setFlowState({ type: 'exercising', exerciseIndex: substituteOriginalIndex });
     } else {
       // Añadir extra (flujo original)
-      setWorkoutExercises((prev) => [...prev, pendingExerciseToAdd]);
+      setWorkoutExercises((prev) => [
+        ...prev,
+        { ...pendingExerciseToAdd, instanceKey: nextInstanceKey(prev, pendingExerciseToAdd.id) },
+      ]);
       setExtraExercises((prev) => [...prev, pendingExerciseToAdd]);
       const newIndex = workoutExercises.length;
+
       
       if (saveToRoutine && routineId && onAddExerciseToRoutine) {
         onAddExerciseToRoutine(pendingExerciseToAdd.id);
