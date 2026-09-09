@@ -434,15 +434,16 @@ export const WorkoutFlow = ({
   };
 
   // Volver atrás desde el resumen al ejercicio
-  const handleSummaryGoBack = (exerciseIndex: number, exerciseId: string) => {
+  const handleSummaryGoBack = (exerciseIndex: number, instanceKey: string) => {
     // Quitar de completados para poder volver a ejercitarse
     setCompletedExerciseIds((prev) => {
       const next = new Set(prev);
-      next.delete(exerciseId);
+      next.delete(instanceKey);
       return next;
     });
     setFlowState({ type: 'exercising', exerciseIndex });
   };
+
 
   // Renderizar resumen del ejercicio completado
   if (flowState.type === 'exercise-summary') {
