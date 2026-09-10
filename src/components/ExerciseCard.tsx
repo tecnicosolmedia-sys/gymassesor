@@ -714,7 +714,7 @@ export const ExerciseCard = ({
                     title="Editar nota"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setNotesDraft(exercise.notes ?? '');
+                      setNotesDraft(displayedNotes);
                       setEditingNotes(true);
                     }}
                     className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
