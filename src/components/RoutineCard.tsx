@@ -55,6 +55,7 @@ export const RoutineCard = ({
   onNewExerciseHandled,
   workoutSessions = [],
   onDeleteCompletedSet,
+  onUpdateNotes,
 }: RoutineCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [showExerciseList, setShowExerciseList] = useState(false);
