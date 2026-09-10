@@ -11,6 +11,20 @@ export const useWorkoutHistory = () => {
   const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  /**
+   * Fuente síncrona de verdad para las escrituras de la sesión activa.
+   * Evita que endSession persista una versión anterior cuando se llama
+   * inmediatamente después de registrar la última serie (el estado React
+   * todavía no se ha propagado al cierre del render).
+   */
+  const currentSessionRef = useRef<WorkoutSession | null>(null);
+
+  /** Escribe el siguiente valor en la ref (síncrono) y en el estado (render) */
+  const commitSession = useCallback((next: WorkoutSession | null) => {
+    currentSessionRef.current = next;
+    setCurrentSession(next);
+  }, []);
+
   // Fetch sessions from DB
   const fetchSessions = useCallback(async () => {
     if (!user) { setIsLoading(false); return; }
