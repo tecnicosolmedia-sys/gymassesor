@@ -697,7 +697,7 @@ export const ExerciseCard = ({
             )}
             
             {/* Notes: nota permanente del ejercicio, editable en línea */}
-            {(exercise.notes || onUpdateNotes) && (
+            {(displayedNotes || onUpdateNotes) && (
             <div
               className="p-3 rounded-xl bg-secondary/50"
               onClick={(e) => e.stopPropagation()}
