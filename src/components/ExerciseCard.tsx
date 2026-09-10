@@ -149,6 +149,8 @@ export const ExerciseCard = ({
   // Editor inline de observaciones (nota permanente del ejercicio)
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState(exercise.notes ?? '');
+  /** Nota mostrada: optimista, para que el texto guardado se vea sin esperar la red */
+  const [displayedNotes, setDisplayedNotes] = useState(exercise.notes ?? '');
   const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
   const [showFullscreenTimer, setShowFullscreenTimer] = useState(false);
