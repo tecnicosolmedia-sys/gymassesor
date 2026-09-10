@@ -335,6 +335,17 @@ export const WorkoutFlow = ({
     ));
   }, []);
 
+  /**
+   * Nota permanente del ejercicio: se persiste vía el padre y se refleja al
+   * instante en la copia local. Al ser del ejercicio (no de la aparición),
+   * todas las apariciones del mismo exerciseId comparten la nota.
+   */
+  const handleUpdateNotes = useCallback((exerciseId: string, notes: string) => {
+    setWorkoutExercises(prev => prev.map(e => (e.id === exerciseId ? { ...e, notes } : e)));
+    setExtraExercises(prev => prev.map(e => (e.id === exerciseId ? { ...e, notes } : e)));
+    onUpdateNotes?.(exerciseId, notes);
+  }, [onUpdateNotes]);
+
   // Limpiar estado guardado al finalizar
   const clearSavedState = useCallback(() => {
     finishedRef.current = true;
