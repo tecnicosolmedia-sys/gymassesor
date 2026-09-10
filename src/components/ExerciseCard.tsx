@@ -85,6 +85,16 @@ interface ExerciseCardProps {
   // Historial para gráfica de progresión
   workoutSessions?: WorkoutSession[];
   onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
+  /**
+   * Si se proporciona, el aviso de récord personal se delega al padre
+   * (no se abre la cartela ni el flash localmente).
+   */
+  onPersonalRecord?: (record: {
+    exerciseName: string;
+    weight: number;
+    reps: number;
+    previousRecord: number;
+  }) => void;
 }
 
 export const ExerciseCard = ({ 
@@ -111,6 +121,7 @@ export const ExerciseCard = ({
   onGlobalSetRunning,
   workoutSessions = [],
   onDeleteCompletedSet,
+  onPersonalRecord,
 }: ExerciseCardProps) => {
   const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
@@ -427,14 +438,24 @@ export const ExerciseCard = ({
     const benchmark = Math.max(previousMaxWeight, sessionBestWeight);
     if (!setIsWarmup && config.weight > 0 && benchmark > 0 && config.weight > benchmark) {
       setSessionBestWeight(config.weight);
-      setRecordDialog({
-        open: true,
-        weight: config.weight,
-        reps: config.reps,
-        previous: previousMaxWeight,
-      });
-      setRecordFlash(true);
-      window.setTimeout(() => setRecordFlash(false), 3000);
+      if (onPersonalRecord) {
+        // Dentro del entrenamiento: el padre decide cuándo mostrarlo.
+        onPersonalRecord({
+          exerciseName: exercise.name,
+          weight: config.weight,
+          reps: config.reps,
+          previousRecord: previousMaxWeight,
+        });
+      } else {
+        setRecordDialog({
+          open: true,
+          weight: config.weight,
+          reps: config.reps,
+          previous: previousMaxWeight,
+        });
+        setRecordFlash(true);
+        window.setTimeout(() => setRecordFlash(false), 3000);
+      }
     } else if (!setIsWarmup && config.weight > sessionBestWeight) {
       setSessionBestWeight(config.weight);
     }
