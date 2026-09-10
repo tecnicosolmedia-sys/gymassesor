@@ -363,7 +363,7 @@ export const useWorkoutHistory = () => {
     // Delete all user sessions (cascade will handle exercises and sets)
     await supabase.from('workout_sessions').delete().eq('user_id', user.id);
     setSessions([]);
-    setCurrentSession(null);
+    commitSession(null);
   }, [user]);
 
   return {
