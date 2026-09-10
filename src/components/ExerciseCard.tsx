@@ -755,7 +755,7 @@ export const ExerciseCard = ({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setNotesDraft(exercise.notes ?? '');
+                        setNotesDraft(displayedNotes);
                         setEditingNotes(false);
                       }}
                       className="px-3 py-1.5 rounded-lg bg-secondary text-foreground text-sm font-semibold"
