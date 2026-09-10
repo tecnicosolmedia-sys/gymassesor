@@ -629,7 +629,7 @@ export const WorkoutFlow = ({
               muscleGroup={summaryExercise.muscleGroup}
               setConfigs={configs}
               isUnilateral={summaryExercise.isUnilateral}
-              completedSets={savedSetState?.completedSets || []}
+              completedSets={summaryCompletedSets}
               onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
               onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.instanceKey)}
               historySessions={workoutSessions}
