@@ -758,6 +758,7 @@ const Index = () => {
           initialExerciseSetStates={(savedWorkout.exerciseSetStates || []) as ExerciseSetState[]}
           workoutSessions={sessions}
           onDeleteCompletedSet={deleteCompletedSet}
+          onUpdateNotes={handleUpdateNotes}
         />
       )}
 
