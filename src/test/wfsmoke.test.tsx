@@ -6,6 +6,8 @@ vi.mock('@mediapipe/tasks-vision', () => ({
 }));
 vi.mock('@/hooks/useWakeLock', () => ({ useWakeLock: () => {} }));
 vi.mock('@/hooks/useWorkoutNotification', () => ({ useWorkoutNotification: () => ({ isSupported: false, permission: 'denied', requestPermission: async () => 'denied', showNotification: () => {}, closeNotification: () => {}, updateWorkoutNotification: () => {}, updateRestNotification: () => {}, startWorkoutUpdates: () => {}, stopUpdates: () => {} }) }));
+vi.mock('@/components/VirtualCoach', () => ({ VirtualCoach: () => null }));
+vi.mock('@/components/ExerciseProgressChart', () => ({ ExerciseProgressChart: () => null }));
 import { WorkoutFlow } from '@/components/WorkoutFlow';
 import { Exercise } from '@/types/exercise';
 const ex: Exercise = { id: 'ex-1', name: 'P', sets: 1, reps: 8, weight: 100, setConfigs: [{ setNumber: 1, reps: 8, weight: 100, restTime: 45 }], restBetweenSets: 45, restAfterExercise: 90, notes: '', caloriesPerSet: 5, muscleGroup: 'Pecho', createdAt: new Date('2026-01-01') };
