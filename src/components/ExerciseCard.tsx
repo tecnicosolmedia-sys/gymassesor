@@ -40,6 +40,19 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel';
 
+/**
+ * Instantánea inmutable del ejercicio en el momento exacto de terminarlo.
+ * Evita que el resumen dependa de un setState asíncrono previo.
+ */
+export interface ExerciseCompletionSnapshot {
+  exerciseId: string;
+  instanceKey?: string;
+  /** Series realmente completadas, sin duplicados y ordenadas */
+  completedSets: number[];
+  /** Configuración efectiva completa mostrada en pantalla */
+  setConfigs: SetConfig[];
+}
+
 interface ExerciseCardProps {
   exercise: Exercise;
   /**
