@@ -764,9 +764,9 @@ export const ExerciseCard = ({
                     </button>
                   </div>
                 </div>
-              ) : exercise.notes ? (
+              ) : displayedNotes ? (
                 <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {exercise.notes}
+                  {displayedNotes}
                 </p>
               ) : onUpdateNotes ? (
                 <button
