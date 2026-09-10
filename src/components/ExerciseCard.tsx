@@ -144,7 +144,11 @@ export const ExerciseCard = ({
   workoutSessions = [],
   onDeleteCompletedSet,
   onPersonalRecord,
+  onUpdateNotes,
 }: ExerciseCardProps) => {
+  // Editor inline de observaciones (nota permanente del ejercicio)
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState(exercise.notes ?? '');
   const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
   const [showFullscreenTimer, setShowFullscreenTimer] = useState(false);
