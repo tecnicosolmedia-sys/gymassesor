@@ -112,6 +112,11 @@ interface ExerciseCardProps {
     reps: number;
     previousRecord: number;
   }) => void;
+  /**
+   * Guarda las observaciones permanentes del ejercicio (Exercise.notes).
+   * Una cadena vacía equivale a eliminar la nota.
+   */
+  onUpdateNotes?: (exerciseId: string, notes: string) => void;
 }
 
 export const ExerciseCard = ({ 
@@ -139,7 +144,11 @@ export const ExerciseCard = ({
   workoutSessions = [],
   onDeleteCompletedSet,
   onPersonalRecord,
+  onUpdateNotes,
 }: ExerciseCardProps) => {
+  // Editor inline de observaciones (nota permanente del ejercicio)
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState(exercise.notes ?? '');
   const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
   const [showFullscreenTimer, setShowFullscreenTimer] = useState(false);
@@ -680,18 +689,93 @@ export const ExerciseCard = ({
               </div>
             )}
             
-            {/* Notes */}
-            {exercise.notes && (
-              <div className="p-3 rounded-xl bg-secondary/50">
-                <div className="flex items-center gap-2 mb-2 text-sm font-medium text-primary">
+            {/* Notes: nota permanente del ejercicio, editable en línea */}
+            {(exercise.notes || onUpdateNotes) && (
+            <div
+              className="p-3 rounded-xl bg-secondary/50"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary">
                   <FileText className="w-4 h-4" />
                   Observaciones
                 </div>
+                {!editingNotes && exercise.notes && onUpdateNotes && (
+                  <button
+                    type="button"
+                    aria-label="Editar nota"
+                    title="Editar nota"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNotesDraft(exercise.notes ?? '');
+                      setEditingNotes(true);
+                    }}
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {editingNotes ? (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <textarea
+                    aria-label="Nota del ejercicio"
+                    value={notesDraft}
+                    onChange={(e) => setNotesDraft(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    rows={4}
+                    className="w-full p-2 rounded-lg bg-background border border-border text-sm text-foreground whitespace-pre-wrap"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onUpdateNotes?.(exercise.id, notesDraft.trim() === '' ? '' : notesDraft);
+                        setEditingNotes(false);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNotesDraft(exercise.notes ?? '');
+                        setEditingNotes(false);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-secondary text-foreground text-sm font-semibold"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : exercise.notes ? (
                 <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {exercise.notes}
                 </p>
-              </div>
+              ) : onUpdateNotes ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNotesDraft('');
+                    setEditingNotes(true);
+                  }}
+                  className="text-sm text-primary font-medium"
+                >
+                  + Añadir nota
+                </button>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">Sin observaciones</p>
+              )}
+            </div>
             )}
+
 
             {/* Entrenador virtual por cámara (Beta) */}
             {isActive && (

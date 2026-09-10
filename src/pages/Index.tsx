@@ -225,6 +225,11 @@ const Index = () => {
     updateExercise(exerciseId, { setConfigs });
   };
 
+  // Nota permanente del ejercicio (public.exercises.notes)
+  const handleUpdateNotes = (exerciseId: string, notes: string) => {
+    updateExercise(exerciseId, { notes });
+  };
+
   // Filtrar rutinas por grupo muscular seleccionado
   const filteredRoutines = useMemo(() => {
     if (selectedMuscleFilter === 'todas') return routines;
@@ -411,6 +416,7 @@ const Index = () => {
               onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
               workoutSessions={sessions}
               onDeleteCompletedSet={deleteCompletedSet}
+              onUpdateNotes={handleUpdateNotes}
             />
           )}
         </section>
@@ -752,6 +758,7 @@ const Index = () => {
           initialExerciseSetStates={(savedWorkout.exerciseSetStates || []) as ExerciseSetState[]}
           workoutSessions={sessions}
           onDeleteCompletedSet={deleteCompletedSet}
+          onUpdateNotes={handleUpdateNotes}
         />
       )}
 
@@ -781,6 +788,7 @@ const Index = () => {
           initialFlowState={{ type: 'add-extra-exercise' }}
           workoutSessions={sessions}
           onDeleteCompletedSet={deleteCompletedSet}
+          onUpdateNotes={handleUpdateNotes}
         />
       )}
 

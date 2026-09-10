@@ -103,6 +103,8 @@ interface WorkoutFlowProps {
   initialExerciseSetStates?: ExerciseSetState[];
   workoutSessions?: WorkoutSession[];
   onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
+  /** Guarda las observaciones permanentes del ejercicio (persiste en public.exercises.notes) */
+  onUpdateNotes?: (exerciseId: string, notes: string) => void;
 }
 
 export type FlowState = 
@@ -137,6 +139,7 @@ export const WorkoutFlow = ({
   initialExerciseSetStates = [],
   workoutSessions = [],
   onDeleteCompletedSet,
+  onUpdateNotes,
 }: WorkoutFlowProps) => {
   const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>(() => withInstanceKeys(initialExercises));
   // Estado para el diálogo de guardar ejercicio en rutina
@@ -331,6 +334,17 @@ export const WorkoutFlow = ({
       e.instanceKey === instanceKey ? { ...e, setConfigs: setConfigs.map(c => ({ ...c })) } : e
     ));
   }, []);
+
+  /**
+   * Nota permanente del ejercicio: se persiste vía el padre y se refleja al
+   * instante en la copia local. Al ser del ejercicio (no de la aparición),
+   * todas las apariciones del mismo exerciseId comparten la nota.
+   */
+  const handleUpdateNotes = useCallback((exerciseId: string, notes: string) => {
+    setWorkoutExercises(prev => prev.map(e => (e.id === exerciseId ? { ...e, notes } : e)));
+    setExtraExercises(prev => prev.map(e => (e.id === exerciseId ? { ...e, notes } : e)));
+    onUpdateNotes?.(exerciseId, notes);
+  }, [onUpdateNotes]);
 
   // Limpiar estado guardado al finalizar
   const clearSavedState = useCallback(() => {
@@ -1446,6 +1460,7 @@ export const WorkoutFlow = ({
                 onGlobalSetRunning={setRunning}
                 workoutSessions={workoutSessions}
                 onDeleteCompletedSet={onDeleteCompletedSet}
+                onUpdateNotes={handleUpdateNotes}
                 onPersonalRecord={(record) =>
                   // No mostrar aún: se guarda la mejor marca y se muestra al
                   // pasar al descanso entre ejercicios.
