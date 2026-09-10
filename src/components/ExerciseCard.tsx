@@ -774,6 +774,8 @@ export const ExerciseCard = ({
                 <p className="text-sm text-muted-foreground italic">Sin observaciones</p>
               )}
             </div>
+            )}
+
 
             {/* Entrenador virtual por cámara (Beta) */}
             {isActive && (
