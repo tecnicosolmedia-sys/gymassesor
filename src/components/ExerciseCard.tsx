@@ -821,7 +821,8 @@ export const ExerciseCard = ({
                 <button
                   onClick={() => {
                     if (skipExerciseRestTimer) {
-                      onExerciseComplete?.();
+                      // Terminar anticipadamente: solo las series realmente completadas
+                      onExerciseComplete?.(buildSnapshot(completedSets, localSetConfigs));
                     } else {
                       setTimerType('exercise');
                       setShowFullscreenTimer(true);
