@@ -4,8 +4,10 @@ import { renderHook, act } from '@testing-library/react';
 /** Captura de las series insertadas en la BD (mock) */
 const insertedSets: any[] = [];
 
+// Identidad estable: evita recargas en bucle del historial durante la prueba
+const authValue = { user: { id: 'user-1' } };
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 'user-1' } }),
+  useAuth: () => authValue,
 }));
 
 vi.mock('@/integrations/supabase/client', () => {
