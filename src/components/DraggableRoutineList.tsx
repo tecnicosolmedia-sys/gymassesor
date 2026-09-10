@@ -34,7 +34,7 @@ export const DraggableRoutineList = ({
   onEdit, onDelete, onEditExercise, onDeleteExercise,
   onSetComplete, onUpdateSetConfig, onWorkoutComplete,
   onAddExerciseToRoutine, onRemoveExerciseFromRoutine, onCreateExercise, newExerciseToAdd, onNewExerciseHandled,
-  workoutSessions, onDeleteCompletedSet,
+  workoutSessions, onDeleteCompletedSet, onUpdateNotes,
 }: DraggableRoutineListProps) => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
