@@ -168,6 +168,7 @@ export const DraggableRoutineList = ({
                 onNewExerciseHandled={onNewExerciseHandled}
                 workoutSessions={workoutSessions}
                 onDeleteCompletedSet={onDeleteCompletedSet}
+                onUpdateNotes={onUpdateNotes}
               />
             </div>
           </div>
