@@ -288,6 +288,7 @@ export const RoutineCard = ({
           initialFlowState={{ type: 'exercising', exerciseIndex: startExerciseIndex }}
           workoutSessions={workoutSessions}
           onDeleteCompletedSet={onDeleteCompletedSet}
+          onUpdateNotes={onUpdateNotes}
         />
       )}
     </>
