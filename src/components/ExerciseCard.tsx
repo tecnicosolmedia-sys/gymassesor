@@ -430,7 +430,23 @@ export const ExerciseCard = ({
 
 
 
+  /** Instantánea inmutable del estado efectivo en pantalla */
+  const buildSnapshot = (completed: number[], configs: SetConfig[]): ExerciseCompletionSnapshot => ({
+    exerciseId: exercise.id,
+    instanceKey,
+    completedSets: Array.from(new Set(completed)).sort((a, b) => a - b),
+    setConfigs: configs.map(c => ({ ...c })),
+  });
+
+  /** Instantánea pendiente cuando el descanso final lo gestiona esta tarjeta */
+  const pendingSnapshotRef = useRef<ExerciseCompletionSnapshot | null>(null);
+
   const handleSetComplete = () => {
+    // Bloqueo síncrono contra doble pulsación sobre la MISMA serie.
+    const lockKey = `${instanceKey ?? exercise.id}#${currentSet}`;
+    if (completingSetRef.current === lockKey) return;
+    completingSetRef.current = lockKey;
+
     const config = getCurrentSetConfig();
     const setIsWarmup = isWarmupSet(exercise.name, config);
 
