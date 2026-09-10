@@ -179,6 +179,14 @@ export const WorkoutFlow = ({
     () => initialExerciseSetStates.map(s => ({ ...s, instanceKey: s.instanceKey ?? `${s.exerciseId}#0` }))
   );
 
+  /**
+   * Instantáneas por instanceKey del momento exacto en que se terminó el ejercicio.
+   * El resumen las usa como fuente directa, sin depender de setStates asíncronos.
+   */
+  const [summarySnapshots, setSummarySnapshots] = useState<Record<string, ExerciseCompletionSnapshot>>({});
+
+  
+
   
   
   // Datos personales para cálculo de calorías
