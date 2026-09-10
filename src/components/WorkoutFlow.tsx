@@ -399,9 +399,34 @@ export const WorkoutFlow = ({
            !extraExercises.some((ee) => ee.id === e.id)
   );
 
-  const handleExerciseComplete = (instanceKey: string) => {
+  const handleExerciseComplete = (instanceKey: string, snapshot?: ExerciseCompletionSnapshot) => {
     const exerciseIndex = workoutExercises.findIndex((e) => e.instanceKey === instanceKey);
-    
+
+    // Aplicar la instantánea de forma atómica ANTES de mostrar el resumen:
+    // series completadas reales + configuración efectiva usada en pantalla.
+    if (snapshot) {
+      setSummarySnapshots(prev => ({ ...prev, [instanceKey]: snapshot }));
+      setExerciseSetStates(prev => {
+        const idx = prev.findIndex(s => s.instanceKey === instanceKey);
+        const merged = {
+          instanceKey,
+          exerciseId: snapshot.exerciseId,
+          currentSet: idx >= 0 ? prev[idx].currentSet : snapshot.completedSets.length,
+          completedSets: [...snapshot.completedSets],
+          sessionSetConfigs: idx >= 0 ? prev[idx].sessionSetConfigs : undefined,
+        };
+        if (idx < 0) return [...prev, merged];
+        const updated = [...prev];
+        updated[idx] = merged;
+        return updated;
+      });
+      setWorkoutExercises(prev => prev.map(e =>
+        e.instanceKey === instanceKey
+          ? { ...e, setConfigs: snapshot.setConfigs.map(c => ({ ...c })) }
+          : e
+      ));
+    }
+
     setCompletedExerciseIds((prev) => new Set([...prev, instanceKey]));
     
     // Mostrar resumen del ejercicio antes de continuar
