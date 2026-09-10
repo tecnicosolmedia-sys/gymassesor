@@ -103,6 +103,8 @@ interface WorkoutFlowProps {
   initialExerciseSetStates?: ExerciseSetState[];
   workoutSessions?: WorkoutSession[];
   onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
+  /** Guarda las observaciones permanentes del ejercicio (persiste en public.exercises.notes) */
+  onUpdateNotes?: (exerciseId: string, notes: string) => void;
 }
 
 export type FlowState = 
