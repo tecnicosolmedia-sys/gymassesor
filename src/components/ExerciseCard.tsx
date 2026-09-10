@@ -151,9 +151,16 @@ export const ExerciseCard = ({
   const [notesDraft, setNotesDraft] = useState(exercise.notes ?? '');
   /** Nota mostrada: optimista, para que el texto guardado se vea sin esperar la red */
   const [displayedNotes, setDisplayedNotes] = useState(exercise.notes ?? '');
-  // Sincroniza con el prop, pero nunca mientras el usuario está editando
+  /**
+   * Sincroniza sólo cuando el prop cambia de verdad (no pisa el valor
+   * optimista recién guardado) y nunca mientras el editor está abierto.
+   */
+  const lastPropNotesRef = useRef(exercise.notes ?? '');
   useEffect(() => {
-    if (!editingNotes) setDisplayedNotes(exercise.notes ?? '');
+    const propNotes = exercise.notes ?? '';
+    if (propNotes === lastPropNotesRef.current) return;
+    lastPropNotesRef.current = propNotes;
+    if (!editingNotes) setDisplayedNotes(propNotes);
   }, [exercise.notes, editingNotes]);
 
   const [expanded, setExpanded] = useState(isActive);
