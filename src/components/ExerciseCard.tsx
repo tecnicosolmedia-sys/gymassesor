@@ -707,7 +707,7 @@ export const ExerciseCard = ({
                   <FileText className="w-4 h-4" />
                   Observaciones
                 </div>
-                {!editingNotes && exercise.notes && onUpdateNotes && (
+                {!editingNotes && displayedNotes && onUpdateNotes && (
                   <button
                     type="button"
                     aria-label="Editar nota"
