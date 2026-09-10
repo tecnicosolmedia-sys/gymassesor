@@ -61,7 +61,11 @@ interface ExerciseCardProps {
   ) => void;
   // Si es true, no muestra el temporizador de ejercicio completo (lo maneja el padre)
   skipExerciseRestTimer?: boolean;
-  onExerciseComplete?: () => void;
+  /**
+   * Se llama al terminar el ejercicio con una instantánea inmutable del estado
+   * real en pantalla (series completadas + configuración efectiva completa).
+   */
+  onExerciseComplete?: (snapshot?: ExerciseCompletionSnapshot) => void;
   // Callback para guardar cambios en la configuración (persiste en la rutina maestra)
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
   /**
