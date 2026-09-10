@@ -231,9 +231,9 @@ export const useWorkoutHistory = () => {
     }
 
     setSessions(prev => [completedSession, ...prev]);
-    setCurrentSession(null);
+    commitSession(null);
     return completedSession;
-  }, [currentSession, user]);
+  }, [user, commitSession]);
 
   const getExerciseHistory = useCallback((exerciseId: string): ExerciseSession[] => {
     const history: ExerciseSession[] = [];
