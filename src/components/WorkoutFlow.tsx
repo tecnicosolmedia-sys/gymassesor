@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Exercise, SetConfig, MUSCLE_GROUPS, MuscleGroup } from '@/types/exercise';
 import { WorkoutSession } from '@/types/workoutHistory';
 import { FullscreenTimer } from './FullscreenTimer';
-import { ExerciseCard } from './ExerciseCard';
+import { ExerciseCard, type ExerciseCompletionSnapshot } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
 import { AddExerciseDuringWorkoutDialog } from './AddExerciseDuringWorkoutDialog';
 import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff, Flame, Weight, RefreshCw, ClipboardList, FileDown, ListChecks, ChevronUp, ChevronDown } from 'lucide-react';
