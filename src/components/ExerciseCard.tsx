@@ -112,6 +112,11 @@ interface ExerciseCardProps {
     reps: number;
     previousRecord: number;
   }) => void;
+  /**
+   * Guarda las observaciones permanentes del ejercicio (Exercise.notes).
+   * Una cadena vacía equivale a eliminar la nota.
+   */
+  onUpdateNotes?: (exerciseId: string, notes: string) => void;
 }
 
 export const ExerciseCard = ({ 
