@@ -597,12 +597,17 @@ export const WorkoutFlow = ({
     const savedSetState = exerciseSetStates.find(s => s.instanceKey === summaryExercise?.instanceKey);
     
     if (summaryExercise) {
-      const configs = summaryExercise.setConfigs || Array.from({ length: summaryExercise.sets }, (_, i) => ({
-        setNumber: i + 1,
-        reps: summaryExercise.reps,
-        weight: summaryExercise.weight,
-        restTime: summaryExercise.restBetweenSets,
-      }));
+      // La instantánea del momento de terminar es la fuente prioritaria.
+      const snapshot = summaryExercise.instanceKey ? summarySnapshots[summaryExercise.instanceKey] : undefined;
+      const configs = snapshot?.setConfigs
+        || summaryExercise.setConfigs
+        || Array.from({ length: summaryExercise.sets }, (_, i) => ({
+          setNumber: i + 1,
+          reps: summaryExercise.reps,
+          weight: summaryExercise.weight,
+          restTime: summaryExercise.restBetweenSets,
+        }));
+      const summaryCompletedSets = snapshot?.completedSets ?? (savedSetState?.completedSets || []);
       
       return (
         <div className="fixed inset-0 bg-background z-50 flex flex-col">
