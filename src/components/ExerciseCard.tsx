@@ -513,10 +513,12 @@ export const ExerciseCard = ({
       setTimerType('set');
       setShowFullscreenTimer(true);
     } else {
-      // Es la última serie
+      // Es la última serie: instantánea completa (incluye esta serie exactamente una vez)
+      const snapshot = buildSnapshot(newCompletedSets, localSetConfigs);
+      pendingSnapshotRef.current = snapshot;
       if (skipExerciseRestTimer) {
         // El componente padre maneja el temporizador entre ejercicios
-        onExerciseComplete?.();
+        onExerciseComplete?.(snapshot);
       } else {
         // Mostrar nuestro propio temporizador
         setTimerType('exercise');
