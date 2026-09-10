@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { WorkoutSession, ExerciseSession, CompletedSet, WorkoutStats } from '@/types/workoutHistory';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,20 @@ export const useWorkoutHistory = () => {
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  /**
+   * Fuente síncrona de verdad para las escrituras de la sesión activa.
+   * Evita que endSession persista una versión anterior cuando se llama
+   * inmediatamente después de registrar la última serie (el estado React
+   * todavía no se ha propagado al cierre del render).
+   */
+  const currentSessionRef = useRef<WorkoutSession | null>(null);
+
+  /** Escribe el siguiente valor en la ref (síncrono) y en el estado (render) */
+  const commitSession = useCallback((next: WorkoutSession | null) => {
+    currentSessionRef.current = next;
+    setCurrentSession(next);
+  }, []);
 
   // Fetch sessions from DB
   const fetchSessions = useCallback(async () => {
@@ -96,9 +110,9 @@ export const useWorkoutHistory = () => {
       startedAt: new Date(),
       isComplete: false,
     };
-    setCurrentSession(newSession);
+    commitSession(newSession);
     return newSession;
-  }, []);
+  }, [commitSession]);
 
   const logCompletedSet = useCallback((
     exerciseId: string,
@@ -109,51 +123,62 @@ export const useWorkoutHistory = () => {
   ) => {
     const completedSet: CompletedSet = { ...setData, completedAt: new Date() };
 
-    setCurrentSession(prev => {
-      if (!prev) {
-        return {
-          id: crypto.randomUUID(),
-          date: new Date(),
-          exercises: [{
-            exerciseId, exerciseName, muscleGroup,
-            completedSets: [completedSet], totalSets, startedAt: new Date(),
-          }],
-          totalDuration: 0, startedAt: new Date(), isComplete: false,
-        };
-      }
+    // Se calcula desde la ref (valor más reciente ya escrito), no desde el cierre del render
+    const prev = currentSessionRef.current;
 
-      const idx = prev.exercises.findIndex(e => e.exerciseId === exerciseId);
-      if (idx >= 0) {
-        const updated = [...prev.exercises];
-        updated[idx] = {
-          ...updated[idx],
-          completedSets: [...updated[idx].completedSets, completedSet],
-          ...(updated[idx].completedSets.length + 1 >= totalSets ? { completedAt: new Date() } : {}),
-        };
-        return { ...prev, exercises: updated };
-      }
-
-      return {
-        ...prev,
-        exercises: [...prev.exercises, {
+    if (!prev) {
+      commitSession({
+        id: crypto.randomUUID(),
+        date: new Date(),
+        exercises: [{
           exerciseId, exerciseName, muscleGroup,
           completedSets: [completedSet], totalSets, startedAt: new Date(),
         }],
+        totalDuration: 0, startedAt: new Date(), isComplete: false,
+      });
+      return;
+    }
+
+    const idx = prev.exercises.findIndex(e => e.exerciseId === exerciseId);
+    if (idx >= 0) {
+      const updated = [...prev.exercises];
+      updated[idx] = {
+        ...updated[idx],
+        completedSets: [...updated[idx].completedSets, completedSet],
+        ...(updated[idx].completedSets.length + 1 >= totalSets ? { completedAt: new Date() } : {}),
       };
+      commitSession({ ...prev, exercises: updated });
+      return;
+    }
+
+    commitSession({
+      ...prev,
+      exercises: [...prev.exercises, {
+        exerciseId, exerciseName, muscleGroup,
+        completedSets: [completedSet], totalSets, startedAt: new Date(),
+      }],
     });
-  }, []);
+  }, [commitSession]);
 
   const endSession = useCallback(async () => {
-    if (!currentSession || currentSession.exercises.length === 0 || !user) {
-      setCurrentSession(null);
+    // Instantánea inmutable desde la ref: incluye la última serie registrada
+    // aunque todavía no se haya producido un nuevo render.
+    const snapshot = currentSessionRef.current;
+
+    if (!snapshot || snapshot.exercises.length === 0 || !user) {
+      commitSession(null);
       return null;
     }
 
     const completedSession: WorkoutSession = {
-      ...currentSession,
+      ...snapshot,
+      exercises: snapshot.exercises.map(ex => ({
+        ...ex,
+        completedSets: ex.completedSets.map(s => ({ ...s })),
+      })),
       completedAt: new Date(),
       isComplete: true,
-      totalDuration: Math.floor((Date.now() - currentSession.startedAt.getTime()) / 1000),
+      totalDuration: Math.floor((Date.now() - snapshot.startedAt.getTime()) / 1000),
     };
 
     // Save to DB
@@ -206,9 +231,9 @@ export const useWorkoutHistory = () => {
     }
 
     setSessions(prev => [completedSession, ...prev]);
-    setCurrentSession(null);
+    commitSession(null);
     return completedSession;
-  }, [currentSession, user]);
+  }, [user, commitSession]);
 
   const getExerciseHistory = useCallback((exerciseId: string): ExerciseSession[] => {
     const history: ExerciseSession[] = [];
@@ -338,8 +363,8 @@ export const useWorkoutHistory = () => {
     // Delete all user sessions (cascade will handle exercises and sets)
     await supabase.from('workout_sessions').delete().eq('user_id', user.id);
     setSessions([]);
-    setCurrentSession(null);
-  }, [user]);
+    commitSession(null);
+  }, [user, commitSession]);
 
   return {
     sessions, currentSession, isLoading, startSession, logCompletedSet,
