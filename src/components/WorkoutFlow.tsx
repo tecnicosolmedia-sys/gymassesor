@@ -1460,6 +1460,7 @@ export const WorkoutFlow = ({
                 onGlobalSetRunning={setRunning}
                 workoutSessions={workoutSessions}
                 onDeleteCompletedSet={onDeleteCompletedSet}
+                onUpdateNotes={handleUpdateNotes}
                 onPersonalRecord={(record) =>
                   // No mostrar aún: se guarda la mejor marca y se muestra al
                   // pasar al descanso entre ejercicios.
