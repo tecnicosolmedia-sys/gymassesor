@@ -40,6 +40,19 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel';
 
+/**
+ * Instantánea inmutable del ejercicio en el momento exacto de terminarlo.
+ * Evita que el resumen dependa de un setState asíncrono previo.
+ */
+export interface ExerciseCompletionSnapshot {
+  exerciseId: string;
+  instanceKey?: string;
+  /** Series realmente completadas, sin duplicados y ordenadas */
+  completedSets: number[];
+  /** Configuración efectiva completa mostrada en pantalla */
+  setConfigs: SetConfig[];
+}
+
 interface ExerciseCardProps {
   exercise: Exercise;
   /**
@@ -61,7 +74,11 @@ interface ExerciseCardProps {
   ) => void;
   // Si es true, no muestra el temporizador de ejercicio completo (lo maneja el padre)
   skipExerciseRestTimer?: boolean;
-  onExerciseComplete?: () => void;
+  /**
+   * Se llama al terminar el ejercicio con una instantánea inmutable del estado
+   * real en pantalla (series completadas + configuración efectiva completa).
+   */
+  onExerciseComplete?: (snapshot?: ExerciseCompletionSnapshot) => void;
   // Callback para guardar cambios en la configuración (persiste en la rutina maestra)
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
   /**
@@ -250,6 +267,13 @@ export const ExerciseCard = ({
     onSetStateChange?.(exercise.id, currentSet, completedSets);
   }, [exercise.id, currentSet, completedSets, onSetStateChange]);
 
+  // Bloqueo síncrono por serie: evita registrar dos veces la misma serie con dos taps rápidos.
+  const completingSetRef = useRef<string | null>(null);
+  useEffect(() => {
+    // Al avanzar de serie o cambiar de aparición se libera el bloqueo.
+    completingSetRef.current = null;
+  }, [instanceKey, exercise.id, currentSet]);
+
   const getCurrentSetConfig = (): SetConfig => {
     if (localSetConfigs && localSetConfigs[currentSet - 1]) {
       return localSetConfigs[currentSet - 1];
@@ -413,7 +437,23 @@ export const ExerciseCard = ({
 
 
 
+  /** Instantánea inmutable del estado efectivo en pantalla */
+  const buildSnapshot = (completed: number[], configs: SetConfig[]): ExerciseCompletionSnapshot => ({
+    exerciseId: exercise.id,
+    instanceKey,
+    completedSets: Array.from(new Set(completed)).sort((a, b) => a - b),
+    setConfigs: configs.map(c => ({ ...c })),
+  });
+
+  /** Instantánea pendiente cuando el descanso final lo gestiona esta tarjeta */
+  const pendingSnapshotRef = useRef<ExerciseCompletionSnapshot | null>(null);
+
   const handleSetComplete = () => {
+    // Bloqueo síncrono contra doble pulsación sobre la MISMA serie.
+    const lockKey = `${instanceKey ?? exercise.id}#${currentSet}`;
+    if (completingSetRef.current === lockKey) return;
+    completingSetRef.current = lockKey;
+
     const config = getCurrentSetConfig();
     const setIsWarmup = isWarmupSet(exercise.name, config);
 
@@ -473,10 +513,12 @@ export const ExerciseCard = ({
       setTimerType('set');
       setShowFullscreenTimer(true);
     } else {
-      // Es la última serie
+      // Es la última serie: instantánea completa (incluye esta serie exactamente una vez)
+      const snapshot = buildSnapshot(newCompletedSets, localSetConfigs);
+      pendingSnapshotRef.current = snapshot;
       if (skipExerciseRestTimer) {
         // El componente padre maneja el temporizador entre ejercicios
-        onExerciseComplete?.();
+        onExerciseComplete?.(snapshot);
       } else {
         // Mostrar nuestro propio temporizador
         setTimerType('exercise');
@@ -779,7 +821,8 @@ export const ExerciseCard = ({
                 <button
                   onClick={() => {
                     if (skipExerciseRestTimer) {
-                      onExerciseComplete?.();
+                      // Terminar anticipadamente: solo las series realmente completadas
+                      onExerciseComplete?.(buildSnapshot(completedSets, localSetConfigs));
                     } else {
                       setTimerType('exercise');
                       setShowFullscreenTimer(true);

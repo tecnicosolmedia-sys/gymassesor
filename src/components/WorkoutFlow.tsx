@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Exercise, SetConfig, MUSCLE_GROUPS, MuscleGroup } from '@/types/exercise';
 import { WorkoutSession } from '@/types/workoutHistory';
 import { FullscreenTimer } from './FullscreenTimer';
-import { ExerciseCard } from './ExerciseCard';
+import { ExerciseCard, type ExerciseCompletionSnapshot } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
 import { AddExerciseDuringWorkoutDialog } from './AddExerciseDuringWorkoutDialog';
 import { X, Dumbbell, ChevronRight, Plus, Trophy, ArrowRight, LogOut, Timer, AlertTriangle, Bell, BellOff, Flame, Weight, RefreshCw, ClipboardList, FileDown, ListChecks, ChevronUp, ChevronDown } from 'lucide-react';
@@ -178,6 +178,14 @@ export const WorkoutFlow = ({
   const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(
     () => initialExerciseSetStates.map(s => ({ ...s, instanceKey: s.instanceKey ?? `${s.exerciseId}#0` }))
   );
+
+  /**
+   * Instantáneas por instanceKey del momento exacto en que se terminó el ejercicio.
+   * El resumen las usa como fuente directa, sin depender de setStates asíncronos.
+   */
+  const [summarySnapshots, setSummarySnapshots] = useState<Record<string, ExerciseCompletionSnapshot>>({});
+
+  
 
   
   
@@ -399,9 +407,34 @@ export const WorkoutFlow = ({
            !extraExercises.some((ee) => ee.id === e.id)
   );
 
-  const handleExerciseComplete = (instanceKey: string) => {
+  const handleExerciseComplete = (instanceKey: string, snapshot?: ExerciseCompletionSnapshot) => {
     const exerciseIndex = workoutExercises.findIndex((e) => e.instanceKey === instanceKey);
-    
+
+    // Aplicar la instantánea de forma atómica ANTES de mostrar el resumen:
+    // series completadas reales + configuración efectiva usada en pantalla.
+    if (snapshot) {
+      setSummarySnapshots(prev => ({ ...prev, [instanceKey]: snapshot }));
+      setExerciseSetStates(prev => {
+        const idx = prev.findIndex(s => s.instanceKey === instanceKey);
+        const merged = {
+          instanceKey,
+          exerciseId: snapshot.exerciseId,
+          currentSet: idx >= 0 ? prev[idx].currentSet : snapshot.completedSets.length,
+          completedSets: [...snapshot.completedSets],
+          sessionSetConfigs: idx >= 0 ? prev[idx].sessionSetConfigs : undefined,
+        };
+        if (idx < 0) return [...prev, merged];
+        const updated = [...prev];
+        updated[idx] = merged;
+        return updated;
+      });
+      setWorkoutExercises(prev => prev.map(e =>
+        e.instanceKey === instanceKey
+          ? { ...e, setConfigs: snapshot.setConfigs.map(c => ({ ...c })) }
+          : e
+      ));
+    }
+
     setCompletedExerciseIds((prev) => new Set([...prev, instanceKey]));
     
     // Mostrar resumen del ejercicio antes de continuar
@@ -564,12 +597,17 @@ export const WorkoutFlow = ({
     const savedSetState = exerciseSetStates.find(s => s.instanceKey === summaryExercise?.instanceKey);
     
     if (summaryExercise) {
-      const configs = summaryExercise.setConfigs || Array.from({ length: summaryExercise.sets }, (_, i) => ({
-        setNumber: i + 1,
-        reps: summaryExercise.reps,
-        weight: summaryExercise.weight,
-        restTime: summaryExercise.restBetweenSets,
-      }));
+      // La instantánea del momento de terminar es la fuente prioritaria.
+      const snapshot = summaryExercise.instanceKey ? summarySnapshots[summaryExercise.instanceKey] : undefined;
+      const configs = snapshot?.setConfigs
+        || summaryExercise.setConfigs
+        || Array.from({ length: summaryExercise.sets }, (_, i) => ({
+          setNumber: i + 1,
+          reps: summaryExercise.reps,
+          weight: summaryExercise.weight,
+          restTime: summaryExercise.restBetweenSets,
+        }));
+      const summaryCompletedSets = snapshot?.completedSets ?? (savedSetState?.completedSets || []);
       
       return (
         <div className="fixed inset-0 bg-background z-50 flex flex-col">
@@ -591,7 +629,7 @@ export const WorkoutFlow = ({
               muscleGroup={summaryExercise.muscleGroup}
               setConfigs={configs}
               isUnilateral={summaryExercise.isUnilateral}
-              completedSets={savedSetState?.completedSets || []}
+              completedSets={summaryCompletedSets}
               onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
               onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.instanceKey)}
               historySessions={workoutSessions}
@@ -1379,7 +1417,7 @@ export const WorkoutFlow = ({
                 }}
                 isActive={true}
                 skipExerciseRestTimer={true}
-                onExerciseComplete={() => handleExerciseComplete(currentExercise.instanceKey)}
+                onExerciseComplete={(snapshot) => handleExerciseComplete(currentExercise.instanceKey, snapshot)}
                 onUpdateSetConfig={(exerciseId, setConfigs) => {
                   // Actualizar estado local para que el resumen muestre los datos reales
                   setWorkoutExercises(prev => prev.map(e => 
