@@ -149,6 +149,20 @@ export const ExerciseCard = ({
   // Editor inline de observaciones (nota permanente del ejercicio)
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState(exercise.notes ?? '');
+  /** Nota mostrada: optimista, para que el texto guardado se vea sin esperar la red */
+  const [displayedNotes, setDisplayedNotes] = useState(exercise.notes ?? '');
+  /**
+   * Sincroniza sólo cuando el prop cambia de verdad (no pisa el valor
+   * optimista recién guardado) y nunca mientras el editor está abierto.
+   */
+  const lastPropNotesRef = useRef(exercise.notes ?? '');
+  useEffect(() => {
+    const propNotes = exercise.notes ?? '';
+    if (propNotes === lastPropNotesRef.current) return;
+    lastPropNotesRef.current = propNotes;
+    if (!editingNotes) setDisplayedNotes(propNotes);
+  }, [exercise.notes, editingNotes]);
+
   const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
   const [showFullscreenTimer, setShowFullscreenTimer] = useState(false);
@@ -690,7 +704,7 @@ export const ExerciseCard = ({
             )}
             
             {/* Notes: nota permanente del ejercicio, editable en línea */}
-            {(exercise.notes || onUpdateNotes) && (
+            {(displayedNotes || onUpdateNotes) && (
             <div
               className="p-3 rounded-xl bg-secondary/50"
               onClick={(e) => e.stopPropagation()}
@@ -700,14 +714,14 @@ export const ExerciseCard = ({
                   <FileText className="w-4 h-4" />
                   Observaciones
                 </div>
-                {!editingNotes && exercise.notes && onUpdateNotes && (
+                {!editingNotes && displayedNotes && onUpdateNotes && (
                   <button
                     type="button"
                     aria-label="Editar nota"
                     title="Editar nota"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setNotesDraft(exercise.notes ?? '');
+                      setNotesDraft(displayedNotes);
                       setEditingNotes(true);
                     }}
                     className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
@@ -734,8 +748,11 @@ export const ExerciseCard = ({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onUpdateNotes?.(exercise.id, notesDraft.trim() === '' ? '' : notesDraft);
+                        const nextNotes = notesDraft.trim() === '' ? '' : notesDraft;
+                        setDisplayedNotes(nextNotes);
+                        setNotesDraft(nextNotes);
                         setEditingNotes(false);
+                        onUpdateNotes?.(exercise.id, nextNotes);
                       }}
                       className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
                     >
@@ -745,7 +762,7 @@ export const ExerciseCard = ({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setNotesDraft(exercise.notes ?? '');
+                        setNotesDraft(displayedNotes);
                         setEditingNotes(false);
                       }}
                       className="px-3 py-1.5 rounded-lg bg-secondary text-foreground text-sm font-semibold"
@@ -754,9 +771,9 @@ export const ExerciseCard = ({
                     </button>
                   </div>
                 </div>
-              ) : exercise.notes ? (
+              ) : displayedNotes ? (
                 <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {exercise.notes}
+                  {displayedNotes}
                 </p>
               ) : onUpdateNotes ? (
                 <button
