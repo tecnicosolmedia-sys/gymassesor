@@ -11,6 +11,7 @@ import { isWarmupSet } from '@/utils/workoutStats';
 
 import { CompletedExercisesReview } from './CompletedExercisesReview';
 import { ExerciseSummary } from './ExerciseSummary';
+import { PersonalRecordDialog } from './PersonalRecordDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useWakeLock } from '@/hooks/useWakeLock';
@@ -155,6 +156,23 @@ export const WorkoutFlow = ({
   const [substituteMuscleFilter, setSubstituteMuscleFilter] = useState<MuscleGroup | 'todos'>('todos');
   const [substituteOriginalIndex, setSubstituteOriginalIndex] = useState<number | null>(null);
   const [showCompletedReview, setShowCompletedReview] = useState(false);
+
+  // Récord personal: se detecta durante la serie pero se muestra al pasar al
+  // descanso entre ejercicios, superpuesto al temporizador.
+  interface PendingRecord {
+    exerciseName: string;
+    weight: number;
+    reps: number;
+    previousRecord: number;
+  }
+  const [pendingRecord, setPendingRecord] = useState<PendingRecord | null>(null);
+  const [shownRecord, setShownRecord] = useState<PendingRecord | null>(null);
+  const [recordFlash, setRecordFlash] = useState(false);
+
+  const consumeShownRecord = useCallback(() => {
+    setShownRecord(null);
+    setRecordFlash(false);
+  }, []);
   
   // Estado de series por ejercicio (para persistir y restaurar)
   const [exerciseSetStates, setExerciseSetStates] = useState<ExerciseSetState[]>(
@@ -279,6 +297,13 @@ export const WorkoutFlow = ({
         sessionSetConfigs: existing >= 0 ? prev[existing].sessionSetConfigs : undefined,
       };
       if (existing >= 0) {
+        const old = prev[existing];
+        const same =
+          old.exerciseId === newState.exerciseId &&
+          old.currentSet === newState.currentSet &&
+          old.completedSets.length === completedSets.length &&
+          old.completedSets.every((v, i) => v === completedSets[i]);
+        if (same) return prev;
         const updated = [...prev];
         updated[existing] = newState;
         return updated;
@@ -408,10 +433,20 @@ export const WorkoutFlow = ({
       type: 'rest-between-exercises', 
       completedExerciseIndex 
     });
+
+    // Mostrar ahora el récord pendiente (si hay), superpuesto al temporizador,
+    // y consumirlo para que no reaparezca más adelante.
+    if (pendingRecord) {
+      setShownRecord(pendingRecord);
+      setPendingRecord(null);
+      setRecordFlash(true);
+      window.setTimeout(() => setRecordFlash(false), 3000);
+    }
   };
 
   const handleRestComplete = () => {
     // El temporizador terminó, mostrar selector de siguiente ejercicio
+    consumeShownRecord();
     if (flowState.type === 'rest-between-exercises') {
       setFlowState({ 
         type: 'select-next-exercise', 
@@ -494,6 +529,7 @@ export const WorkoutFlow = ({
   };
 
   const handleSkipRest = () => {
+    consumeShownRecord();
     if (flowState.type === 'rest-between-exercises') {
       setFlowState({ 
         type: 'select-next-exercise', 
@@ -571,22 +607,42 @@ export const WorkoutFlow = ({
   if (flowState.type === 'rest-between-exercises') {
     const completedExercise = workoutExercises[flowState.completedExerciseIndex];
     return (
-      <FullscreenTimer
-        initialTime={getRestTime()}
-        label="Descanso entre ejercicios"
-        nextSetLabel={`¡${completedExercise?.name} completado! Elige el siguiente ejercicio.`}
-        onComplete={handleRestComplete}
-        onContinue={handleSkipRest}
-        onClose={() => setFlowState({ 
-          type: 'select-next-exercise', 
-          completedExerciseIndex: flowState.completedExerciseIndex 
-        })}
-        globalElapsedTime={elapsedTime}
-        globalIsRunning={isRunning}
-        onGlobalToggle={toggle}
-        onGlobalSetTime={setTime}
-        onGlobalSetRunning={setRunning}
-      />
+      <>
+        <FullscreenTimer
+          initialTime={getRestTime()}
+          label="Descanso entre ejercicios"
+          nextSetLabel={`¡${completedExercise?.name} completado! Elige el siguiente ejercicio.`}
+          onComplete={handleRestComplete}
+          onContinue={handleSkipRest}
+          onClose={() => {
+            consumeShownRecord();
+            setFlowState({
+              type: 'select-next-exercise',
+              completedExerciseIndex: flowState.completedExerciseIndex,
+            });
+          }}
+          globalElapsedTime={elapsedTime}
+          globalIsRunning={isRunning}
+          onGlobalToggle={toggle}
+          onGlobalSetTime={setTime}
+          onGlobalSetRunning={setRunning}
+        />
+
+        {shownRecord && (
+          <PersonalRecordDialog
+            open
+            onClose={consumeShownRecord}
+            exerciseName={shownRecord.exerciseName}
+            weight={shownRecord.weight}
+            reps={shownRecord.reps}
+            previousRecord={shownRecord.previousRecord}
+          />
+        )}
+
+        {recordFlash && (
+          <div className="fixed inset-0 z-[300] pointer-events-none animate-strobe-flash" />
+        )}
+      </>
     );
   }
 
@@ -1352,6 +1408,13 @@ export const WorkoutFlow = ({
                 onGlobalSetRunning={setRunning}
                 workoutSessions={workoutSessions}
                 onDeleteCompletedSet={onDeleteCompletedSet}
+                onPersonalRecord={(record) =>
+                  // No mostrar aún: se guarda la mejor marca y se muestra al
+                  // pasar al descanso entre ejercicios.
+                  setPendingRecord((prev) =>
+                    prev && prev.weight > record.weight ? prev : record
+                  )
+                }
               />
             );
           })()}
