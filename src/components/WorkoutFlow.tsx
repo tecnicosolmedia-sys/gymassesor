@@ -1417,7 +1417,7 @@ export const WorkoutFlow = ({
                 }}
                 isActive={true}
                 skipExerciseRestTimer={true}
-                onExerciseComplete={() => handleExerciseComplete(currentExercise.instanceKey)}
+                onExerciseComplete={(snapshot) => handleExerciseComplete(currentExercise.instanceKey, snapshot)}
                 onUpdateSetConfig={(exerciseId, setConfigs) => {
                   // Actualizar estado local para que el resumen muestre los datos reales
                   setWorkoutExercises(prev => prev.map(e => 
