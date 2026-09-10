@@ -741,8 +741,11 @@ export const ExerciseCard = ({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onUpdateNotes?.(exercise.id, notesDraft.trim() === '' ? '' : notesDraft);
+                        const nextNotes = notesDraft.trim() === '' ? '' : notesDraft;
+                        setDisplayedNotes(nextNotes);
+                        setNotesDraft(nextNotes);
                         setEditingNotes(false);
+                        onUpdateNotes?.(exercise.id, nextNotes);
                       }}
                       className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
                     >
