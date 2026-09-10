@@ -151,6 +151,11 @@ export const ExerciseCard = ({
   const [notesDraft, setNotesDraft] = useState(exercise.notes ?? '');
   /** Nota mostrada: optimista, para que el texto guardado se vea sin esperar la red */
   const [displayedNotes, setDisplayedNotes] = useState(exercise.notes ?? '');
+  // Sincroniza con el prop, pero nunca mientras el usuario está editando
+  useEffect(() => {
+    if (!editingNotes) setDisplayedNotes(exercise.notes ?? '');
+  }, [exercise.notes, editingNotes]);
+
   const [expanded, setExpanded] = useState(isActive);
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
   const [showFullscreenTimer, setShowFullscreenTimer] = useState(false);
