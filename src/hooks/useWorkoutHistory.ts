@@ -364,7 +364,7 @@ export const useWorkoutHistory = () => {
     await supabase.from('workout_sessions').delete().eq('user_id', user.id);
     setSessions([]);
     commitSession(null);
-  }, [user]);
+  }, [user, commitSession]);
 
   return {
     sessions, currentSession, isLoading, startSession, logCompletedSet,
