@@ -267,6 +267,13 @@ export const ExerciseCard = ({
     onSetStateChange?.(exercise.id, currentSet, completedSets);
   }, [exercise.id, currentSet, completedSets, onSetStateChange]);
 
+  // Bloqueo síncrono por serie: evita registrar dos veces la misma serie con dos taps rápidos.
+  const completingSetRef = useRef<string | null>(null);
+  useEffect(() => {
+    // Al avanzar de serie o cambiar de aparición se libera el bloqueo.
+    completingSetRef.current = null;
+  }, [instanceKey, exercise.id, currentSet]);
+
   const getCurrentSetConfig = (): SetConfig => {
     if (localSetConfigs && localSetConfigs[currentSet - 1]) {
       return localSetConfigs[currentSet - 1];
