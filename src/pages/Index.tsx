@@ -416,6 +416,7 @@ const Index = () => {
               onNewExerciseHandled={() => setNewlyCreatedExercise(null)}
               workoutSessions={sessions}
               onDeleteCompletedSet={deleteCompletedSet}
+              onUpdateNotes={handleUpdateNotes}
             />
           )}
         </section>
