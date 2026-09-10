@@ -125,6 +125,38 @@ describe('última serie: sin pérdida ni duplicación', () => {
     expect(summaryRows().length).toBe(4);
   });
 
+  it('el estado guardado conserva las 4 series y rehidrata el resumen', () => {
+    const { unmount } = render(<WorkoutFlow {...flowProps()} />);
+
+    completeSet(1); skipRest();
+    completeSet(2); skipRest();
+    completeSet(3); skipRest();
+    completeSet(4);
+
+    fireEvent(window, new Event('pagehide'));
+    const saved = JSON.parse(localStorage.getItem('gym-tracker-active-workout') || '{}');
+    const state = saved.exerciseSetStates?.find((s: ExerciseSetState) => s.instanceKey === 'ex-lat#0');
+    expect(state.completedSets).toEqual([1, 2, 3, 4]);
+    unmount();
+
+    // Rehidratación: se restaura la aparición con sus 4 series
+    render(<WorkoutFlow {...flowProps()} initialExerciseSetStates={state ? [state] : []} />);
+    expect(screen.getByText(/4 \/ 4 completadas/i)).toBeTruthy();
+  });
+
+  it('el registro del historial recibe la cuarta serie una sola vez', () => {
+    const onSetComplete = vi.fn();
+    render(<WorkoutFlow {...flowProps(onSetComplete)} />);
+
+    completeSet(1); skipRest();
+    completeSet(2); skipRest();
+    completeSet(3); skipRest();
+    completeSet(4);
+
+    const setNumbers = onSetComplete.mock.calls.map(c => c[3].setNumber);
+    expect(setNumbers).toEqual([1, 2, 3, 4]);
+  });
+
   it('"Terminar ejercicio" con 3 de 4 resume solo 3 series', () => {
     render(<WorkoutFlow {...flowProps()} />);
 
