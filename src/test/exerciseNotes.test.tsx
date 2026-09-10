@@ -27,13 +27,13 @@ describe('Notas del ejercicio', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('muestra la nota existente', () => {
-    render(<ExerciseCard exercise={makeExercise('Bajar despacio\nCodos 45º')} />);
+    render(<ExerciseCard onEdit={vi.fn()} onDelete={vi.fn()} exercise={makeExercise('Bajar despacio\nCodos 45º')} />);
     expect(screen.getByText(/Bajar despacio/)).toBeTruthy();
   });
 
   it('permite añadir una nota desde vacío y la guarda', () => {
     const onUpdateNotes = vi.fn();
-    render(<ExerciseCard exercise={makeExercise('')} onUpdateNotes={onUpdateNotes} />);
+    render(<ExerciseCard onEdit={vi.fn()} onDelete={vi.fn()} exercise={makeExercise('')} onUpdateNotes={onUpdateNotes} />);
     fireEvent.click(screen.getByText('+ Añadir nota'));
     const textarea = screen.getByLabelText('Nota del ejercicio');
     fireEvent.change(textarea, { target: { value: 'Linea 1\nLinea 2' } });
@@ -43,7 +43,7 @@ describe('Notas del ejercicio', () => {
 
   it('cancelar no persiste nada', () => {
     const onUpdateNotes = vi.fn();
-    render(<ExerciseCard exercise={makeExercise('Original')} onUpdateNotes={onUpdateNotes} />);
+    render(<ExerciseCard onEdit={vi.fn()} onDelete={vi.fn()} exercise={makeExercise('Original')} onUpdateNotes={onUpdateNotes} />);
     fireEvent.click(screen.getByLabelText('Editar nota'));
     fireEvent.change(screen.getByLabelText('Nota del ejercicio'), { target: { value: 'Otra' } });
     fireEvent.click(screen.getByText('Cancelar'));
@@ -53,7 +53,7 @@ describe('Notas del ejercicio', () => {
 
   it('guardar vacío elimina la nota', () => {
     const onUpdateNotes = vi.fn();
-    render(<ExerciseCard exercise={makeExercise('Original')} onUpdateNotes={onUpdateNotes} />);
+    render(<ExerciseCard onEdit={vi.fn()} onDelete={vi.fn()} exercise={makeExercise('Original')} onUpdateNotes={onUpdateNotes} />);
     fireEvent.click(screen.getByLabelText('Editar nota'));
     fireEvent.change(screen.getByLabelText('Nota del ejercicio'), { target: { value: '   ' } });
     fireEvent.click(screen.getByText('Guardar'));
@@ -65,6 +65,8 @@ describe('Notas del ejercicio', () => {
     const onUpdateNotes = vi.fn();
     render(
       <ExerciseCard
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
         exercise={makeExercise('Nota')}
         isActive
         onSetComplete={onSetComplete}
@@ -79,7 +81,7 @@ describe('Notas del ejercicio', () => {
   });
 
   it('sin callback no ofrece edición', () => {
-    render(<ExerciseCard exercise={makeExercise('Solo lectura')} />);
+    render(<ExerciseCard onEdit={vi.fn()} onDelete={vi.fn()} exercise={makeExercise('Solo lectura')} />);
     expect(screen.queryByLabelText('Editar nota')).toBeNull();
   });
 });
