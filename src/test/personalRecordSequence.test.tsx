@@ -16,6 +16,22 @@ vi.mock('@mediapipe/tasks-vision', () => ({
   },
 }));
 
+vi.mock('@/hooks/useWakeLock', () => ({ useWakeLock: () => {} }));
+
+vi.mock('@/hooks/useWorkoutNotification', () => ({
+  useWorkoutNotification: () => ({
+    isSupported: false,
+    permission: 'denied',
+    requestPermission: async () => 'denied',
+    showNotification: () => {},
+    closeNotification: () => {},
+    updateWorkoutNotification: () => {},
+    updateRestNotification: () => {},
+    startWorkoutUpdates: () => {},
+    stopUpdates: () => {},
+  }),
+}));
+
 vi.mock('@/hooks/usePersonalData', () => ({
   usePersonalData: () => ({ personalData: null, loading: false }),
 }));
