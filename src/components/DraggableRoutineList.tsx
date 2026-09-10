@@ -25,6 +25,8 @@ interface DraggableRoutineListProps {
   onNewExerciseHandled: () => void;
   workoutSessions: WorkoutSession[];
   onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
+  /** Guarda las observaciones permanentes del ejercicio */
+  onUpdateNotes?: (exerciseId: string, notes: string) => void;
 }
 
 export const DraggableRoutineList = ({
