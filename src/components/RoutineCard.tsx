@@ -241,6 +241,7 @@ export const RoutineCard = ({
                     onSetComplete={onSetComplete}
                     workoutSessions={workoutSessions}
                     onDeleteCompletedSet={onDeleteCompletedSet}
+                    onUpdateNotes={onUpdateNotes}
                   />
                 ))}
               </>
