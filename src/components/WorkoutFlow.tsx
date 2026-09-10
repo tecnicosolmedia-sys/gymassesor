@@ -297,6 +297,13 @@ export const WorkoutFlow = ({
         sessionSetConfigs: existing >= 0 ? prev[existing].sessionSetConfigs : undefined,
       };
       if (existing >= 0) {
+        const old = prev[existing];
+        const same =
+          old.exerciseId === newState.exerciseId &&
+          old.currentSet === newState.currentSet &&
+          old.completedSets.length === completedSets.length &&
+          old.completedSets.every((v, i) => v === completedSets[i]);
+        if (same) return prev;
         const updated = [...prev];
         updated[existing] = newState;
         return updated;
