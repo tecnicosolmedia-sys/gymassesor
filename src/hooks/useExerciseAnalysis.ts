@@ -53,6 +53,7 @@ export const useExerciseAnalysis = () => {
     setReport(null);
     setDigest(null);
     setError(null);
+    setOpen(false);
   }, []);
 
   const analyze = useCallback(async (input: ExerciseAnalysisDigest) => {
