@@ -493,6 +493,17 @@ export const FullscreenTimer = ({
               </div>
             )}
 
+            {onShowExercisePlan && (
+              <button
+                type="button"
+                onClick={onShowExercisePlan}
+                className="px-6 py-3 rounded-xl bg-secondary text-foreground font-medium flex items-center gap-2 border border-primary/30"
+              >
+                <ListChecks className="w-5 h-5 text-primary" aria-hidden="true" />
+                Ver ejercicio completo
+              </button>
+            )}
+
             <button
               onClick={handleContinue}
               className="px-6 py-3 rounded-xl bg-primary/20 text-primary font-medium flex items-center gap-2 hover:bg-primary/30 transition-all border border-primary/30"
