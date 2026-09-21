@@ -11,6 +11,7 @@ import { getEffectiveConfigs, getVolume, formatReps, isWarmupSet } from '@/utils
 import { useExerciseAnalysis } from '@/hooks/useExerciseAnalysis';
 import { ExerciseAnalysisDialog } from '@/components/ExerciseAnalysisDialog';
 import { buildExerciseAnalysisDigest } from '@/utils/exerciseSessionAnalysis';
+import { addSessionSet, normalizeSetConfigs, removeSessionSet } from '@/utils/sessionSetStructure';
 
 
 interface ExerciseSummaryProps {
@@ -23,7 +24,7 @@ interface ExerciseSummaryProps {
   isUnilateral?: boolean;
   /** Se renderiza dentro de otro contenedor (sin capa fija propia) */
   embedded?: boolean;
-  onContinue: (updatedConfigs: SetConfig[]) => void;
+  onContinue: (updatedConfigs: SetConfig[], completedSets: number[]) => void;
   onGoBack?: () => void;
   historySessions?: WorkoutSession[];
   onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
@@ -43,11 +44,13 @@ export const ExerciseSummary = ({
   onDeleteCompletedSet,
 }: ExerciseSummaryProps) => {
   const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);
-  const [localConfigs, setLocalConfigs] = useState<SetConfig[]>([...setConfigs]);
-  const [editField, setEditField] = useState<'reps' | 'weight' | null>(null);
+  const [localConfigs, setLocalConfigs] = useState<SetConfig[]>(() => normalizeSetConfigs(setConfigs));
+  const [localCompletedSets, setLocalCompletedSets] = useState<number[]>(() => [...completedSets].sort((a, b) => a - b));
+  const [recordsEditing, setRecordsEditing] = useState(false);
+  const [editField, setEditField] = useState<'reps' | 'weight' | 'restTime' | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  const completedConfigs = localConfigs.filter((_, i) => completedSets.includes(i + 1));
+  const completedConfigs = localConfigs.filter((_, i) => localCompletedSets.includes(i + 1));
   // Las series de calentamiento no suman volumen ni series efectivas
   const effectiveConfigs = getEffectiveConfigs(exerciseName, completedConfigs);
 
@@ -63,7 +66,7 @@ export const ExerciseSummary = ({
       muscleGroup,
       isUnilateral,
       configs: localConfigs,
-      completedSets,
+      completedSets: localCompletedSets,
       sessions: historySessions,
     }));
   };
