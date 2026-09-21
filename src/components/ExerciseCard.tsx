@@ -426,40 +426,32 @@ export const ExerciseCard = ({
     });
   };
 
-  // Eliminar una serie (solo si no está completada y queda más de una)
+  const syncStructure = (configs: SetConfig[], nextCurrentSet = currentSet, nextCompletedSets = completedSets) => {
+    setCurrentSet(nextCurrentSet);
+    setCompletedSets(nextCompletedSets);
+    emitSessionConfigUpdate(configs);
+    onSetStateChange?.(exercise.id, nextCurrentSet, nextCompletedSets);
+  };
+
+  const addSet = () => {
+    setLocalSetConfigs((prev) => {
+      const updated = addSessionSet(prev, prev[Math.max(0, currentSet - 1)]);
+      syncStructure(updated, currentSet, completedSets);
+      return updated;
+    });
+  };
+
+  // Eliminar una serie pendiente o una completada con confirmación clara
   const removeSet = (index: number) => {
     if (localSetConfigs.length <= 1) return;
     const setNumberToRemove = index + 1;
-    if (completedSets.includes(setNumberToRemove)) return;
+    const isCompleted = completedSets.includes(setNumberToRemove);
+    if (isCompleted && !confirm(`¿Eliminar definitivamente la Serie ${setNumberToRemove} registrada en esta sesión?`)) return;
 
     setLocalSetConfigs((prev) => {
-      // Eliminar y renumerar
-      const updated = prev
-        .filter((_, i) => i !== index)
-        .map((config, i) => ({ ...config, setNumber: i + 1 }));
-
-      // Actualizar series completadas: las posteriores se desplazan -1
-      const newCompletedSets = completedSets
-        .filter((s) => s !== setNumberToRemove)
-        .map((s) => (s > setNumberToRemove ? s - 1 : s));
-
-      // Ajustar serie actual
-      let newCurrentSet = currentSet;
-      if (currentSet > setNumberToRemove) {
-        newCurrentSet = currentSet - 1;
-      } else if (currentSet === setNumberToRemove) {
-        // Mantener el mismo índice (que ahora es la siguiente serie) o retroceder si era la última
-        newCurrentSet = Math.min(currentSet, updated.length);
-      }
-
-      setCompletedSets(newCompletedSets);
-      setCurrentSet(newCurrentSet);
-
-      // Notificar cambios al padre
-      onUpdateSetConfig?.(exercise.id, updated);
-      onSetStateChange?.(exercise.id, newCurrentSet, newCompletedSets);
-
-      return updated;
+      const { nextConfigs, nextCompletedSets, nextCurrentSet } = removeSessionSet(prev, completedSets, currentSet, index);
+      syncStructure(nextConfigs, nextCurrentSet, nextCompletedSets);
+      return nextConfigs;
     });
   };
 
@@ -480,8 +472,7 @@ export const ExerciseCard = ({
         }
         return config;
       });
-      // Notificar cambios al padre
-      onUpdateSetConfig?.(exercise.id, updated);
+      emitSessionConfigUpdate(updated);
       return updated;
     });
   };
@@ -492,7 +483,7 @@ export const ExerciseCard = ({
       const updated = prev.map((config, i) =>
         i === index ? { ...config, isWarmup: !config.isWarmup } : config
       );
-      onUpdateSetConfig?.(exercise.id, updated);
+      emitSessionConfigUpdate(updated);
       return updated;
     });
   };
