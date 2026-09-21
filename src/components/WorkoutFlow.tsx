@@ -88,7 +88,7 @@ interface WorkoutFlowProps {
     exerciseId: string,
     exerciseName: string,
     muscleGroup: string,
-    setData: { setNumber: number; reps: number; weight: number; restTime: number },
+    setData: { setNumber: number; reps: number; weight: number; restTime: number; isWarmup?: boolean },
     totalSets: number,
     instanceKey?: string,
   ) => void;
