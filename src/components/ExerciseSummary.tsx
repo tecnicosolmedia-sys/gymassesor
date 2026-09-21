@@ -71,18 +71,19 @@ export const ExerciseSummary = ({
     }));
   };
 
-  const handleUpdateField = (index: number, field: 'reps' | 'weight', delta: number) => {
+  const handleUpdateField = (index: number, field: 'reps' | 'weight' | 'restTime', delta: number) => {
     analysis.invalidate(); // cualquier corrección invalida el informe anterior
     setLocalConfigs(prev => prev.map((c, i) => {
       if (i !== index) return c;
       let newVal = c[field] + delta;
       if (field === 'reps') newVal = Math.max(1, Math.min(99, newVal));
       if (field === 'weight') newVal = Math.max(0, Math.min(999, Math.round(newVal * 2) / 2));
+      if (field === 'restTime') newVal = Math.max(5, Math.min(600, Math.round(newVal)));
       return { ...c, [field]: newVal };
     }));
   };
 
-  const handleDirectEdit = (index: number, field: 'reps' | 'weight') => {
+  const handleDirectEdit = (index: number, field: 'reps' | 'weight' | 'restTime') => {
     setEditingSetIndex(index);
     setEditField(field);
     setEditValue(localConfigs[index][field].toString());
@@ -98,11 +99,29 @@ export const ExerciseSummary = ({
         let val = numVal;
         if (editField === 'reps') val = Math.max(1, Math.min(99, Math.round(val)));
         if (editField === 'weight') val = Math.max(0, Math.min(999, Math.round(val * 2) / 2));
+        if (editField === 'restTime') val = Math.max(5, Math.min(600, Math.round(val)));
         return { ...c, [editField]: val };
       }));
     }
     setEditingSetIndex(null);
     setEditField(null);
+  };
+
+  const handleAddSet = () => {
+    analysis.invalidate();
+    const nextNumber = localConfigs.length + 1;
+    setLocalConfigs(prev => addSessionSet(prev));
+    setLocalCompletedSets(prev => Array.from(new Set([...prev, nextNumber])).sort((a, b) => a - b));
+    setRecordsEditing(true);
+  };
+
+  const handleRemoveSet = (index: number) => {
+    if (localConfigs.length <= 1) return;
+    if (!confirm(`¿Eliminar definitivamente la Serie ${index + 1} registrada en esta sesión?`)) return;
+    analysis.invalidate();
+    const { nextConfigs, nextCompletedSets } = removeSessionSet(localConfigs, localCompletedSets, Math.min(localConfigs.length, index + 1), index);
+    setLocalConfigs(nextConfigs);
+    setLocalCompletedSets(nextCompletedSets);
   };
 
   return (
