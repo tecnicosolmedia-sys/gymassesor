@@ -26,6 +26,8 @@ interface FullscreenTimerProps {
   chartSessions?: WorkoutSession[];
   chartNextSetNumber?: number;
   chartOnDeleteSet?: (sessionId: string, setNumber: number) => void | Promise<void>;
+  /** Abre la vista de solo lectura del ejercicio completo (no afecta al temporizador) */
+  onShowExercisePlan?: () => void;
 }
 
 export const FullscreenTimer = ({
