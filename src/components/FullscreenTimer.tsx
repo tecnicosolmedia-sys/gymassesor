@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, ArrowRight, Timer } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, ArrowRight, Timer, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useWorkoutNotification } from '@/hooks/useWorkoutNotification';
