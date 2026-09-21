@@ -94,8 +94,10 @@ describe('Análisis IA del ejercicio en el resumen', () => {
       return b;
     });
     fireEvent.click(stepper);
-    fireEvent.click(screen.getByLabelText('Analizar ejercicio con IA'));
+    // El informe anterior deja de estar disponible: hay que volver a analizar
     await waitFor(() => expect(screen.queryByText('Sesión sólida y estable.')).toBeNull());
+    fireEvent.click(screen.getByLabelText('Analizar ejercicio con IA'));
+    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
   });
 
   it('muestra un error legible y permite reintentar', async () => {
