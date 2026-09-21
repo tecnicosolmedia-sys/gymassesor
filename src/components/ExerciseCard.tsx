@@ -522,7 +522,8 @@ export const ExerciseCard = ({
         restTime: config.restTime,
         isWarmup: setIsWarmup,
       },
-      exercise.sets
+      localSetConfigs.length,
+      instanceKey
     );
 
     // Detección de récord personal: peso superior al máximo histórico
@@ -561,7 +562,7 @@ export const ExerciseCard = ({
     onSetStateChange?.(exercise.id, currentSet, newCompletedSets);
 
     
-    if (currentSet < exercise.sets) {
+    if (currentSet < localSetConfigs.length) {
       // Hay más series, mostrar temporizador entre series
       setTimerType('set');
       setShowFullscreenTimer(true);
@@ -590,7 +591,7 @@ export const ExerciseCard = ({
 
   const handleContinue = () => {
     if (timerType === 'set') {
-      if (currentSet < exercise.sets) {
+      if (currentSet < localSetConfigs.length) {
         setCurrentSet((prev) => prev + 1);
       }
     } else {
