@@ -744,7 +744,7 @@ export const WorkoutFlow = ({
               setConfigs={configs}
               isUnilateral={summaryExercise.isUnilateral}
               completedSets={summaryCompletedSets}
-              onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
+              onContinue={(updatedConfigs, updatedCompletedSets) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs, updatedCompletedSets)}
               onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.instanceKey)}
               historySessions={workoutSessions}
               onDeleteCompletedSet={onDeleteCompletedSet}
@@ -1516,7 +1516,7 @@ export const WorkoutFlow = ({
 
                 onEdit={onEditExercise}
                 onDelete={onDeleteExercise}
-                onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
+                onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets, setInstanceKey) => {
                   // Registrar los datos de la serie para calcular kg totales
                   setCompletedSetsData(prev => [...prev, {
                     exerciseId,
@@ -1527,7 +1527,7 @@ export const WorkoutFlow = ({
                   }]);
 
                   // Llamar al callback original
-                  onSetComplete(exerciseId, exerciseName, muscleGroup, setData, totalSets);
+                  onSetComplete(exerciseId, exerciseName, muscleGroup, setData, totalSets, setInstanceKey ?? currentExercise.instanceKey);
                 }}
                 isActive={true}
                 skipExerciseRestTimer={true}
@@ -1542,8 +1542,7 @@ export const WorkoutFlow = ({
                   setExerciseSetStates(prev => syncSessionOverrideOnManualEdit(
                     prev, currentExercise.instanceKey, exerciseId, setConfigs,
                   ));
-                  // También notificar al padre para persistencia
-                  onUpdateSetConfig?.(exerciseId, setConfigs);
+                  handleSessionSetConfig(currentExercise.instanceKey, exerciseId, setConfigs);
                 }}
 
                 onUpdateSessionSetConfig={(exerciseId, setConfigs) =>
@@ -1552,7 +1551,7 @@ export const WorkoutFlow = ({
                 initialSessionSetConfigs={savedSetState?.sessionSetConfigs}
                 initialCurrentSet={savedSetState?.currentSet}
                 initialCompletedSets={savedSetState?.completedSets}
-                onSetStateChange={(exerciseId, currentSet, completedSets) => handleSetStateChange(currentExercise.instanceKey, exerciseId, currentSet, completedSets)}
+                onSetStateChange={(exerciseId, currentSet, completedSets, setConfigs) => handleSetStateChange(currentExercise.instanceKey, exerciseId, currentSet, completedSets, setConfigs)}
                 globalElapsedTime={elapsedTime}
                 globalIsRunning={isRunning}
                 onGlobalToggle={toggle}
