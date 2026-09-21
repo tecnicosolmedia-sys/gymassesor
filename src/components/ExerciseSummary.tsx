@@ -89,6 +89,7 @@ export const ExerciseSummary = ({
     if (editingSetIndex === null || !editField) return;
     const numVal = parseFloat(editValue);
     if (!isNaN(numVal) && numVal >= 0) {
+      analysis.invalidate(); // corrección posterior: exige volver a analizar
       setLocalConfigs(prev => prev.map((c, i) => {
         if (i !== editingSetIndex) return c;
         let val = numVal;
