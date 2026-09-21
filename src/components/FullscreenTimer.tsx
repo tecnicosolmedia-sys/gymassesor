@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, ArrowRight, Timer } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, ArrowRight, Timer, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useWorkoutNotification } from '@/hooks/useWorkoutNotification';
@@ -26,6 +26,8 @@ interface FullscreenTimerProps {
   chartSessions?: WorkoutSession[];
   chartNextSetNumber?: number;
   chartOnDeleteSet?: (sessionId: string, setNumber: number) => void | Promise<void>;
+  /** Abre la vista de solo lectura del ejercicio completo (no afecta al temporizador) */
+  onShowExercisePlan?: () => void;
 }
 
 export const FullscreenTimer = ({
@@ -45,6 +47,7 @@ export const FullscreenTimer = ({
   chartSessions,
   chartNextSetNumber,
   chartOnDeleteSet,
+  onShowExercisePlan,
 }: FullscreenTimerProps) => {
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [isRunning, setIsRunning] = useState(true);
@@ -490,6 +493,17 @@ export const FullscreenTimer = ({
               </div>
             )}
 
+            {onShowExercisePlan && (
+              <button
+                type="button"
+                onClick={onShowExercisePlan}
+                className="px-6 py-3 rounded-xl bg-secondary text-foreground font-medium flex items-center gap-2 border border-primary/30"
+              >
+                <ListChecks className="w-5 h-5 text-primary" aria-hidden="true" />
+                Ver ejercicio completo
+              </button>
+            )}
+
             <button
               onClick={handleContinue}
               className="px-6 py-3 rounded-xl bg-primary/20 text-primary font-medium flex items-center gap-2 hover:bg-primary/30 transition-all border border-primary/30"
@@ -511,6 +525,17 @@ export const FullscreenTimer = ({
               )}
             </div>
             
+            {onShowExercisePlan && (
+              <button
+                type="button"
+                onClick={onShowExercisePlan}
+                className="px-6 py-3 rounded-xl bg-secondary text-foreground font-medium flex items-center gap-2 border border-primary/30"
+              >
+                <ListChecks className="w-5 h-5 text-primary" aria-hidden="true" />
+                Ver ejercicio completo
+              </button>
+            )}
+
             <button
               onClick={handleContinue}
               className="px-8 py-4 sm:px-12 sm:py-5 rounded-2xl bg-primary text-primary-foreground font-bold text-lg sm:text-xl flex items-center gap-3 hover:bg-primary/90 transition-all shadow-energy animate-pulse"

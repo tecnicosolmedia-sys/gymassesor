@@ -12,6 +12,7 @@ import {
   FileText,
   CheckCircle,
   BarChart3,
+  ListChecks,
 } from 'lucide-react';
 import { Sparkles, Camera } from 'lucide-react';
 import { isCoachAvailable } from '@/utils/poseCoach';
@@ -24,6 +25,7 @@ import { ExerciseProgressChart } from './ExerciseProgressChart';
 import { cn } from '@/lib/utils';
 import { getMuscleGroupIcon } from '@/lib/muscleGroupIcons';
 import { PersonalRecordDialog } from './PersonalRecordDialog';
+import { ExercisePlanDialog } from './ExercisePlanDialog';
 import { useAISuggestion } from '@/hooks/useAISuggestion';
 import { AISuggestionDialog } from './AISuggestionDialog';
 import { isWarmupSet } from '@/utils/workoutStats';
@@ -167,6 +169,8 @@ export const ExerciseCard = ({
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
   const [showFullscreenTimer, setShowFullscreenTimer] = useState(false);
   const [timerType, setTimerType] = useState<'set' | 'exercise'>('set');
+  /** Vista de solo lectura del ejercicio completo */
+  const [showPlan, setShowPlan] = useState(false);
   const [completedSets, setCompletedSets] = useState<number[]>(initialCompletedSets);
   
   const [showChart, setShowChart] = useState(false);
@@ -794,6 +798,21 @@ export const ExerciseCard = ({
             )}
 
 
+            {/* Ver el plan completo del ejercicio (solo lectura) */}
+            {isActive && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPlan(true);
+                }}
+                className="w-full py-3 rounded-xl bg-secondary border border-primary/40 text-foreground font-semibold flex items-center justify-center gap-2"
+              >
+                <ListChecks className="w-5 h-5 text-primary" aria-hidden="true" />
+                Ver ejercicio completo
+              </button>
+            )}
+
             {/* Entrenador virtual por cámara (Beta) */}
             {isActive && (
               coachAvailable ? (
@@ -1076,9 +1095,20 @@ export const ExerciseCard = ({
             chartSessions={showChartInTimer ? timerSessions : undefined}
             chartNextSetNumber={showChartInTimer ? currentSet + 1 : undefined}
             chartOnDeleteSet={showChartInTimer && onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
+            onShowExercisePlan={timerType === 'set' ? () => setShowPlan(true) : undefined}
           />
         );
       })()}
+
+      <ExercisePlanDialog
+        open={showPlan}
+        onClose={() => setShowPlan(false)}
+        exerciseName={exercise.name}
+        muscleGroup={exercise.muscleGroup}
+        isUnilateral={exercise.isUnilateral}
+        setConfigs={localSetConfigs}
+        completedSets={completedSets}
+      />
 
       <PersonalRecordDialog
         open={recordDialog.open}
