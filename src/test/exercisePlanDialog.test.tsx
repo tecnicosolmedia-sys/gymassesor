@@ -67,7 +67,13 @@ const flowProps = (onSetComplete = vi.fn()) => ({
   initialExerciseSetStates: initialStates,
 });
 
-const openPlan = () => fireEvent.click(screen.getByText(/Ver ejercicio completo/i));
+const openPlan = (index = 0) =>
+  fireEvent.click(screen.getAllByText(/Ver ejercicio completo/i)[index]);
+/** Botón de la vista dentro del temporizador de descanso (el último montado) */
+const openPlanFromTimer = () => {
+  const buttons = screen.getAllByText(/Ver ejercicio completo/i);
+  fireEvent.click(buttons[buttons.length - 1]);
+};
 const planSet = (n: number) => screen.getByTestId(`plan-set-${n}`);
 
 beforeEach(() => localStorage.clear());
@@ -94,7 +100,7 @@ describe('vista del ejercicio completo durante la ejecución', () => {
 
     // Estamos en el descanso entre series (FullscreenTimer)
     expect(screen.getByText(/Saltar y continuar/i)).toBeTruthy();
-    openPlan();
+    openPlanFromTimer();
 
     expect(screen.getByText(/1 de 3 series realizadas/i)).toBeTruthy();
     expect(planSet(1).textContent).toContain('Realizada');
@@ -107,7 +113,7 @@ describe('vista del ejercicio completo durante la ejecución', () => {
     fireEvent.click(screen.getByText(/Completar Serie 1/i));
 
     const before = document.querySelector('.font-lcd')?.textContent;
-    openPlan();
+    openPlanFromTimer();
     act(() => { vi.advanceTimersByTime(3000); });
     const after = document.querySelector('.font-lcd')?.textContent;
 
@@ -137,19 +143,18 @@ describe('vista del ejercicio completo durante la ejecución', () => {
     expect(screen.getByText('0 / 3 completadas')).toBeTruthy();
   });
 
-  it('refleja los cambios de valores hechos durante la sesión', () => {
+  it('refleja los valores efectivos, incluidos cambios de la sesión', () => {
     render(<WorkoutFlow {...flowProps()} />);
     openPlan();
-    expect(planSet(2).textContent).toContain('30 kg');
+    expect(planSet(1).textContent).toContain('20 kg');
     fireEvent.click(screen.getByLabelText('Cerrar'));
 
-    // Cambio de sesión: completar la serie 1 con el peso modificado no afecta,
-    // pero un cambio en la configuración efectiva sí debe verse.
-    const plus = screen.getAllByLabelText(/Aumentar peso/i)[1];
-    fireEvent.click(plus);
+    // Subir 0,5 kg en la serie activa (control de peso de la serie actual)
+    const plusIcons = Array.from(document.querySelectorAll('.lucide-plus'));
+    fireEvent.click(plusIcons[1].closest('button')!);
 
     openPlan();
-    expect(planSet(2).textContent).toContain('30.5 kg');
+    expect(planSet(1).textContent).toContain('20.5 kg');
   });
 
   it('no aparece el botón en una ficha inactiva de rutina/biblioteca', () => {
