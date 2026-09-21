@@ -338,7 +338,20 @@ export const WorkoutFlow = ({
       }
       return [...prev, newState];
     });
-  }, []);
+
+    const exercise = workoutExercises.find((item) => item.instanceKey === instanceKey);
+    if (exercise && setConfigs && completedSets.length > 0) {
+      const normalized = normalizeSetConfigs(setConfigs);
+      onReplaceExerciseSession?.(
+        exercise.id,
+        exercise.name,
+        exercise.muscleGroup,
+        buildCompletedSetRows(exercise, completedSets, normalized),
+        normalized.length,
+        instanceKey,
+      );
+    }
+  }, [buildCompletedSetRows, onReplaceExerciseSession, workoutExercises]);
 
 
   /**
