@@ -188,21 +188,22 @@ Deno.serve(async (req) => {
     const hasPrevious = previousMetrics !== null;
 
     const historyRaw = Array.isArray(body.history) ? body.history.slice(0, 10) : [];
-    const historyText = historyRaw
-      .map((h: any, i: number) => {
-        const sets = parseSets(h?.sets);
-        if (sets.length === 0) return '';
-        const date = typeof h?.date === 'string' ? h.date.slice(0, 10) : '';
-        return `Sesión previa ${i + 1} (${date}): ${setsText(sets)}`;
-      })
-      .filter(Boolean)
+    const historyParsed: { date: string; metrics: Metrics }[] = [];
+    for (const h of historyRaw) {
+      const metrics = parseMetrics(h);
+      if (!metrics) continue;
+      const date = typeof (h as any)?.date === 'string' && /^\d{4}-\d{2}-\d{2}/.test((h as any).date)
+        ? (h as any).date.slice(0, 10)
+        : '';
+      historyParsed.push({ date, metrics });
+    }
+    const historyText = historyParsed
+      .map((h, i) => `Sesión previa ${i + 1} (${h.date}): ${setsText(h.metrics.sets)}`)
       .join('\n');
-    const historyCount = historyText ? historyText.split('\n').length : 0;
+    const historyCount = historyParsed.length;
 
-    const records = {
-      newMaxWeight: body?.records?.newMaxWeight === true,
-      newBestVolume: body?.records?.newBestVolume === true,
-    };
+    // Los récords SIEMPRE se recalculan aquí: body.records no es de confianza.
+    const records = verifyRecords(today, historyParsed.map(h => h.metrics));
 
     const unilateralNote = isUnilateral
       ? 'Ejercicio UNILATERAL: las repeticiones son SIEMPRE el TOTAL sumando ambos lados. No las divides ni multiplicas.'
