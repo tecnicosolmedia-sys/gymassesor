@@ -159,6 +159,8 @@ describe('vista del ejercicio completo durante la ejecución', () => {
         isActive={false}
         onActivate={vi.fn()}
         onSetComplete={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
       />,
     );
     expect(screen.queryByText(/Ver ejercicio completo/i)).toBeNull();
