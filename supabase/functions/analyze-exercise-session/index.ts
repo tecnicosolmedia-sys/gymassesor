@@ -3,7 +3,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 /**
  * Análisis IA de un ejercicio recién terminado.
  * Independiente de suggest-exercise-progression: solo comenta hechos registrados.
- * Los récords llegan ya calculados de forma determinista por el cliente y NO los decide la IA.
+ * Los récords se recalculan de forma determinista AQUÍ (nunca se confía en el body) y NO los decide la IA.
  */
 
 interface AnalysisSet {
