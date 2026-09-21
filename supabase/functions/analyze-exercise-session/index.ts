@@ -176,8 +176,11 @@ Deno.serve(async (req) => {
     const exerciseName = body.exerciseName.slice(0, 200);
     const muscleGroup = typeof body.muscleGroup === 'string' ? body.muscleGroup.slice(0, 80) : '';
     const isUnilateral = body.isUnilateral === true;
+    // Solo se acepta YYYY-MM-DD; cualquier otro texto se ignora.
     const analysisDate =
-      typeof body.analysisDate === 'string' ? body.analysisDate.slice(0, 10) : '';
+      typeof body.analysisDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.analysisDate.trim())
+        ? body.analysisDate.trim()
+        : '';
 
     const previousMetrics = parseMetrics(body?.previous?.metrics);
     const previousDate =
