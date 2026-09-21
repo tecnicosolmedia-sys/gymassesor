@@ -689,6 +689,23 @@ export const ExerciseCard = ({
           </div>
         </div>
         
+        {/* Ver el plan completo del ejercicio (solo lectura) — siempre visible en el ejercicio activo */}
+        {isActive && (
+          <div className="px-4 pb-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPlan(true);
+              }}
+              className="w-full py-3 rounded-xl bg-secondary border border-primary/40 text-foreground font-semibold flex items-center justify-center gap-2"
+            >
+              <ListChecks className="w-5 h-5 text-primary" aria-hidden="true" />
+              Ver ejercicio completo
+            </button>
+          </div>
+        )}
+        
         {/* Expanded content */}
         {expanded && (
           <div className="px-4 pb-4 space-y-4 animate-fade-in">
@@ -797,21 +814,6 @@ export const ExerciseCard = ({
             </div>
             )}
 
-
-            {/* Ver el plan completo del ejercicio (solo lectura) */}
-            {isActive && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowPlan(true);
-                }}
-                className="w-full py-3 rounded-xl bg-secondary border border-primary/40 text-foreground font-semibold flex items-center justify-center gap-2"
-              >
-                <ListChecks className="w-5 h-5 text-primary" aria-hidden="true" />
-                Ver ejercicio completo
-              </button>
-            )}
 
             {/* Entrenador virtual por cámara (Beta) */}
             {isActive && (

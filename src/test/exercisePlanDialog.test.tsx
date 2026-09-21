@@ -170,4 +170,26 @@ describe('vista del ejercicio completo durante la ejecución', () => {
     );
     expect(screen.queryByText(/Ver ejercicio completo/i)).toBeNull();
   });
+
+  it('activo: el botón sigue visible y abre la vista con la ficha contraída', () => {
+    render(
+      <ExerciseCard
+        exercise={exercise}
+        isActive={true}
+        onActivate={vi.fn()}
+        onSetComplete={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    // Contraer la ficha pulsando la cabecera (el nombre del ejercicio)
+    fireEvent.click(screen.getByText('Press Banca'));
+    expect(screen.queryByTestId('plan-set-1')).toBeNull();
+
+    // El botón permanece visible fuera del contenido expandido
+    fireEvent.click(screen.getByText(/Ver ejercicio completo/i));
+    expect(screen.getByText(/0 de 3 series realizadas/i)).toBeTruthy();
+    expect(planSet(1).textContent).toContain('Siguiente');
+  });
 });
