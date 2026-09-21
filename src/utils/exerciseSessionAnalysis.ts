@@ -96,7 +96,21 @@ export const computeMetrics = (sets: AnalysisSet[]): SessionMetrics => {
   };
 };
 
-/** Series efectivas realmente completadas hoy, según localConfigs corregidos. */
+/**
+ * Fecha LOCAL del dispositivo en formato YYYY-MM-DD.
+ * No usa toISOString() para no desplazar el día por la zona horaria.
+ */
+export const localDateString = (date: Date = new Date()): string => {
+  const d = date instanceof Date && !isNaN(date.getTime()) ? date : new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+/**
+ * Series efectivas realmente completadas hoy, según localConfigs corregidos.
+ * Conserva SIEMPRE el número de serie original (config.setNumber válido o
+ * índice original + 1), también cuando se filtran calentamientos previos.
+ */
 export const getTodaySets = (
   exerciseName: string,
   configs: SetConfig[],
@@ -104,15 +118,42 @@ export const getTodaySets = (
 ): AnalysisSet[] => {
   const done = new Set((completedSets ?? []).map(n => Math.round(n)));
   return (configs ?? [])
-    .filter((_, i) => done.has(i + 1))
-    .filter(c => !isWarmupSet(exerciseName, c))
-    .map((c, i) => ({
-      setNumber: i + 1,
-      reps: c.reps,
-      weight: c.weight,
-      restTime: c.restTime,
+    .map((c, i) => {
+      const sn = strictNumber(c?.setNumber);
+      return {
+        originalIndex: i,
+        config: c,
+        setNumber: sn !== undefined && Math.round(sn) >= 1 ? Math.round(sn) : i + 1,
+      };
+    })
+    .filter(({ originalIndex }) => done.has(originalIndex + 1))
+    .filter(({ config }) => !isWarmupSet(exerciseName, config))
+    .map(({ config, setNumber }) => ({
+      setNumber,
+      reps: config.reps,
+      weight: config.weight,
+      restTime: config.restTime,
     }));
 };
+
+/**
+ * Récords verificados matemáticamente a partir de las métricas de hoy y del
+ * histórico PREVIO. Solo hay récord si existe histórico previo válido y hoy
+ * lo supera estrictamente. La IA nunca decide esto.
+ */
+export const computeVerifiedRecords = (
+  today: { setCount: number; maxWeight: number; totalVolume: number },
+  previousBest: { maxWeight: number | null; bestVolume: number | null },
+): { newMaxWeight: boolean; newBestVolume: boolean } => ({
+  newMaxWeight:
+    today.setCount > 0 &&
+    previousBest.maxWeight !== null &&
+    today.maxWeight > previousBest.maxWeight,
+  newBestVolume:
+    today.setCount > 0 &&
+    previousBest.bestVolume !== null &&
+    today.totalVolume > previousBest.bestVolume,
+});
 
 /**
  * Digest verificable para el análisis. Nunca mezcla la sesión actual dentro
