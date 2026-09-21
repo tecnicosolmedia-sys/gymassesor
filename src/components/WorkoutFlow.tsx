@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Exercise, SetConfig, MUSCLE_GROUPS, MuscleGroup } from '@/types/exercise';
-import { WorkoutSession } from '@/types/workoutHistory';
+import { CompletedSet, WorkoutSession } from '@/types/workoutHistory';
 import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard, type ExerciseCompletionSnapshot } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
@@ -32,7 +32,6 @@ import {
   normalizeSetConfigs,
   saveStructuralChangeNotice,
 } from '@/utils/sessionSetStructure';
-import { CompletedSet } from '@/types/workoutHistory';
 
 
 // Clave para persistencia en localStorage
