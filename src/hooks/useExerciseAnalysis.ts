@@ -28,6 +28,15 @@ export const useExerciseAnalysis = () => {
   const inFlightRef = useRef(false);
   const requestIdRef = useRef(0);
 
+  /**
+   * Cancelación real al desmontar: invalida el requestId y libera el bloqueo,
+   * sin tocar el estado de React desde el cleanup.
+   */
+  useEffect(() => () => {
+    requestIdRef.current += 1;
+    inFlightRef.current = false;
+  }, []);
+
   /** Cancelación lógica: invalida cualquier respuesta en vuelo. */
   const cancel = useCallback(() => {
     requestIdRef.current += 1;
