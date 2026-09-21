@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SetConfig } from '@/types/exercise';
-import { CheckCircle, Edit2, Dumbbell, Clock, ArrowRight, Minus, Plus, Undo2 } from 'lucide-react';
+import { CheckCircle, Edit2, Dumbbell, Clock, ArrowRight, Minus, Plus, Undo2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { ExerciseProgressChart } from '@/components/ExerciseProgressChart';
 import { WorkoutSession } from '@/types/workoutHistory';
 import { getEffectiveConfigs, getVolume, formatReps, isWarmupSet } from '@/utils/workoutStats';
+import { useExerciseAnalysis } from '@/hooks/useExerciseAnalysis';
+import { ExerciseAnalysisDialog } from '@/components/ExerciseAnalysisDialog';
+import { buildExerciseAnalysisDigest } from '@/utils/exerciseSessionAnalysis';
 
 
 interface ExerciseSummaryProps {
@@ -50,8 +53,23 @@ export const ExerciseSummary = ({
 
   const totalKg = getVolume(effectiveConfigs);
 
+  // Análisis IA opcional: solo en pantalla, nunca se guarda.
+  const analysis = useExerciseAnalysis();
+
+  const runAnalysis = () => {
+    analysis.analyze(buildExerciseAnalysisDigest({
+      exerciseId,
+      exerciseName,
+      muscleGroup,
+      isUnilateral,
+      configs: localConfigs,
+      completedSets,
+      sessions: historySessions,
+    }));
+  };
 
   const handleUpdateField = (index: number, field: 'reps' | 'weight', delta: number) => {
+    analysis.invalidate(); // cualquier corrección invalida el informe anterior
     setLocalConfigs(prev => prev.map((c, i) => {
       if (i !== index) return c;
       let newVal = c[field] + delta;
@@ -71,6 +89,7 @@ export const ExerciseSummary = ({
     if (editingSetIndex === null || !editField) return;
     const numVal = parseFloat(editValue);
     if (!isNaN(numVal) && numVal >= 0) {
+      analysis.invalidate(); // corrección posterior: exige volver a analizar
       setLocalConfigs(prev => prev.map((c, i) => {
         if (i !== editingSetIndex) return c;
         let val = numVal;
@@ -249,6 +268,17 @@ export const ExerciseSummary = ({
           ) : null;
         })()}
 
+        {/* Análisis IA opcional (solo en pantalla) */}
+        <button
+          onClick={runAnalysis}
+          disabled={analysis.loading || effectiveConfigs.length === 0}
+          aria-label="Analizar ejercicio con IA"
+          className="w-full mb-3 py-3 rounded-xl border border-primary/40 bg-primary/10 text-primary font-semibold flex items-center justify-center gap-2 hover:bg-primary/20 transition-all disabled:opacity-50"
+        >
+          <Sparkles className="w-4 h-4" aria-hidden="true" />
+          Analizar ejercicio con IA
+        </button>
+
         {/* Action buttons */}
         <div className="flex gap-3">
           {onGoBack && (
@@ -299,6 +329,18 @@ export const ExerciseSummary = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Informe IA: solo en memoria */}
+      <ExerciseAnalysisDialog
+        open={analysis.open}
+        onOpenChange={analysis.setOpen}
+        loading={analysis.loading}
+        report={analysis.report}
+        error={analysis.error}
+        digest={analysis.digest}
+        exerciseName={exerciseName}
+        onRetry={runAnalysis}
+      />
     </div>
   );
 };
