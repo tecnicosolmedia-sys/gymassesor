@@ -3,7 +3,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 /**
  * Análisis IA de un ejercicio recién terminado.
  * Independiente de suggest-exercise-progression: solo comenta hechos registrados.
- * Los récords llegan ya calculados de forma determinista por el cliente y NO los decide la IA.
+ * Los récords se recalculan de forma determinista AQUÍ (nunca se confía en el body) y NO los decide la IA.
  */
 
 interface AnalysisSet {
@@ -30,6 +30,10 @@ const strictNumber = (v: unknown): number | undefined => {
   return undefined;
 };
 
+/**
+ * Límites coherentes con la app: reps 1-99, peso 0-999 (pasos de 0.5),
+ * descanso registrado 15-600 s. Máximo 30 series. Los no finitos se descartan.
+ */
 const parseSets = (raw: unknown, limit = 30): AnalysisSet[] => {
   if (!Array.isArray(raw)) return [];
   const out: AnalysisSet[] = [];
@@ -42,12 +46,32 @@ const parseSets = (raw: unknown, limit = 30): AnalysisSet[] => {
     const sn = strictNumber((item as any).setNumber);
     out.push({
       setNumber: sn !== undefined && Math.round(sn) >= 1 ? Math.round(sn) : i + 1,
-      reps: Math.max(1, Math.min(999, Math.round(reps))),
+      reps: Math.max(1, Math.min(99, Math.round(reps))),
       weight: Math.max(0, Math.min(999, Math.round(weight * 2) / 2)),
-      ...(rest !== undefined ? { restTime: Math.max(0, Math.min(3600, Math.round(rest))) } : {}),
+      ...(rest !== undefined ? { restTime: Math.max(15, Math.min(600, Math.round(rest))) } : {}),
     });
   }
   return out;
+};
+
+/** Récords verificados aquí, nunca confiando en lo que llegue en el body. */
+const verifyRecords = (
+  today: Metrics,
+  history: Metrics[],
+): { newMaxWeight: boolean; newBestVolume: boolean } => {
+  let prevMaxWeight: number | null = null;
+  let prevBestVolume: number | null = null;
+  for (const m of history) {
+    if (m.setCount === 0) continue;
+    prevMaxWeight = prevMaxWeight === null ? m.maxWeight : Math.max(prevMaxWeight, m.maxWeight);
+    prevBestVolume = prevBestVolume === null ? m.totalVolume : Math.max(prevBestVolume, m.totalVolume);
+  }
+  return {
+    newMaxWeight:
+      today.setCount > 0 && prevMaxWeight !== null && today.maxWeight > prevMaxWeight,
+    newBestVolume:
+      today.setCount > 0 && prevBestVolume !== null && today.totalVolume > prevBestVolume,
+  };
 };
 
 const parseMetrics = (raw: unknown): Metrics | null => {
@@ -152,8 +176,11 @@ Deno.serve(async (req) => {
     const exerciseName = body.exerciseName.slice(0, 200);
     const muscleGroup = typeof body.muscleGroup === 'string' ? body.muscleGroup.slice(0, 80) : '';
     const isUnilateral = body.isUnilateral === true;
+    // Solo se acepta YYYY-MM-DD; cualquier otro texto se ignora.
     const analysisDate =
-      typeof body.analysisDate === 'string' ? body.analysisDate.slice(0, 10) : '';
+      typeof body.analysisDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.analysisDate.trim())
+        ? body.analysisDate.trim()
+        : '';
 
     const previousMetrics = parseMetrics(body?.previous?.metrics);
     const previousDate =
@@ -161,21 +188,22 @@ Deno.serve(async (req) => {
     const hasPrevious = previousMetrics !== null;
 
     const historyRaw = Array.isArray(body.history) ? body.history.slice(0, 10) : [];
-    const historyText = historyRaw
-      .map((h: any, i: number) => {
-        const sets = parseSets(h?.sets);
-        if (sets.length === 0) return '';
-        const date = typeof h?.date === 'string' ? h.date.slice(0, 10) : '';
-        return `Sesión previa ${i + 1} (${date}): ${setsText(sets)}`;
-      })
-      .filter(Boolean)
+    const historyParsed: { date: string; metrics: Metrics }[] = [];
+    for (const h of historyRaw) {
+      const metrics = parseMetrics(h);
+      if (!metrics) continue;
+      const date = typeof (h as any)?.date === 'string' && /^\d{4}-\d{2}-\d{2}/.test((h as any).date)
+        ? (h as any).date.slice(0, 10)
+        : '';
+      historyParsed.push({ date, metrics });
+    }
+    const historyText = historyParsed
+      .map((h, i) => `Sesión previa ${i + 1} (${h.date}): ${setsText(h.metrics.sets)}`)
       .join('\n');
-    const historyCount = historyText ? historyText.split('\n').length : 0;
+    const historyCount = historyParsed.length;
 
-    const records = {
-      newMaxWeight: body?.records?.newMaxWeight === true,
-      newBestVolume: body?.records?.newBestVolume === true,
-    };
+    // Los récords SIEMPRE se recalculan aquí: body.records no es de confianza.
+    const records = verifyRecords(today, historyParsed.map(h => h.metrics));
 
     const unilateralNote = isUnilateral
       ? 'Ejercicio UNILATERAL: las repeticiones son SIEMPRE el TOTAL sumando ambos lados. No las divides ni multiplicas.'
