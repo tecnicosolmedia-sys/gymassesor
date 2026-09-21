@@ -134,7 +134,8 @@ export const useWorkoutHistory = () => {
         exercises: [{
           exerciseId, exerciseName, muscleGroup,
           completedSets: [completedSet], totalSets, startedAt: new Date(),
-        }],
+            instanceKey,
+          }],
         totalDuration: 0, startedAt: new Date(), isComplete: false,
       });
       return;
