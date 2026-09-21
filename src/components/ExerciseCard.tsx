@@ -168,6 +168,8 @@ export const ExerciseCard = ({
   const [currentSet, setCurrentSet] = useState(initialCurrentSet);
   const [showFullscreenTimer, setShowFullscreenTimer] = useState(false);
   const [timerType, setTimerType] = useState<'set' | 'exercise'>('set');
+  /** Vista de solo lectura del ejercicio completo */
+  const [showPlan, setShowPlan] = useState(false);
   const [completedSets, setCompletedSets] = useState<number[]>(initialCompletedSets);
   
   const [showChart, setShowChart] = useState(false);
