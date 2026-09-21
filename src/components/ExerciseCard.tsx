@@ -700,8 +700,11 @@ export const ExerciseCard = ({
               <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Dumbbell className="w-3.5 h-3.5" />
-                  {exercise.sets}x{exercise.reps}
+                  {localSetConfigs.length}x{exercise.reps}
                 </span>
+                {isActive && structureChanged && (
+                  <span className="text-warning">Estructura modificada</span>
+                )}
               </div>
             </div>
             
@@ -893,7 +896,7 @@ export const ExerciseCard = ({
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-medium">Progreso de series</span>
                 <span className="text-sm text-muted-foreground">
-                  {completedSets.length} / {exercise.sets} completadas
+                  {completedSets.length} / {localSetConfigs.length} completadas
                 </span>
               </div>
               
@@ -926,7 +929,7 @@ export const ExerciseCard = ({
                       exerciseName: exercise.name,
                       muscleGroup: exercise.muscleGroup,
                       completedSets: liveCompletedSetObjects as any,
-                      totalSets: exercise.sets,
+                      totalSets: localSetConfigs.length,
                       startedAt: new Date(),
                     }],
                     totalDuration: 0,
@@ -956,7 +959,7 @@ export const ExerciseCard = ({
                         onCompleteSet={handleSetComplete}
                         onSetDirectValue={setDirectValue}
                         onCopyFromPrevious={copyFromPreviousSet}
-                        onRemoveSet={!isCompleted && localSetConfigs.length > 1 ? removeSet : undefined}
+                        onRemoveSet={localSetConfigs.length > 1 ? removeSet : undefined}
                       />
                       {isCurrent && (
                         <div className="p-3 rounded-xl bg-secondary/30 border border-primary/30">
@@ -980,14 +983,23 @@ export const ExerciseCard = ({
               </div>
               
               {/* Exercise completed message */}
-              {completedSets.length === exercise.sets && !showFullscreenTimer && (
+              {completedSets.length === localSetConfigs.length && !showFullscreenTimer && (
                 <div className="text-center py-3 mt-4">
                   <span className="text-primary font-semibold">¡Ejercicio completado! 🎉</span>
                 </div>
               )}
 
+              <button
+                type="button"
+                onClick={addSet}
+                className="w-full mt-4 py-3 rounded-xl bg-primary/10 text-primary font-semibold flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors border border-primary/30"
+              >
+                <Dumbbell className="w-4 h-4" />
+                Añadir serie
+              </button>
+
               {/* Botón para terminar ejercicio anticipadamente */}
-              {completedSets.length > 0 && completedSets.length < exercise.sets && (
+              {completedSets.length > 0 && completedSets.length < localSetConfigs.length && (
                 <button
                   onClick={() => {
                     if (skipExerciseRestTimer) {
@@ -1001,7 +1013,7 @@ export const ExerciseCard = ({
                   className="w-full mt-4 py-3 rounded-xl bg-secondary text-foreground font-medium flex items-center justify-center gap-2 hover:bg-secondary/80 transition-colors"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  Terminar ejercicio ({completedSets.length}/{exercise.sets} series)
+                  Terminar ejercicio ({completedSets.length}/{localSetConfigs.length} series)
                 </button>
               )}
             </div>
@@ -1030,7 +1042,7 @@ export const ExerciseCard = ({
                   exerciseName: exercise.name,
                   muscleGroup: exercise.muscleGroup,
                   completedSets: currentCompletedSetObjects as any,
-                  totalSets: exercise.sets,
+                  totalSets: localSetConfigs.length,
                   startedAt: new Date(),
                 }],
                 totalDuration: 0,
@@ -1049,7 +1061,7 @@ export const ExerciseCard = ({
                     exerciseName={exercise.name}
                     sessions={sessionsWithLive}
                     inline
-                    maxSetNumber={exercise.sets}
+                    maxSetNumber={localSetConfigs.length}
                     metric={chartMetric}
                     onMetricChange={setChartMetric}
                     onDeleteSet={onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
@@ -1112,7 +1124,7 @@ export const ExerciseCard = ({
             exerciseName: exercise.name,
             muscleGroup: exercise.muscleGroup,
             completedSets: liveCompletedSetObjects as any,
-            totalSets: exercise.sets,
+            totalSets: localSetConfigs.length,
             startedAt: new Date(),
           }],
           totalDuration: 0,
@@ -1125,7 +1137,7 @@ export const ExerciseCard = ({
           : (workoutSessions || []);
 
         // Solo mostramos la gráfica entre series (no en el descanso entre ejercicios)
-        const showChartInTimer = timerType === 'set' && currentSet < exercise.sets;
+        const showChartInTimer = timerType === 'set' && currentSet < localSetConfigs.length;
 
         return (
           <FullscreenTimer
