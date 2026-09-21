@@ -85,7 +85,8 @@ interface ExerciseCardProps {
     exerciseName: string,
     muscleGroup: string,
     setData: { setNumber: number; reps: number; weight: number; restTime: number; isWarmup?: boolean },
-    totalSets: number
+    totalSets: number,
+    instanceKey?: string
   ) => void;
   // Si es true, no muestra el temporizador de ejercicio completo (lo maneja el padre)
   skipExerciseRestTimer?: boolean;
