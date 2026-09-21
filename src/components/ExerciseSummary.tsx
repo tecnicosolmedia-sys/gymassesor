@@ -268,6 +268,17 @@ export const ExerciseSummary = ({
           ) : null;
         })()}
 
+        {/* Análisis IA opcional (solo en pantalla) */}
+        <button
+          onClick={runAnalysis}
+          disabled={analysis.loading || effectiveConfigs.length === 0}
+          aria-label="Analizar ejercicio con IA"
+          className="w-full mb-3 py-3 rounded-xl border border-primary/40 bg-primary/10 text-primary font-semibold flex items-center justify-center gap-2 hover:bg-primary/20 transition-all disabled:opacity-50"
+        >
+          <Sparkles className="w-4 h-4" aria-hidden="true" />
+          Analizar ejercicio con IA
+        </button>
+
         {/* Action buttons */}
         <div className="flex gap-3">
           {onGoBack && (
