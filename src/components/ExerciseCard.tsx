@@ -12,6 +12,7 @@ import {
   FileText,
   CheckCircle,
   BarChart3,
+  ListChecks,
 } from 'lucide-react';
 import { Sparkles, Camera } from 'lucide-react';
 import { isCoachAvailable } from '@/utils/poseCoach';
