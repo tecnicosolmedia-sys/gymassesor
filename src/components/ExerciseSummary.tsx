@@ -163,7 +163,7 @@ export const ExerciseSummary = ({
 
           {/* Rows */}
           {localConfigs.map((config, index) => {
-            const isCompleted = completedSets.includes(index + 1);
+            const isCompleted = localCompletedSets.includes(index + 1);
             if (!isCompleted) return null;
 
             return (
@@ -185,6 +185,7 @@ export const ExerciseSummary = ({
                 {/* Reps - editable */}
                 <div className="flex items-center justify-center gap-1">
                   <button
+                    disabled={!recordsEditing}
                     onClick={() => handleUpdateField(index, 'reps', -1)}
                     className="w-6 h-6 rounded bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground"
                   >
@@ -192,7 +193,7 @@ export const ExerciseSummary = ({
                   </button>
                   <span
                     className="font-lcd text-lg text-primary min-w-[2ch] text-center cursor-pointer"
-                    onClick={() => handleDirectEdit(index, 'reps')}
+                    onClick={() => recordsEditing && handleDirectEdit(index, 'reps')}
                   >
                     {config.reps}
                   </span>
@@ -202,6 +203,7 @@ export const ExerciseSummary = ({
                     </span>
                   )}
                   <button
+                    disabled={!recordsEditing}
                     onClick={() => handleUpdateField(index, 'reps', 1)}
                     className="w-6 h-6 rounded bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground"
                   >
@@ -212,6 +214,7 @@ export const ExerciseSummary = ({
                 {/* Weight - editable */}
                 <div className="flex items-center justify-center gap-1">
                   <button
+                    disabled={!recordsEditing}
                     onClick={() => handleUpdateField(index, 'weight', -0.5)}
                     className="w-6 h-6 rounded bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground"
                   >
@@ -219,11 +222,12 @@ export const ExerciseSummary = ({
                   </button>
                   <span
                     className="font-lcd text-lg text-primary min-w-[3ch] text-center cursor-pointer"
-                    onClick={() => handleDirectEdit(index, 'weight')}
+                    onClick={() => recordsEditing && handleDirectEdit(index, 'weight')}
                   >
                     {config.weight}
                   </span>
                   <button
+                    disabled={!recordsEditing}
                     onClick={() => handleUpdateField(index, 'weight', 0.5)}
                     className="w-6 h-6 rounded bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground"
                   >
@@ -233,8 +237,23 @@ export const ExerciseSummary = ({
 
                 {/* Rest time - read only */}
                 <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
+                  {recordsEditing && (
+                    <button onClick={() => handleUpdateField(index, 'restTime', -5)} className="w-5 h-5 rounded bg-secondary flex items-center justify-center" aria-label={`Reducir descanso serie ${index + 1}`}>
+                      <Minus className="w-3 h-3" />
+                    </button>
+                  )}
                   <Clock className="w-3 h-3" />
-                  {config.restTime}s
+                  <span onClick={() => recordsEditing && handleDirectEdit(index, 'restTime')} className={recordsEditing ? 'cursor-pointer text-primary font-lcd' : ''}>{config.restTime}s</span>
+                  {recordsEditing && (
+                    <button onClick={() => handleUpdateField(index, 'restTime', 5)} className="w-5 h-5 rounded bg-secondary flex items-center justify-center" aria-label={`Aumentar descanso serie ${index + 1}`}>
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  )}
+                  {recordsEditing && (
+                    <button onClick={() => handleRemoveSet(index)} className="w-6 h-6 rounded bg-destructive/10 text-destructive flex items-center justify-center ml-1" aria-label={`Eliminar serie ${index + 1}`}>
+                      ×
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -243,7 +262,7 @@ export const ExerciseSummary = ({
 
         {/* Progress chart — includes current session data */}
         {(() => {
-          const currentCompletedSetObjects = completedSets.map(setNum => {
+           const currentCompletedSetObjects = localCompletedSets.map(setNum => {
             const cfg = localConfigs[setNum - 1];
             return cfg ? {
               setNumber: setNum,
