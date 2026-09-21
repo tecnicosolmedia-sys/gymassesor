@@ -102,6 +102,8 @@ interface ExerciseCardProps {
    * dentro del entrenamiento en curso. No persiste en public.exercises.
    */
   onUpdateSessionSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
+  /** Actualización explícita de la plantilla futura tras aceptar el aviso */
+  onSaveTemplateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
   /** Configuración aplicada previamente en esta sesión (restauración) */
   initialSessionSetConfigs?: SetConfig[];
   // Estado inicial para restaurar sesión (serie actual y series completadas)
@@ -148,6 +150,7 @@ export const ExerciseCard = ({
   onExerciseComplete,
   onUpdateSetConfig,
   onUpdateSessionSetConfig,
+  onSaveTemplateSetConfig,
   initialSessionSetConfigs,
   initialCurrentSet = 1,
   initialCompletedSets = [],
@@ -328,7 +331,7 @@ export const ExerciseCard = ({
       onUpdateSessionSetConfig(exercise.id, normalized);
       return;
     }
-    onUpdateSetConfig?.(exercise.id, normalized);
+    if (!isActive) onUpdateSetConfig?.(exercise.id, normalized);
   };
 
   // Bloqueo síncrono por serie: evita registrar dos veces la misma serie con dos taps rápidos.
@@ -639,8 +642,7 @@ export const ExerciseCard = ({
     if (!pendingStructureNotice) return;
     const next = normalizeSetConfigs(pendingStructureNotice.modifiedConfigs);
     setLocalSetConfigs(next);
-    onUpdateSetConfig?.(exercise.id, next);
-    emitSessionConfigUpdate(next);
+    onSaveTemplateSetConfig?.(exercise.id, next);
     consumeStructuralChangeNotice(pendingStructureNotice.instanceKey);
     setPendingStructureNotice(null);
   };
