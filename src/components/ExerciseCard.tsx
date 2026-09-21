@@ -635,6 +635,27 @@ export const ExerciseCard = ({
     return exercise.restAfterExercise;
   };
 
+  const acceptPendingStructure = () => {
+    if (!pendingStructureNotice) return;
+    const next = normalizeSetConfigs(pendingStructureNotice.modifiedConfigs);
+    setLocalSetConfigs(next);
+    onUpdateSetConfig?.(exercise.id, next);
+    emitSessionConfigUpdate(next);
+    consumeStructuralChangeNotice(pendingStructureNotice.instanceKey);
+    setPendingStructureNotice(null);
+  };
+
+  const rejectPendingStructure = () => {
+    if (!pendingStructureNotice) return;
+    const original = getTemplateConfigs(exercise);
+    setLocalSetConfigs(original);
+    emitSessionConfigUpdate(original);
+    consumeStructuralChangeNotice(pendingStructureNotice.instanceKey);
+    setPendingStructureNotice(null);
+  };
+
+  const structureChanged = hasStructuralChange(originalTemplateRef.current, localSetConfigs);
+
   return (
     <>
       <div 
