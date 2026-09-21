@@ -329,6 +329,18 @@ export const ExerciseSummary = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Informe IA: solo en memoria */}
+      <ExerciseAnalysisDialog
+        open={analysis.open}
+        onOpenChange={analysis.setOpen}
+        loading={analysis.loading}
+        report={analysis.report}
+        error={analysis.error}
+        digest={analysis.digest}
+        exerciseName={exerciseName}
+        onRetry={runAnalysis}
+      />
     </div>
   );
 };
