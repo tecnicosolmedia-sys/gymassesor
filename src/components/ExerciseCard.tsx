@@ -108,7 +108,7 @@ interface ExerciseCardProps {
   initialCurrentSet?: number;
   initialCompletedSets?: number[];
   // Callback cuando cambia el estado de las series (para persistir)
-  onSetStateChange?: (exerciseId: string, currentSet: number, completedSets: number[]) => void;
+  onSetStateChange?: (exerciseId: string, currentSet: number, completedSets: number[], setConfigs?: SetConfig[]) => void;
   // Cronómetro global del entrenamiento
   globalElapsedTime?: number;
   globalIsRunning?: boolean;
@@ -319,8 +319,8 @@ export const ExerciseCard = ({
 
   // Notificar cambios en el estado de las series al padre (para persistencia)
   useEffect(() => {
-    onSetStateChange?.(exercise.id, currentSet, completedSets);
-  }, [exercise.id, currentSet, completedSets, onSetStateChange]);
+    onSetStateChange?.(exercise.id, currentSet, completedSets, localSetConfigs);
+  }, [exercise.id, currentSet, completedSets, localSetConfigs, onSetStateChange]);
 
   const emitSessionConfigUpdate = (configs: SetConfig[]) => {
     const normalized = normalizeSetConfigs(configs);
@@ -430,7 +430,7 @@ export const ExerciseCard = ({
     setCurrentSet(nextCurrentSet);
     setCompletedSets(nextCompletedSets);
     emitSessionConfigUpdate(configs);
-    onSetStateChange?.(exercise.id, nextCurrentSet, nextCompletedSets);
+    onSetStateChange?.(exercise.id, nextCurrentSet, nextCompletedSets, normalizeSetConfigs(configs));
   };
 
   const addSet = () => {
@@ -559,7 +559,7 @@ export const ExerciseCard = ({
     setCompletedSets(newCompletedSets);
     
     // Sincronizar estado inmediatamente antes de notificar al padre
-    onSetStateChange?.(exercise.id, currentSet, newCompletedSets);
+    onSetStateChange?.(exercise.id, currentSet, newCompletedSets, localSetConfigs);
 
     
     if (currentSet < localSetConfigs.length) {
