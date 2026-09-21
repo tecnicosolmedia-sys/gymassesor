@@ -26,6 +26,13 @@ import {
   resolveSummaryConfigTarget,
   syncSessionOverrideOnManualEdit,
 } from '@/utils/aiSuggestion';
+import {
+  getTemplateConfigs,
+  hasStructuralChange,
+  normalizeSetConfigs,
+  saveStructuralChangeNotice,
+} from '@/utils/sessionSetStructure';
+import { CompletedSet } from '@/types/workoutHistory';
 
 
 // Clave para persistencia en localStorage
@@ -83,7 +90,16 @@ interface WorkoutFlowProps {
     exerciseName: string,
     muscleGroup: string,
     setData: { setNumber: number; reps: number; weight: number; restTime: number },
-    totalSets: number
+    totalSets: number,
+    instanceKey?: string,
+  ) => void;
+  onReplaceExerciseSession?: (
+    exerciseId: string,
+    exerciseName: string,
+    muscleGroup: string,
+    completedSets: CompletedSet[],
+    totalSets: number,
+    instanceKey?: string,
   ) => void;
   onEditExercise: (exercise: Exercise) => void;
   onDeleteExercise: (id: string) => void;
@@ -123,6 +139,7 @@ export const WorkoutFlow = ({
   allExercises,
   onClose,
   onSetComplete,
+  onReplaceExerciseSession,
   onEditExercise,
   onDeleteExercise,
   onUpdateSetConfig,
@@ -297,7 +314,7 @@ export const WorkoutFlow = ({
   }, []);
 
   // Actualizar estado de series de una aparición concreta del ejercicio
-  const handleSetStateChange = useCallback((instanceKey: string, exerciseId: string, currentSet: number, completedSets: number[]) => {
+  const handleSetStateChange = useCallback((instanceKey: string, exerciseId: string, currentSet: number, completedSets: number[], setConfigs?: SetConfig[]) => {
     setExerciseSetStates(prev => {
       const existing = prev.findIndex(s => s.instanceKey === instanceKey);
       const newState = {
@@ -305,7 +322,7 @@ export const WorkoutFlow = ({
         exerciseId,
         currentSet,
         completedSets,
-        sessionSetConfigs: existing >= 0 ? prev[existing].sessionSetConfigs : undefined,
+        sessionSetConfigs: setConfigs ? normalizeSetConfigs(setConfigs) : existing >= 0 ? prev[existing].sessionSetConfigs : undefined,
       };
       if (existing >= 0) {
         const old = prev[existing];
@@ -313,7 +330,8 @@ export const WorkoutFlow = ({
           old.exerciseId === newState.exerciseId &&
           old.currentSet === newState.currentSet &&
           old.completedSets.length === completedSets.length &&
-          old.completedSets.every((v, i) => v === completedSets[i]);
+          old.completedSets.every((v, i) => v === completedSets[i]) &&
+          JSON.stringify(old.sessionSetConfigs ?? []) === JSON.stringify(newState.sessionSetConfigs ?? []);
         if (same) return prev;
         const updated = [...prev];
         updated[existing] = newState;
