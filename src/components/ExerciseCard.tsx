@@ -1099,6 +1099,16 @@ export const ExerciseCard = ({
         );
       })()}
 
+      <ExercisePlanDialog
+        open={showPlan}
+        onClose={() => setShowPlan(false)}
+        exerciseName={exercise.name}
+        muscleGroup={exercise.muscleGroup}
+        isUnilateral={exercise.isUnilateral}
+        setConfigs={localSetConfigs}
+        completedSets={completedSets}
+      />
+
       <PersonalRecordDialog
         open={recordDialog.open}
         onClose={() => setRecordDialog((r) => ({ ...r, open: false }))}
