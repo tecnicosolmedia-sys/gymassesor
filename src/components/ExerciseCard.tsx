@@ -31,6 +31,19 @@ import { AISuggestionDialog } from './AISuggestionDialog';
 import { isWarmupSet } from '@/utils/workoutStats';
 import { toast } from 'sonner';
 import { applySuggestionToConfigs, buildAIHistory, configSignature } from '@/utils/aiSuggestion';
+import {
+  addSessionSet,
+  consumeStructuralChangeNotice,
+  describeStructuralChange,
+  getTemplateConfigs,
+  hasStructuralChange,
+  loadStructuralChangeNotice,
+  normalizeSetConfigs,
+  removeSessionSet,
+  StructuralChangeNotice,
+} from '@/utils/sessionSetStructure';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 
 import {
