@@ -1204,6 +1204,42 @@ export const ExerciseCard = ({
         blockedReason={applyBlockedReason}
         onApply={handleApplySuggestion}
       />
+
+      <Dialog open={!!pendingStructureNotice} onOpenChange={(open) => { if (!open) rejectPendingStructure(); }}>
+        <DialogContent className="max-w-md z-[10040] mt-[var(--workout-stopwatch-offset,0px)]">
+          <DialogHeader>
+            <DialogTitle>Series modificadas detectadas</DialogTitle>
+            <DialogDescription>
+              Antes de empezar, elige si quieres usar la última estructura modificada o volver a la plantilla original.
+            </DialogDescription>
+          </DialogHeader>
+          {pendingStructureNotice && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl border border-border p-3 bg-secondary/40">
+                  <p className="font-semibold text-primary mb-1">Plantilla original</p>
+                  <p>{pendingStructureNotice.originalConfigs.length} series</p>
+                </div>
+                <div className="rounded-xl border border-primary/40 p-3 bg-primary/10">
+                  <p className="font-semibold text-primary mb-1">Última versión modificada</p>
+                  <p>{pendingStructureNotice.modifiedConfigs.length} series</p>
+                </div>
+              </div>
+              <p className="text-muted-foreground">
+                {describeStructuralChange(pendingStructureNotice.originalConfigs, pendingStructureNotice.modifiedConfigs)}
+              </p>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:space-x-0">
+            <Button variant="outline" onClick={rejectPendingStructure} className="flex-1">
+              Volver a la original
+            </Button>
+            <Button onClick={acceptPendingStructure} className="flex-1">
+              Guardar versión modificada para el futuro
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
