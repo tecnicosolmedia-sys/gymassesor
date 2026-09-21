@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SetConfig } from '@/types/exercise';
-import { CheckCircle, Edit2, Dumbbell, Clock, ArrowRight, Minus, Plus, Undo2 } from 'lucide-react';
+import { CheckCircle, Edit2, Dumbbell, Clock, ArrowRight, Minus, Plus, Undo2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { ExerciseProgressChart } from '@/components/ExerciseProgressChart';
 import { WorkoutSession } from '@/types/workoutHistory';
 import { getEffectiveConfigs, getVolume, formatReps, isWarmupSet } from '@/utils/workoutStats';
+import { useExerciseAnalysis } from '@/hooks/useExerciseAnalysis';
+import { ExerciseAnalysisDialog } from '@/components/ExerciseAnalysisDialog';
+import { buildExerciseAnalysisDigest } from '@/utils/exerciseSessionAnalysis';
 
 
 interface ExerciseSummaryProps {
