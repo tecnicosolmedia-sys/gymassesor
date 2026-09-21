@@ -392,6 +392,32 @@ export const WorkoutFlow = ({
     ? workoutExercises[flowState.exerciseIndex] 
     : null;
 
+  const buildCompletedSetRows = useCallback((
+    exercise: WorkoutExercise,
+    completedSets: number[],
+    configs: SetConfig[],
+  ): CompletedSet[] => {
+    const normalized = normalizeSetConfigs(configs);
+    return Array.from(new Set(completedSets))
+      .sort((a, b) => a - b)
+      .map((setNumber) => {
+        const cfg = normalized[setNumber - 1] ?? normalized[normalized.length - 1] ?? {
+          setNumber,
+          reps: exercise.reps,
+          weight: exercise.weight,
+          restTime: exercise.restBetweenSets,
+        };
+        return {
+          setNumber,
+          reps: cfg.reps,
+          weight: cfg.weight,
+          restTime: cfg.restTime,
+          isWarmup: isWarmupSet(exercise.name, cfg),
+          completedAt: new Date(),
+        };
+      });
+  }, []);
+
   // Actualizar notificación periódicamente sin recrear el intervalo cada segundo
   const notifyRef = useRef<() => void>(() => {});
   notifyRef.current = () => {
