@@ -53,8 +53,23 @@ export const ExerciseSummary = ({
 
   const totalKg = getVolume(effectiveConfigs);
 
+  // Análisis IA opcional: solo en pantalla, nunca se guarda.
+  const analysis = useExerciseAnalysis();
+
+  const runAnalysis = () => {
+    analysis.analyze(buildExerciseAnalysisDigest({
+      exerciseId,
+      exerciseName,
+      muscleGroup,
+      isUnilateral,
+      configs: localConfigs,
+      completedSets,
+      sessions: historySessions,
+    }));
+  };
 
   const handleUpdateField = (index: number, field: 'reps' | 'weight', delta: number) => {
+    analysis.invalidate(); // cualquier corrección invalida el informe anterior
     setLocalConfigs(prev => prev.map((c, i) => {
       if (i !== index) return c;
       let newVal = c[field] + delta;
