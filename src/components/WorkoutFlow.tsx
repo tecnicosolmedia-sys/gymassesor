@@ -483,6 +483,18 @@ export const WorkoutFlow = ({
     // Aplicar la instantánea de forma atómica ANTES de mostrar el resumen:
     // series completadas reales + configuración efectiva usada en pantalla.
     if (snapshot) {
+      const exercise = workoutExercises[exerciseIndex];
+      const normalizedSnapshotConfigs = normalizeSetConfigs(snapshot.setConfigs);
+      if (exercise) {
+        onReplaceExerciseSession?.(
+          snapshot.exerciseId,
+          exercise.name,
+          exercise.muscleGroup,
+          buildCompletedSetRows(exercise, snapshot.completedSets, normalizedSnapshotConfigs),
+          normalizedSnapshotConfigs.length,
+          instanceKey,
+        );
+      }
       setSummarySnapshots(prev => ({ ...prev, [instanceKey]: snapshot }));
       setExerciseSetStates(prev => {
         const idx = prev.findIndex(s => s.instanceKey === instanceKey);
@@ -491,7 +503,7 @@ export const WorkoutFlow = ({
           exerciseId: snapshot.exerciseId,
           currentSet: idx >= 0 ? prev[idx].currentSet : snapshot.completedSets.length,
           completedSets: [...snapshot.completedSets],
-          sessionSetConfigs: idx >= 0 ? prev[idx].sessionSetConfigs : undefined,
+          sessionSetConfigs: normalizedSnapshotConfigs,
         };
         if (idx < 0) return [...prev, merged];
         const updated = [...prev];
@@ -500,7 +512,7 @@ export const WorkoutFlow = ({
       });
       setWorkoutExercises(prev => prev.map(e =>
         e.instanceKey === instanceKey
-          ? { ...e, setConfigs: snapshot.setConfigs.map(c => ({ ...c })) }
+          ? { ...e, setConfigs: normalizedSnapshotConfigs.map(c => ({ ...c })) }
           : e
       ));
     }
@@ -515,17 +527,49 @@ export const WorkoutFlow = ({
   };
 
 
-  const handleSummaryContinue = (completedExerciseIndex: number, updatedConfigs: SetConfig[]) => {
+  const handleSummaryContinue = (completedExerciseIndex: number, updatedConfigs: SetConfig[], updatedCompletedSets: number[]) => {
     const exercise = workoutExercises[completedExerciseIndex];
 
-    // Actualizar configs si fueron editadas en el resumen.
-    // Con override de sesión (p. ej. sugerencia IA aplicada) NO se escribe en public.exercises.
     if (exercise) {
-      const target = resolveSummaryConfigTarget(exerciseSetStates, exercise.instanceKey);
-      if (target === 'session') {
-        handleSessionSetConfig(exercise.instanceKey, exercise.id, updatedConfigs);
-      } else {
-        onUpdateSetConfig?.(exercise.id, updatedConfigs);
+      const normalized = normalizeSetConfigs(updatedConfigs);
+      const completed = Array.from(new Set(updatedCompletedSets)).sort((a, b) => a - b);
+      handleSessionSetConfig(exercise.instanceKey, exercise.id, normalized);
+      setSummarySnapshots(prev => ({
+        ...prev,
+        [exercise.instanceKey]: {
+          exerciseId: exercise.id,
+          instanceKey: exercise.instanceKey,
+          completedSets: completed,
+          setConfigs: normalized,
+        },
+      }));
+      setExerciseSetStates(prev => upsertSessionSetConfigs(
+        prev.map(s => s.instanceKey === exercise.instanceKey ? { ...s, completedSets: completed } : s),
+        exercise.instanceKey,
+        exercise.id,
+        normalized,
+      ));
+      onReplaceExerciseSession?.(
+        exercise.id,
+        exercise.name,
+        exercise.muscleGroup,
+        buildCompletedSetRows(exercise, completed, normalized),
+        normalized.length,
+        exercise.instanceKey,
+      );
+
+      const original = getTemplateConfigs(exercise);
+      if (hasStructuralChange(original, normalized)) {
+        saveStructuralChangeNotice({
+          routineId,
+          routineName,
+          exerciseId: exercise.id,
+          instanceKey: exercise.instanceKey,
+          exerciseName: exercise.name,
+          originalConfigs: original,
+          modifiedConfigs: normalized,
+          savedAt: new Date().toISOString(),
+        });
       }
     }
 
