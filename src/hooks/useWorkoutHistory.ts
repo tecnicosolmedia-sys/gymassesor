@@ -174,8 +174,9 @@ export const useWorkoutHistory = () => {
   ) => {
     const prev = currentSessionRef.current;
     const cleanSets = completedSets
-      .map((set, index) => ({ ...set, setNumber: index + 1, completedAt: set.completedAt || new Date() }))
-      .sort((a, b) => a.setNumber - b.setNumber);
+      .slice()
+      .sort((a, b) => a.setNumber - b.setNumber)
+      .map((set, index) => ({ ...set, setNumber: index + 1, completedAt: set.completedAt || new Date() }));
 
     if (!prev) {
       commitSession({
