@@ -212,16 +212,14 @@ export const buildExerciseAnalysisDigest = (params: {
     exerciseName,
     muscleGroup,
     isUnilateral: isUnilateral === true,
-    analysisDate: (now ?? new Date()).toISOString().slice(0, 10),
+    analysisDate: localDateString(now ?? new Date()),
     today,
     previous,
     previousBest: { maxWeight: prevMaxWeight, bestVolume: prevBestVolume },
-    records: {
-      newMaxWeight:
-        today.setCount > 0 && prevMaxWeight !== null && today.maxWeight > prevMaxWeight,
-      newBestVolume:
-        today.setCount > 0 && prevBestVolume !== null && today.totalVolume > prevBestVolume,
-    },
+    records: computeVerifiedRecords(today, {
+      maxWeight: prevMaxWeight,
+      bestVolume: prevBestVolume,
+    }),
     deltas,
     historySessionCount: history.length,
     history,
