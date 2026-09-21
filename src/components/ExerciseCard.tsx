@@ -369,7 +369,7 @@ export const ExerciseCard = ({
       return;
     }
     applySuggestionRef.current = true;
-    const updated = applySuggestionToConfigs(localSetConfigs, ai.suggestion.setSuggestions);
+    const updated = normalizeSetConfigs(applySuggestionToConfigs(localSetConfigs, ai.suggestion.setSuggestions));
     setLocalSetConfigs(updated);
     // SOLO sesión: nunca se llama a onUpdateSetConfig (no toca public.exercises).
     onUpdateSessionSetConfig?.(exercise.id, updated);
@@ -396,8 +396,7 @@ export const ExerciseCard = ({
         }
         return config;
       });
-      // Notificar cambios al padre
-      onUpdateSetConfig?.(exercise.id, updated);
+      emitSessionConfigUpdate(updated);
       return updated;
     });
   };
@@ -422,8 +421,7 @@ export const ExerciseCard = ({
         }
         return config;
       });
-      // Notificar cambios al padre
-      onUpdateSetConfig?.(exercise.id, updated);
+      emitSessionConfigUpdate(updated);
       return updated;
     });
   };
