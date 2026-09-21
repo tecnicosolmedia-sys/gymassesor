@@ -309,6 +309,25 @@ export const ExerciseSummary = ({
           ) : null;
         })()}
 
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <button
+            type="button"
+            onClick={() => setRecordsEditing(v => !v)}
+            className="py-3 rounded-xl bg-secondary text-foreground font-semibold flex items-center justify-center gap-2"
+          >
+            <Edit2 className="w-4 h-4" />
+            {recordsEditing ? 'Terminar edición' : 'Editar registros'}
+          </button>
+          <button
+            type="button"
+            onClick={handleAddSet}
+            className="py-3 rounded-xl bg-primary/10 text-primary font-semibold flex items-center justify-center gap-2 border border-primary/30"
+          >
+            <Plus className="w-4 h-4" />
+            Añadir serie
+          </button>
+        </div>
+
         {/* Análisis IA opcional (solo en pantalla) */}
         <button
           onClick={runAnalysis}
@@ -331,7 +350,7 @@ export const ExerciseSummary = ({
             </button>
           )}
           <button
-            onClick={() => onContinue(localConfigs)}
+            onClick={() => onContinue(normalizeSetConfigs(localConfigs), localCompletedSets)}
             className="flex-1 py-4 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
           >
             Continuar
@@ -345,7 +364,7 @@ export const ExerciseSummary = ({
         <DialogContent className="sm:max-w-[300px]">
           <DialogHeader>
             <DialogTitle>
-              Editar {editField === 'reps' ? 'Repeticiones' : 'Peso (kg)'}
+              Editar {editField === 'reps' ? 'Repeticiones' : editField === 'weight' ? 'Peso (kg)' : 'Descanso'}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
