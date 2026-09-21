@@ -11,6 +11,8 @@ export interface CompletedSet {
 
 export interface ExerciseSession {
   exerciseId: string;
+  /** Aparición concreta dentro de la sesión, para ejercicios duplicados */
+  instanceKey?: string;
   exerciseName: string;
   muscleGroup: string;
   completedSets: CompletedSet[];

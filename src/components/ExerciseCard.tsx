@@ -31,6 +31,19 @@ import { AISuggestionDialog } from './AISuggestionDialog';
 import { isWarmupSet } from '@/utils/workoutStats';
 import { toast } from 'sonner';
 import { applySuggestionToConfigs, buildAIHistory, configSignature } from '@/utils/aiSuggestion';
+import {
+  addSessionSet,
+  consumeStructuralChangeNotice,
+  describeStructuralChange,
+  getTemplateConfigs,
+  hasStructuralChange,
+  loadStructuralChangeNotice,
+  normalizeSetConfigs,
+  removeSessionSet,
+  StructuralChangeNotice,
+} from '@/utils/sessionSetStructure';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 
 import {
@@ -72,7 +85,8 @@ interface ExerciseCardProps {
     exerciseName: string,
     muscleGroup: string,
     setData: { setNumber: number; reps: number; weight: number; restTime: number; isWarmup?: boolean },
-    totalSets: number
+    totalSets: number,
+    instanceKey?: string
   ) => void;
   // Si es true, no muestra el temporizador de ejercicio completo (lo maneja el padre)
   skipExerciseRestTimer?: boolean;
@@ -94,7 +108,7 @@ interface ExerciseCardProps {
   initialCurrentSet?: number;
   initialCompletedSets?: number[];
   // Callback cuando cambia el estado de las series (para persistir)
-  onSetStateChange?: (exerciseId: string, currentSet: number, completedSets: number[]) => void;
+  onSetStateChange?: (exerciseId: string, currentSet: number, completedSets: number[], setConfigs?: SetConfig[]) => void;
   // Cronómetro global del entrenamiento
   globalElapsedTime?: number;
   globalIsRunning?: boolean;
@@ -265,7 +279,9 @@ export const ExerciseCard = ({
   };
 
   // Estado local para las configuraciones editables
-  const [localSetConfigs, setLocalSetConfigs] = useState<SetConfig[]>(buildInitialConfigs);
+  const [localSetConfigs, setLocalSetConfigs] = useState<SetConfig[]>(() => normalizeSetConfigs(buildInitialConfigs()));
+  const originalTemplateRef = useRef<SetConfig[]>(getTemplateConfigs(exercise));
+  const [pendingStructureNotice, setPendingStructureNotice] = useState<StructuralChangeNotice | null>(null);
 
   // Sincronizar estado de series cuando cambia el ejercicio o se restaura sesión.
   // Se comparan valores (no referencias) para no reescribir el estado en cada render.
@@ -284,15 +300,36 @@ export const ExerciseCard = ({
   // para no sobreescribir las ediciones del usuario durante el entrenamiento).
   // instanceKey garantiza aislamiento entre apariciones duplicadas del mismo exerciseId.
   useEffect(() => {
-    setLocalSetConfigs(buildInitialConfigs());
+    originalTemplateRef.current = getTemplateConfigs(exercise);
+    setLocalSetConfigs(normalizeSetConfigs(buildInitialConfigs()));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceKey, exercise.id, exercise.sets]);
+
+  useEffect(() => {
+    if (!isActive || !instanceKey || currentSet !== 1 || completedSets.length > 0) {
+      setPendingStructureNotice(null);
+      return;
+    }
+    const notice = loadStructuralChangeNotice(instanceKey);
+    if (notice && notice.exerciseId === exercise.id) {
+      setPendingStructureNotice(notice);
+    }
+  }, [isActive, instanceKey, exercise.id, currentSet, completedSets.length]);
 
 
   // Notificar cambios en el estado de las series al padre (para persistencia)
   useEffect(() => {
-    onSetStateChange?.(exercise.id, currentSet, completedSets);
-  }, [exercise.id, currentSet, completedSets, onSetStateChange]);
+    onSetStateChange?.(exercise.id, currentSet, completedSets, localSetConfigs);
+  }, [exercise.id, currentSet, completedSets, localSetConfigs, onSetStateChange]);
+
+  const emitSessionConfigUpdate = (configs: SetConfig[]) => {
+    const normalized = normalizeSetConfigs(configs);
+    if (isActive && onUpdateSessionSetConfig) {
+      onUpdateSessionSetConfig(exercise.id, normalized);
+      return;
+    }
+    onUpdateSetConfig?.(exercise.id, normalized);
+  };
 
   // Bloqueo síncrono por serie: evita registrar dos veces la misma serie con dos taps rápidos.
   const completingSetRef = useRef<string | null>(null);
@@ -332,7 +369,7 @@ export const ExerciseCard = ({
       return;
     }
     applySuggestionRef.current = true;
-    const updated = applySuggestionToConfigs(localSetConfigs, ai.suggestion.setSuggestions);
+    const updated = normalizeSetConfigs(applySuggestionToConfigs(localSetConfigs, ai.suggestion.setSuggestions));
     setLocalSetConfigs(updated);
     // SOLO sesión: nunca se llama a onUpdateSetConfig (no toca public.exercises).
     onUpdateSessionSetConfig?.(exercise.id, updated);
@@ -359,8 +396,7 @@ export const ExerciseCard = ({
         }
         return config;
       });
-      // Notificar cambios al padre
-      onUpdateSetConfig?.(exercise.id, updated);
+      emitSessionConfigUpdate(updated);
       return updated;
     });
   };
@@ -385,46 +421,37 @@ export const ExerciseCard = ({
         }
         return config;
       });
-      // Notificar cambios al padre
-      onUpdateSetConfig?.(exercise.id, updated);
+      emitSessionConfigUpdate(updated);
       return updated;
     });
   };
 
-  // Eliminar una serie (solo si no está completada y queda más de una)
+  const syncStructure = (configs: SetConfig[], nextCurrentSet = currentSet, nextCompletedSets = completedSets) => {
+    setCurrentSet(nextCurrentSet);
+    setCompletedSets(nextCompletedSets);
+    emitSessionConfigUpdate(configs);
+    onSetStateChange?.(exercise.id, nextCurrentSet, nextCompletedSets, normalizeSetConfigs(configs));
+  };
+
+  const addSet = () => {
+    setLocalSetConfigs((prev) => {
+      const updated = addSessionSet(prev, prev[Math.max(0, currentSet - 1)]);
+      syncStructure(updated, currentSet, completedSets);
+      return updated;
+    });
+  };
+
+  // Eliminar una serie pendiente o una completada con confirmación clara
   const removeSet = (index: number) => {
     if (localSetConfigs.length <= 1) return;
     const setNumberToRemove = index + 1;
-    if (completedSets.includes(setNumberToRemove)) return;
+    const isCompleted = completedSets.includes(setNumberToRemove);
+    if (isCompleted && !confirm(`¿Eliminar definitivamente la Serie ${setNumberToRemove} registrada en esta sesión?`)) return;
 
     setLocalSetConfigs((prev) => {
-      // Eliminar y renumerar
-      const updated = prev
-        .filter((_, i) => i !== index)
-        .map((config, i) => ({ ...config, setNumber: i + 1 }));
-
-      // Actualizar series completadas: las posteriores se desplazan -1
-      const newCompletedSets = completedSets
-        .filter((s) => s !== setNumberToRemove)
-        .map((s) => (s > setNumberToRemove ? s - 1 : s));
-
-      // Ajustar serie actual
-      let newCurrentSet = currentSet;
-      if (currentSet > setNumberToRemove) {
-        newCurrentSet = currentSet - 1;
-      } else if (currentSet === setNumberToRemove) {
-        // Mantener el mismo índice (que ahora es la siguiente serie) o retroceder si era la última
-        newCurrentSet = Math.min(currentSet, updated.length);
-      }
-
-      setCompletedSets(newCompletedSets);
-      setCurrentSet(newCurrentSet);
-
-      // Notificar cambios al padre
-      onUpdateSetConfig?.(exercise.id, updated);
-      onSetStateChange?.(exercise.id, newCurrentSet, newCompletedSets);
-
-      return updated;
+      const { nextConfigs, nextCompletedSets, nextCurrentSet } = removeSessionSet(prev, completedSets, currentSet, index);
+      syncStructure(nextConfigs, nextCurrentSet, nextCompletedSets);
+      return nextConfigs;
     });
   };
 
@@ -445,8 +472,7 @@ export const ExerciseCard = ({
         }
         return config;
       });
-      // Notificar cambios al padre
-      onUpdateSetConfig?.(exercise.id, updated);
+      emitSessionConfigUpdate(updated);
       return updated;
     });
   };
@@ -457,7 +483,7 @@ export const ExerciseCard = ({
       const updated = prev.map((config, i) =>
         i === index ? { ...config, isWarmup: !config.isWarmup } : config
       );
-      onUpdateSetConfig?.(exercise.id, updated);
+      emitSessionConfigUpdate(updated);
       return updated;
     });
   };
@@ -496,7 +522,8 @@ export const ExerciseCard = ({
         restTime: config.restTime,
         isWarmup: setIsWarmup,
       },
-      exercise.sets
+      localSetConfigs.length,
+      instanceKey
     );
 
     // Detección de récord personal: peso superior al máximo histórico
@@ -532,10 +559,10 @@ export const ExerciseCard = ({
     setCompletedSets(newCompletedSets);
     
     // Sincronizar estado inmediatamente antes de notificar al padre
-    onSetStateChange?.(exercise.id, currentSet, newCompletedSets);
+    onSetStateChange?.(exercise.id, currentSet, newCompletedSets, localSetConfigs);
 
     
-    if (currentSet < exercise.sets) {
+    if (currentSet < localSetConfigs.length) {
       // Hay más series, mostrar temporizador entre series
       setTimerType('set');
       setShowFullscreenTimer(true);
@@ -564,7 +591,7 @@ export const ExerciseCard = ({
 
   const handleContinue = () => {
     if (timerType === 'set') {
-      if (currentSet < exercise.sets) {
+      if (currentSet < localSetConfigs.length) {
         setCurrentSet((prev) => prev + 1);
       }
     } else {
@@ -607,6 +634,27 @@ export const ExerciseCard = ({
     }
     return exercise.restAfterExercise;
   };
+
+  const acceptPendingStructure = () => {
+    if (!pendingStructureNotice) return;
+    const next = normalizeSetConfigs(pendingStructureNotice.modifiedConfigs);
+    setLocalSetConfigs(next);
+    onUpdateSetConfig?.(exercise.id, next);
+    emitSessionConfigUpdate(next);
+    consumeStructuralChangeNotice(pendingStructureNotice.instanceKey);
+    setPendingStructureNotice(null);
+  };
+
+  const rejectPendingStructure = () => {
+    if (!pendingStructureNotice) return;
+    const original = getTemplateConfigs(exercise);
+    setLocalSetConfigs(original);
+    emitSessionConfigUpdate(original);
+    consumeStructuralChangeNotice(pendingStructureNotice.instanceKey);
+    setPendingStructureNotice(null);
+  };
+
+  const structureChanged = hasStructuralChange(originalTemplateRef.current, localSetConfigs);
 
   return (
     <>
@@ -652,8 +700,11 @@ export const ExerciseCard = ({
               <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Dumbbell className="w-3.5 h-3.5" />
-                  {exercise.sets}x{exercise.reps}
+                  {localSetConfigs.length}x{exercise.reps}
                 </span>
+                {isActive && structureChanged && (
+                  <span className="text-warning">Estructura modificada</span>
+                )}
               </div>
             </div>
             
@@ -845,7 +896,7 @@ export const ExerciseCard = ({
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-medium">Progreso de series</span>
                 <span className="text-sm text-muted-foreground">
-                  {completedSets.length} / {exercise.sets} completadas
+                  {completedSets.length} / {localSetConfigs.length} completadas
                 </span>
               </div>
               
@@ -878,7 +929,7 @@ export const ExerciseCard = ({
                       exerciseName: exercise.name,
                       muscleGroup: exercise.muscleGroup,
                       completedSets: liveCompletedSetObjects as any,
-                      totalSets: exercise.sets,
+                      totalSets: localSetConfigs.length,
                       startedAt: new Date(),
                     }],
                     totalDuration: 0,
@@ -908,7 +959,7 @@ export const ExerciseCard = ({
                         onCompleteSet={handleSetComplete}
                         onSetDirectValue={setDirectValue}
                         onCopyFromPrevious={copyFromPreviousSet}
-                        onRemoveSet={!isCompleted && localSetConfigs.length > 1 ? removeSet : undefined}
+                        onRemoveSet={localSetConfigs.length > 1 ? removeSet : undefined}
                       />
                       {isCurrent && (
                         <div className="p-3 rounded-xl bg-secondary/30 border border-primary/30">
@@ -932,14 +983,23 @@ export const ExerciseCard = ({
               </div>
               
               {/* Exercise completed message */}
-              {completedSets.length === exercise.sets && !showFullscreenTimer && (
+              {completedSets.length === localSetConfigs.length && !showFullscreenTimer && (
                 <div className="text-center py-3 mt-4">
                   <span className="text-primary font-semibold">¡Ejercicio completado! 🎉</span>
                 </div>
               )}
 
+              <button
+                type="button"
+                onClick={addSet}
+                className="w-full mt-4 py-3 rounded-xl bg-primary/10 text-primary font-semibold flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors border border-primary/30"
+              >
+                <Dumbbell className="w-4 h-4" />
+                Añadir serie
+              </button>
+
               {/* Botón para terminar ejercicio anticipadamente */}
-              {completedSets.length > 0 && completedSets.length < exercise.sets && (
+              {completedSets.length > 0 && completedSets.length < localSetConfigs.length && (
                 <button
                   onClick={() => {
                     if (skipExerciseRestTimer) {
@@ -953,7 +1013,7 @@ export const ExerciseCard = ({
                   className="w-full mt-4 py-3 rounded-xl bg-secondary text-foreground font-medium flex items-center justify-center gap-2 hover:bg-secondary/80 transition-colors"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  Terminar ejercicio ({completedSets.length}/{exercise.sets} series)
+                  Terminar ejercicio ({completedSets.length}/{localSetConfigs.length} series)
                 </button>
               )}
             </div>
@@ -982,7 +1042,7 @@ export const ExerciseCard = ({
                   exerciseName: exercise.name,
                   muscleGroup: exercise.muscleGroup,
                   completedSets: currentCompletedSetObjects as any,
-                  totalSets: exercise.sets,
+                  totalSets: localSetConfigs.length,
                   startedAt: new Date(),
                 }],
                 totalDuration: 0,
@@ -1001,7 +1061,7 @@ export const ExerciseCard = ({
                     exerciseName={exercise.name}
                     sessions={sessionsWithLive}
                     inline
-                    maxSetNumber={exercise.sets}
+                    maxSetNumber={localSetConfigs.length}
                     metric={chartMetric}
                     onMetricChange={setChartMetric}
                     onDeleteSet={onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
@@ -1064,7 +1124,7 @@ export const ExerciseCard = ({
             exerciseName: exercise.name,
             muscleGroup: exercise.muscleGroup,
             completedSets: liveCompletedSetObjects as any,
-            totalSets: exercise.sets,
+            totalSets: localSetConfigs.length,
             startedAt: new Date(),
           }],
           totalDuration: 0,
@@ -1077,7 +1137,7 @@ export const ExerciseCard = ({
           : (workoutSessions || []);
 
         // Solo mostramos la gráfica entre series (no en el descanso entre ejercicios)
-        const showChartInTimer = timerType === 'set' && currentSet < exercise.sets;
+        const showChartInTimer = timerType === 'set' && currentSet < localSetConfigs.length;
 
         return (
           <FullscreenTimer
@@ -1144,6 +1204,42 @@ export const ExerciseCard = ({
         blockedReason={applyBlockedReason}
         onApply={handleApplySuggestion}
       />
+
+      <Dialog open={!!pendingStructureNotice} onOpenChange={(open) => { if (!open) rejectPendingStructure(); }}>
+        <DialogContent className="max-w-md z-[10040] mt-[var(--workout-stopwatch-offset,0px)]">
+          <DialogHeader>
+            <DialogTitle>Series modificadas detectadas</DialogTitle>
+            <DialogDescription>
+              Antes de empezar, elige si quieres usar la última estructura modificada o volver a la plantilla original.
+            </DialogDescription>
+          </DialogHeader>
+          {pendingStructureNotice && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl border border-border p-3 bg-secondary/40">
+                  <p className="font-semibold text-primary mb-1">Plantilla original</p>
+                  <p>{pendingStructureNotice.originalConfigs.length} series</p>
+                </div>
+                <div className="rounded-xl border border-primary/40 p-3 bg-primary/10">
+                  <p className="font-semibold text-primary mb-1">Última versión modificada</p>
+                  <p>{pendingStructureNotice.modifiedConfigs.length} series</p>
+                </div>
+              </div>
+              <p className="text-muted-foreground">
+                {describeStructuralChange(pendingStructureNotice.originalConfigs, pendingStructureNotice.modifiedConfigs)}
+              </p>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:space-x-0">
+            <Button variant="outline" onClick={rejectPendingStructure} className="flex-1">
+              Volver a la original
+            </Button>
+            <Button onClick={acceptPendingStructure} className="flex-1">
+              Guardar versión modificada para el futuro
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

@@ -11,6 +11,7 @@ import { getEffectiveConfigs, getVolume, formatReps, isWarmupSet } from '@/utils
 import { useExerciseAnalysis } from '@/hooks/useExerciseAnalysis';
 import { ExerciseAnalysisDialog } from '@/components/ExerciseAnalysisDialog';
 import { buildExerciseAnalysisDigest } from '@/utils/exerciseSessionAnalysis';
+import { addSessionSet, normalizeSetConfigs, removeSessionSet } from '@/utils/sessionSetStructure';
 
 
 interface ExerciseSummaryProps {
@@ -23,7 +24,7 @@ interface ExerciseSummaryProps {
   isUnilateral?: boolean;
   /** Se renderiza dentro de otro contenedor (sin capa fija propia) */
   embedded?: boolean;
-  onContinue: (updatedConfigs: SetConfig[]) => void;
+  onContinue: (updatedConfigs: SetConfig[], completedSets: number[]) => void;
   onGoBack?: () => void;
   historySessions?: WorkoutSession[];
   onDeleteCompletedSet?: (sessionId: string, exerciseId: string, setNumber: number) => void | Promise<void>;
@@ -43,11 +44,13 @@ export const ExerciseSummary = ({
   onDeleteCompletedSet,
 }: ExerciseSummaryProps) => {
   const [editingSetIndex, setEditingSetIndex] = useState<number | null>(null);
-  const [localConfigs, setLocalConfigs] = useState<SetConfig[]>([...setConfigs]);
-  const [editField, setEditField] = useState<'reps' | 'weight' | null>(null);
+  const [localConfigs, setLocalConfigs] = useState<SetConfig[]>(() => normalizeSetConfigs(setConfigs));
+  const [localCompletedSets, setLocalCompletedSets] = useState<number[]>(() => [...completedSets].sort((a, b) => a - b));
+  const [recordsEditing, setRecordsEditing] = useState(false);
+  const [editField, setEditField] = useState<'reps' | 'weight' | 'restTime' | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  const completedConfigs = localConfigs.filter((_, i) => completedSets.includes(i + 1));
+  const completedConfigs = localConfigs.filter((_, i) => localCompletedSets.includes(i + 1));
   // Las series de calentamiento no suman volumen ni series efectivas
   const effectiveConfigs = getEffectiveConfigs(exerciseName, completedConfigs);
 
@@ -63,23 +66,24 @@ export const ExerciseSummary = ({
       muscleGroup,
       isUnilateral,
       configs: localConfigs,
-      completedSets,
+      completedSets: localCompletedSets,
       sessions: historySessions,
     }));
   };
 
-  const handleUpdateField = (index: number, field: 'reps' | 'weight', delta: number) => {
+  const handleUpdateField = (index: number, field: 'reps' | 'weight' | 'restTime', delta: number) => {
     analysis.invalidate(); // cualquier corrección invalida el informe anterior
     setLocalConfigs(prev => prev.map((c, i) => {
       if (i !== index) return c;
       let newVal = c[field] + delta;
       if (field === 'reps') newVal = Math.max(1, Math.min(99, newVal));
       if (field === 'weight') newVal = Math.max(0, Math.min(999, Math.round(newVal * 2) / 2));
+      if (field === 'restTime') newVal = Math.max(5, Math.min(600, Math.round(newVal)));
       return { ...c, [field]: newVal };
     }));
   };
 
-  const handleDirectEdit = (index: number, field: 'reps' | 'weight') => {
+  const handleDirectEdit = (index: number, field: 'reps' | 'weight' | 'restTime') => {
     setEditingSetIndex(index);
     setEditField(field);
     setEditValue(localConfigs[index][field].toString());
@@ -95,11 +99,29 @@ export const ExerciseSummary = ({
         let val = numVal;
         if (editField === 'reps') val = Math.max(1, Math.min(99, Math.round(val)));
         if (editField === 'weight') val = Math.max(0, Math.min(999, Math.round(val * 2) / 2));
+        if (editField === 'restTime') val = Math.max(5, Math.min(600, Math.round(val)));
         return { ...c, [editField]: val };
       }));
     }
     setEditingSetIndex(null);
     setEditField(null);
+  };
+
+  const handleAddSet = () => {
+    analysis.invalidate();
+    const nextNumber = localConfigs.length + 1;
+    setLocalConfigs(prev => addSessionSet(prev));
+    setLocalCompletedSets(prev => Array.from(new Set([...prev, nextNumber])).sort((a, b) => a - b));
+    setRecordsEditing(true);
+  };
+
+  const handleRemoveSet = (index: number) => {
+    if (localConfigs.length <= 1) return;
+    if (!confirm(`¿Eliminar definitivamente la Serie ${index + 1} registrada en esta sesión?`)) return;
+    analysis.invalidate();
+    const { nextConfigs, nextCompletedSets } = removeSessionSet(localConfigs, localCompletedSets, Math.min(localConfigs.length, index + 1), index);
+    setLocalConfigs(nextConfigs);
+    setLocalCompletedSets(nextCompletedSets);
   };
 
   return (
@@ -141,7 +163,7 @@ export const ExerciseSummary = ({
 
           {/* Rows */}
           {localConfigs.map((config, index) => {
-            const isCompleted = completedSets.includes(index + 1);
+            const isCompleted = localCompletedSets.includes(index + 1);
             if (!isCompleted) return null;
 
             return (
@@ -163,6 +185,7 @@ export const ExerciseSummary = ({
                 {/* Reps - editable */}
                 <div className="flex items-center justify-center gap-1">
                   <button
+                    disabled={!recordsEditing}
                     onClick={() => handleUpdateField(index, 'reps', -1)}
                     className="w-6 h-6 rounded bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground"
                   >
@@ -170,7 +193,7 @@ export const ExerciseSummary = ({
                   </button>
                   <span
                     className="font-lcd text-lg text-primary min-w-[2ch] text-center cursor-pointer"
-                    onClick={() => handleDirectEdit(index, 'reps')}
+                    onClick={() => recordsEditing && handleDirectEdit(index, 'reps')}
                   >
                     {config.reps}
                   </span>
@@ -180,6 +203,7 @@ export const ExerciseSummary = ({
                     </span>
                   )}
                   <button
+                    disabled={!recordsEditing}
                     onClick={() => handleUpdateField(index, 'reps', 1)}
                     className="w-6 h-6 rounded bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground"
                   >
@@ -190,6 +214,7 @@ export const ExerciseSummary = ({
                 {/* Weight - editable */}
                 <div className="flex items-center justify-center gap-1">
                   <button
+                    disabled={!recordsEditing}
                     onClick={() => handleUpdateField(index, 'weight', -0.5)}
                     className="w-6 h-6 rounded bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground"
                   >
@@ -197,11 +222,12 @@ export const ExerciseSummary = ({
                   </button>
                   <span
                     className="font-lcd text-lg text-primary min-w-[3ch] text-center cursor-pointer"
-                    onClick={() => handleDirectEdit(index, 'weight')}
+                    onClick={() => recordsEditing && handleDirectEdit(index, 'weight')}
                   >
                     {config.weight}
                   </span>
                   <button
+                    disabled={!recordsEditing}
                     onClick={() => handleUpdateField(index, 'weight', 0.5)}
                     className="w-6 h-6 rounded bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground"
                   >
@@ -211,8 +237,23 @@ export const ExerciseSummary = ({
 
                 {/* Rest time - read only */}
                 <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
+                  {recordsEditing && (
+                    <button onClick={() => handleUpdateField(index, 'restTime', -5)} className="w-5 h-5 rounded bg-secondary flex items-center justify-center" aria-label={`Reducir descanso serie ${index + 1}`}>
+                      <Minus className="w-3 h-3" />
+                    </button>
+                  )}
                   <Clock className="w-3 h-3" />
-                  {config.restTime}s
+                  <span onClick={() => recordsEditing && handleDirectEdit(index, 'restTime')} className={recordsEditing ? 'cursor-pointer text-primary font-lcd' : ''}>{config.restTime}s</span>
+                  {recordsEditing && (
+                    <button onClick={() => handleUpdateField(index, 'restTime', 5)} className="w-5 h-5 rounded bg-secondary flex items-center justify-center" aria-label={`Aumentar descanso serie ${index + 1}`}>
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  )}
+                  {recordsEditing && (
+                    <button onClick={() => handleRemoveSet(index)} className="w-6 h-6 rounded bg-destructive/10 text-destructive flex items-center justify-center ml-1" aria-label={`Eliminar serie ${index + 1}`}>
+                      ×
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -221,7 +262,7 @@ export const ExerciseSummary = ({
 
         {/* Progress chart — includes current session data */}
         {(() => {
-          const currentCompletedSetObjects = completedSets.map(setNum => {
+           const currentCompletedSetObjects = localCompletedSets.map(setNum => {
             const cfg = localConfigs[setNum - 1];
             return cfg ? {
               setNumber: setNum,
@@ -268,6 +309,25 @@ export const ExerciseSummary = ({
           ) : null;
         })()}
 
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <button
+            type="button"
+            onClick={() => setRecordsEditing(v => !v)}
+            className="py-3 rounded-xl bg-secondary text-foreground font-semibold flex items-center justify-center gap-2"
+          >
+            <Edit2 className="w-4 h-4" />
+            {recordsEditing ? 'Terminar edición' : 'Editar registros'}
+          </button>
+          <button
+            type="button"
+            onClick={handleAddSet}
+            className="py-3 rounded-xl bg-primary/10 text-primary font-semibold flex items-center justify-center gap-2 border border-primary/30"
+          >
+            <Plus className="w-4 h-4" />
+            Añadir serie
+          </button>
+        </div>
+
         {/* Análisis IA opcional (solo en pantalla) */}
         <button
           onClick={runAnalysis}
@@ -290,7 +350,7 @@ export const ExerciseSummary = ({
             </button>
           )}
           <button
-            onClick={() => onContinue(localConfigs)}
+            onClick={() => onContinue(normalizeSetConfigs(localConfigs), localCompletedSets)}
             className="flex-1 py-4 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-energy"
           >
             Continuar
@@ -304,7 +364,7 @@ export const ExerciseSummary = ({
         <DialogContent className="sm:max-w-[300px]">
           <DialogHeader>
             <DialogTitle>
-              Editar {editField === 'reps' ? 'Repeticiones' : 'Peso (kg)'}
+              Editar {editField === 'reps' ? 'Repeticiones' : editField === 'weight' ? 'Peso (kg)' : 'Descanso'}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">

@@ -119,7 +119,8 @@ export const useWorkoutHistory = () => {
     exerciseName: string,
     muscleGroup: string,
     setData: Omit<CompletedSet, 'completedAt'>,
-    totalSets: number
+    totalSets: number,
+    instanceKey?: string,
   ) => {
     const completedSet: CompletedSet = { ...setData, completedAt: new Date() };
 
@@ -133,13 +134,16 @@ export const useWorkoutHistory = () => {
         exercises: [{
           exerciseId, exerciseName, muscleGroup,
           completedSets: [completedSet], totalSets, startedAt: new Date(),
-        }],
+            instanceKey,
+          }],
         totalDuration: 0, startedAt: new Date(), isComplete: false,
       });
       return;
     }
 
-    const idx = prev.exercises.findIndex(e => e.exerciseId === exerciseId);
+    const idx = prev.exercises.findIndex(e =>
+      instanceKey ? e.instanceKey === instanceKey : e.exerciseId === exerciseId && !e.instanceKey
+    );
     if (idx >= 0) {
       const updated = [...prev.exercises];
       updated[idx] = {
@@ -154,10 +158,65 @@ export const useWorkoutHistory = () => {
     commitSession({
       ...prev,
       exercises: [...prev.exercises, {
-        exerciseId, exerciseName, muscleGroup,
+        exerciseId, instanceKey, exerciseName, muscleGroup,
         completedSets: [completedSet], totalSets, startedAt: new Date(),
       }],
     });
+  }, [commitSession]);
+
+  const replaceExerciseSession = useCallback((
+    exerciseId: string,
+    exerciseName: string,
+    muscleGroup: string,
+    completedSets: CompletedSet[],
+    totalSets: number,
+    instanceKey?: string,
+  ) => {
+    const prev = currentSessionRef.current;
+    const cleanSets = completedSets
+      .map((set, index) => ({ ...set, setNumber: index + 1, completedAt: set.completedAt || new Date() }))
+      .sort((a, b) => a.setNumber - b.setNumber);
+
+    if (!prev) {
+      commitSession({
+        id: crypto.randomUUID(),
+        date: new Date(),
+        exercises: cleanSets.length > 0 ? [{
+          exerciseId, instanceKey, exerciseName, muscleGroup,
+          completedSets: cleanSets,
+          totalSets,
+          startedAt: new Date(),
+          ...(cleanSets.length >= totalSets ? { completedAt: new Date() } : {}),
+        }] : [],
+        totalDuration: 0,
+        startedAt: new Date(),
+        isComplete: false,
+      });
+      return;
+    }
+
+    const idx = prev.exercises.findIndex(e =>
+      instanceKey ? e.instanceKey === instanceKey : e.exerciseId === exerciseId && !e.instanceKey
+    );
+    const nextExercise: ExerciseSession = {
+      exerciseId,
+      instanceKey,
+      exerciseName,
+      muscleGroup,
+      completedSets: cleanSets,
+      totalSets,
+      startedAt: idx >= 0 ? prev.exercises[idx].startedAt : new Date(),
+      ...(cleanSets.length >= totalSets ? { completedAt: new Date() } : {}),
+    };
+
+    const nextExercises = [...prev.exercises];
+    if (idx >= 0) {
+      if (cleanSets.length === 0) nextExercises.splice(idx, 1);
+      else nextExercises[idx] = nextExercise;
+    } else if (cleanSets.length > 0) {
+      nextExercises.push(nextExercise);
+    }
+    commitSession({ ...prev, exercises: nextExercises });
   }, [commitSession]);
 
   const endSession = useCallback(async () => {
@@ -368,6 +427,7 @@ export const useWorkoutHistory = () => {
 
   return {
     sessions, currentSession, isLoading, startSession, logCompletedSet,
+    replaceExerciseSession,
     endSession, getExerciseHistory, getStats, deleteSession, deleteCompletedSet, updateCompletedSet, clearHistory,
   };
 };
