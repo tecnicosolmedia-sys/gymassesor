@@ -87,8 +87,14 @@ describe('Análisis IA del ejercicio en el resumen', () => {
     fireEvent.click(screen.getByLabelText('Analizar ejercicio con IA'));
     await waitFor(() => expect(screen.getByText('Sesión sólida y estable.')).toBeTruthy());
 
-    const stepper = screen.getAllByRole('button').find(b => b.className.includes('rounded bg-secondary'))!;
+    fireEvent.click(screen.getByLabelText('Cerrar el análisis'));
+    const stepper = await waitFor(() => {
+      const b = screen.getAllByRole('button').find(x => x.className.includes('rounded bg-secondary'));
+      if (!b) throw new Error('sin stepper');
+      return b;
+    });
     fireEvent.click(stepper);
+    fireEvent.click(screen.getByLabelText('Analizar ejercicio con IA'));
     await waitFor(() => expect(screen.queryByText('Sesión sólida y estable.')).toBeNull());
   });
 
