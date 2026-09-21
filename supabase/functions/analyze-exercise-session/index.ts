@@ -30,6 +30,10 @@ const strictNumber = (v: unknown): number | undefined => {
   return undefined;
 };
 
+/**
+ * Límites coherentes con la app: reps 1-99, peso 0-999 (pasos de 0.5),
+ * descanso registrado 15-600 s. Máximo 30 series. Los no finitos se descartan.
+ */
 const parseSets = (raw: unknown, limit = 30): AnalysisSet[] => {
   if (!Array.isArray(raw)) return [];
   const out: AnalysisSet[] = [];
@@ -42,12 +46,32 @@ const parseSets = (raw: unknown, limit = 30): AnalysisSet[] => {
     const sn = strictNumber((item as any).setNumber);
     out.push({
       setNumber: sn !== undefined && Math.round(sn) >= 1 ? Math.round(sn) : i + 1,
-      reps: Math.max(1, Math.min(999, Math.round(reps))),
+      reps: Math.max(1, Math.min(99, Math.round(reps))),
       weight: Math.max(0, Math.min(999, Math.round(weight * 2) / 2)),
-      ...(rest !== undefined ? { restTime: Math.max(0, Math.min(3600, Math.round(rest))) } : {}),
+      ...(rest !== undefined ? { restTime: Math.max(15, Math.min(600, Math.round(rest))) } : {}),
     });
   }
   return out;
+};
+
+/** Récords verificados aquí, nunca confiando en lo que llegue en el body. */
+const verifyRecords = (
+  today: Metrics,
+  history: Metrics[],
+): { newMaxWeight: boolean; newBestVolume: boolean } => {
+  let prevMaxWeight: number | null = null;
+  let prevBestVolume: number | null = null;
+  for (const m of history) {
+    if (m.setCount === 0) continue;
+    prevMaxWeight = prevMaxWeight === null ? m.maxWeight : Math.max(prevMaxWeight, m.maxWeight);
+    prevBestVolume = prevBestVolume === null ? m.totalVolume : Math.max(prevBestVolume, m.totalVolume);
+  }
+  return {
+    newMaxWeight:
+      today.setCount > 0 && prevMaxWeight !== null && today.maxWeight > prevMaxWeight,
+    newBestVolume:
+      today.setCount > 0 && prevBestVolume !== null && today.totalVolume > prevBestVolume,
+  };
 };
 
 const parseMetrics = (raw: unknown): Metrics | null => {
