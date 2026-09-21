@@ -1094,6 +1094,7 @@ export const ExerciseCard = ({
             chartSessions={showChartInTimer ? timerSessions : undefined}
             chartNextSetNumber={showChartInTimer ? currentSet + 1 : undefined}
             chartOnDeleteSet={showChartInTimer && onDeleteCompletedSet ? (sId, sn) => onDeleteCompletedSet(sId, exercise.id, sn) : undefined}
+            onShowExercisePlan={timerType === 'set' ? () => setShowPlan(true) : undefined}
           />
         );
       })()}
