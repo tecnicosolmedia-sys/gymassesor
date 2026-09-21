@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Exercise, SetConfig, MUSCLE_GROUPS, MuscleGroup } from '@/types/exercise';
-import { WorkoutSession } from '@/types/workoutHistory';
+import { CompletedSet, WorkoutSession } from '@/types/workoutHistory';
 import { FullscreenTimer } from './FullscreenTimer';
 import { ExerciseCard, type ExerciseCompletionSnapshot } from './ExerciseCard';
 import { WorkoutStopwatch, useWorkoutStopwatch } from './WorkoutStopwatch';
@@ -32,7 +32,6 @@ import {
   normalizeSetConfigs,
   saveStructuralChangeNotice,
 } from '@/utils/sessionSetStructure';
-import { CompletedSet } from '@/types/workoutHistory';
 
 
 // Clave para persistencia en localStorage
@@ -89,7 +88,7 @@ interface WorkoutFlowProps {
     exerciseId: string,
     exerciseName: string,
     muscleGroup: string,
-    setData: { setNumber: number; reps: number; weight: number; restTime: number },
+    setData: { setNumber: number; reps: number; weight: number; restTime: number; isWarmup?: boolean },
     totalSets: number,
     instanceKey?: string,
   ) => void;
@@ -313,6 +312,32 @@ export const WorkoutFlow = ({
     };
   }, []);
 
+  const buildCompletedSetRows = useCallback((
+    exercise: WorkoutExercise,
+    completedSets: number[],
+    configs: SetConfig[],
+  ): CompletedSet[] => {
+    const normalized = normalizeSetConfigs(configs);
+    return Array.from(new Set(completedSets))
+      .sort((a, b) => a - b)
+      .map((setNumber) => {
+        const cfg = normalized[setNumber - 1] ?? normalized[normalized.length - 1] ?? {
+          setNumber,
+          reps: exercise.reps,
+          weight: exercise.weight,
+          restTime: exercise.restBetweenSets,
+        };
+        return {
+          setNumber,
+          reps: cfg.reps,
+          weight: cfg.weight,
+          restTime: cfg.restTime,
+          isWarmup: isWarmupSet(exercise.name, cfg),
+          completedAt: new Date(),
+        };
+      });
+  }, []);
+
   // Actualizar estado de series de una aparición concreta del ejercicio
   const handleSetStateChange = useCallback((instanceKey: string, exerciseId: string, currentSet: number, completedSets: number[], setConfigs?: SetConfig[]) => {
     setExerciseSetStates(prev => {
@@ -339,7 +364,20 @@ export const WorkoutFlow = ({
       }
       return [...prev, newState];
     });
-  }, []);
+
+    const exercise = workoutExercises.find((item) => item.instanceKey === instanceKey);
+    if (exercise && setConfigs && completedSets.length > 0) {
+      const normalized = normalizeSetConfigs(setConfigs);
+      onReplaceExerciseSession?.(
+        exercise.id,
+        exercise.name,
+        exercise.muscleGroup,
+        buildCompletedSetRows(exercise, completedSets, normalized),
+        normalized.length,
+        instanceKey,
+      );
+    }
+  }, [buildCompletedSetRows, onReplaceExerciseSession, workoutExercises]);
 
 
   /**
@@ -445,6 +483,18 @@ export const WorkoutFlow = ({
     // Aplicar la instantánea de forma atómica ANTES de mostrar el resumen:
     // series completadas reales + configuración efectiva usada en pantalla.
     if (snapshot) {
+      const exercise = workoutExercises[exerciseIndex];
+      const normalizedSnapshotConfigs = normalizeSetConfigs(snapshot.setConfigs);
+      if (exercise) {
+        onReplaceExerciseSession?.(
+          snapshot.exerciseId,
+          exercise.name,
+          exercise.muscleGroup,
+          buildCompletedSetRows(exercise, snapshot.completedSets, normalizedSnapshotConfigs),
+          normalizedSnapshotConfigs.length,
+          instanceKey,
+        );
+      }
       setSummarySnapshots(prev => ({ ...prev, [instanceKey]: snapshot }));
       setExerciseSetStates(prev => {
         const idx = prev.findIndex(s => s.instanceKey === instanceKey);
@@ -453,7 +503,7 @@ export const WorkoutFlow = ({
           exerciseId: snapshot.exerciseId,
           currentSet: idx >= 0 ? prev[idx].currentSet : snapshot.completedSets.length,
           completedSets: [...snapshot.completedSets],
-          sessionSetConfigs: idx >= 0 ? prev[idx].sessionSetConfigs : undefined,
+          sessionSetConfigs: normalizedSnapshotConfigs,
         };
         if (idx < 0) return [...prev, merged];
         const updated = [...prev];
@@ -462,7 +512,7 @@ export const WorkoutFlow = ({
       });
       setWorkoutExercises(prev => prev.map(e =>
         e.instanceKey === instanceKey
-          ? { ...e, setConfigs: snapshot.setConfigs.map(c => ({ ...c })) }
+          ? { ...e, setConfigs: normalizedSnapshotConfigs.map(c => ({ ...c })) }
           : e
       ));
     }
@@ -477,17 +527,49 @@ export const WorkoutFlow = ({
   };
 
 
-  const handleSummaryContinue = (completedExerciseIndex: number, updatedConfigs: SetConfig[]) => {
+  const handleSummaryContinue = (completedExerciseIndex: number, updatedConfigs: SetConfig[], updatedCompletedSets: number[]) => {
     const exercise = workoutExercises[completedExerciseIndex];
 
-    // Actualizar configs si fueron editadas en el resumen.
-    // Con override de sesión (p. ej. sugerencia IA aplicada) NO se escribe en public.exercises.
     if (exercise) {
-      const target = resolveSummaryConfigTarget(exerciseSetStates, exercise.instanceKey);
-      if (target === 'session') {
-        handleSessionSetConfig(exercise.instanceKey, exercise.id, updatedConfigs);
-      } else {
-        onUpdateSetConfig?.(exercise.id, updatedConfigs);
+      const normalized = normalizeSetConfigs(updatedConfigs);
+      const completed = Array.from(new Set(updatedCompletedSets)).sort((a, b) => a - b);
+      handleSessionSetConfig(exercise.instanceKey, exercise.id, normalized);
+      setSummarySnapshots(prev => ({
+        ...prev,
+        [exercise.instanceKey]: {
+          exerciseId: exercise.id,
+          instanceKey: exercise.instanceKey,
+          completedSets: completed,
+          setConfigs: normalized,
+        },
+      }));
+      setExerciseSetStates(prev => upsertSessionSetConfigs(
+        prev.map(s => s.instanceKey === exercise.instanceKey ? { ...s, completedSets: completed } : s),
+        exercise.instanceKey,
+        exercise.id,
+        normalized,
+      ));
+      onReplaceExerciseSession?.(
+        exercise.id,
+        exercise.name,
+        exercise.muscleGroup,
+        buildCompletedSetRows(exercise, completed, normalized),
+        normalized.length,
+        exercise.instanceKey,
+      );
+
+      const original = getTemplateConfigs(exercise);
+      if (hasStructuralChange(original, normalized)) {
+        saveStructuralChangeNotice({
+          routineId,
+          routineName,
+          exerciseId: exercise.id,
+          instanceKey: exercise.instanceKey,
+          exerciseName: exercise.name,
+          originalConfigs: original,
+          modifiedConfigs: normalized,
+          savedAt: new Date().toISOString(),
+        });
       }
     }
 
@@ -662,7 +744,7 @@ export const WorkoutFlow = ({
               setConfigs={configs}
               isUnilateral={summaryExercise.isUnilateral}
               completedSets={summaryCompletedSets}
-              onContinue={(updatedConfigs) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs)}
+              onContinue={(updatedConfigs, updatedCompletedSets) => handleSummaryContinue(flowState.completedExerciseIndex, updatedConfigs, updatedCompletedSets)}
               onGoBack={() => handleSummaryGoBack(flowState.completedExerciseIndex, summaryExercise.instanceKey)}
               historySessions={workoutSessions}
               onDeleteCompletedSet={onDeleteCompletedSet}
@@ -1434,7 +1516,7 @@ export const WorkoutFlow = ({
 
                 onEdit={onEditExercise}
                 onDelete={onDeleteExercise}
-                onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
+                onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets, setInstanceKey) => {
                   // Registrar los datos de la serie para calcular kg totales
                   setCompletedSetsData(prev => [...prev, {
                     exerciseId,
@@ -1445,7 +1527,7 @@ export const WorkoutFlow = ({
                   }]);
 
                   // Llamar al callback original
-                  onSetComplete(exerciseId, exerciseName, muscleGroup, setData, totalSets);
+                  onSetComplete(exerciseId, exerciseName, muscleGroup, setData, totalSets, setInstanceKey ?? currentExercise.instanceKey);
                 }}
                 isActive={true}
                 skipExerciseRestTimer={true}
@@ -1460,8 +1542,7 @@ export const WorkoutFlow = ({
                   setExerciseSetStates(prev => syncSessionOverrideOnManualEdit(
                     prev, currentExercise.instanceKey, exerciseId, setConfigs,
                   ));
-                  // También notificar al padre para persistencia
-                  onUpdateSetConfig?.(exerciseId, setConfigs);
+                  handleSessionSetConfig(currentExercise.instanceKey, exerciseId, setConfigs);
                 }}
 
                 onUpdateSessionSetConfig={(exerciseId, setConfigs) =>
@@ -1470,7 +1551,7 @@ export const WorkoutFlow = ({
                 initialSessionSetConfigs={savedSetState?.sessionSetConfigs}
                 initialCurrentSet={savedSetState?.currentSet}
                 initialCompletedSets={savedSetState?.completedSets}
-                onSetStateChange={(exerciseId, currentSet, completedSets) => handleSetStateChange(currentExercise.instanceKey, exerciseId, currentSet, completedSets)}
+                onSetStateChange={(exerciseId, currentSet, completedSets, setConfigs) => handleSetStateChange(currentExercise.instanceKey, exerciseId, currentSet, completedSets, setConfigs)}
                 globalElapsedTime={elapsedTime}
                 globalIsRunning={isRunning}
                 onGlobalToggle={toggle}
