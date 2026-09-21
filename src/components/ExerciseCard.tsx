@@ -279,7 +279,9 @@ export const ExerciseCard = ({
   };
 
   // Estado local para las configuraciones editables
-  const [localSetConfigs, setLocalSetConfigs] = useState<SetConfig[]>(buildInitialConfigs);
+  const [localSetConfigs, setLocalSetConfigs] = useState<SetConfig[]>(() => normalizeSetConfigs(buildInitialConfigs()));
+  const originalTemplateRef = useRef<SetConfig[]>(getTemplateConfigs(exercise));
+  const [pendingStructureNotice, setPendingStructureNotice] = useState<StructuralChangeNotice | null>(null);
 
   // Sincronizar estado de series cuando cambia el ejercicio o se restaura sesión.
   // Se comparan valores (no referencias) para no reescribir el estado en cada render.
@@ -298,15 +300,36 @@ export const ExerciseCard = ({
   // para no sobreescribir las ediciones del usuario durante el entrenamiento).
   // instanceKey garantiza aislamiento entre apariciones duplicadas del mismo exerciseId.
   useEffect(() => {
-    setLocalSetConfigs(buildInitialConfigs());
+    originalTemplateRef.current = getTemplateConfigs(exercise);
+    setLocalSetConfigs(normalizeSetConfigs(buildInitialConfigs()));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceKey, exercise.id, exercise.sets]);
+
+  useEffect(() => {
+    if (!isActive || !instanceKey || currentSet !== 1 || completedSets.length > 0) {
+      setPendingStructureNotice(null);
+      return;
+    }
+    const notice = loadStructuralChangeNotice(instanceKey);
+    if (notice && notice.exerciseId === exercise.id) {
+      setPendingStructureNotice(notice);
+    }
+  }, [isActive, instanceKey, exercise.id, currentSet, completedSets.length]);
 
 
   // Notificar cambios en el estado de las series al padre (para persistencia)
   useEffect(() => {
     onSetStateChange?.(exercise.id, currentSet, completedSets);
   }, [exercise.id, currentSet, completedSets, onSetStateChange]);
+
+  const emitSessionConfigUpdate = (configs: SetConfig[]) => {
+    const normalized = normalizeSetConfigs(configs);
+    if (isActive && onUpdateSessionSetConfig) {
+      onUpdateSessionSetConfig(exercise.id, normalized);
+      return;
+    }
+    onUpdateSetConfig?.(exercise.id, normalized);
+  };
 
   // Bloqueo síncrono por serie: evita registrar dos veces la misma serie con dos taps rápidos.
   const completingSetRef = useRef<string | null>(null);
