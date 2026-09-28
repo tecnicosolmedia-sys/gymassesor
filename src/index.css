@@ -272,3 +272,6 @@
   :root { --workout-header-h: 3rem; }
   .rest-landscape .rest-controls { gap: 0.5rem; }
 }
+.workout-flow-header {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+}

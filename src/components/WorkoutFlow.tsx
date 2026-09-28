@@ -726,7 +726,7 @@ export const WorkoutFlow = ({
       return (
         <div className="fixed inset-0 bg-background z-50 flex flex-col">
           {/* Cronómetro flotante */}
-          <div className="flex-none flex justify-center pt-4 pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+          <div className="flex-none flex justify-center pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border relative z-[60] workout-flow-header">
             <WorkoutStopwatch
               elapsedTime={elapsedTime}
               isRunning={isRunning}
@@ -803,7 +803,7 @@ export const WorkoutFlow = ({
     return (
       <div className="fixed inset-0 bg-background z-50 flex flex-col">
         {/* Cronómetro flotante */}
-        <div className="flex-none flex justify-center pt-4 pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+        <div className="flex-none flex justify-center pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border relative z-[60] workout-flow-header">
           <WorkoutStopwatch 
             elapsedTime={elapsedTime}
             isRunning={isRunning}
@@ -1104,7 +1104,7 @@ export const WorkoutFlow = ({
     return (
       <div className="fixed inset-0 bg-background z-50 flex flex-col">
         {/* Cronómetro flotante */}
-        <div className="flex-none flex justify-center pt-4 pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+        <div className="flex-none flex justify-center pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border relative z-[60] workout-flow-header">
           <WorkoutStopwatch 
             elapsedTime={elapsedTime}
             isRunning={isRunning}
@@ -1280,7 +1280,7 @@ export const WorkoutFlow = ({
     return (
       <div className="fixed inset-0 bg-background z-50 flex flex-col">
         {/* Cronómetro flotante */}
-        <div className="flex-none flex justify-center pt-4 pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+        <div className="flex-none flex justify-center pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border relative z-[60] workout-flow-header">
           <WorkoutStopwatch 
             elapsedTime={elapsedTime}
             isRunning={isRunning}
@@ -1435,7 +1435,7 @@ export const WorkoutFlow = ({
     return (
       <div className="fixed inset-0 bg-background z-50 flex flex-col">
         {/* Cronómetro y notificaciones flotantes */}
-        <div className="flex-none flex items-center justify-center gap-2 pt-4 pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+        <div className="flex-none flex items-center justify-center gap-2 pb-2 px-4 bg-background/95 backdrop-blur-sm border-b border-border relative z-[60] workout-flow-header">
           <WorkoutStopwatch 
             elapsedTime={elapsedTime}
             isRunning={isRunning}
