@@ -372,7 +372,7 @@ export const FullscreenTimer = ({
       data-testid="rest-timer-root"
       data-orientation={isLandscape ? 'landscape' : 'portrait'}
       className={cn(
-        "rest-timer-root fixed inset-0 z-[9999] bg-background flex items-center justify-center overflow-hidden",
+        "rest-timer-root fixed inset-0 z-[9999] bg-background flex items-center justify-center overflow-x-hidden overflow-y-auto",
         isLandscape ? "rest-landscape flex-row gap-6 px-4" : "rest-portrait flex-col px-4",
       )}
     >
@@ -438,7 +438,7 @@ export const FullscreenTimer = ({
         isLandscape ? "flex-1 min-w-0" : "mt-4"
       )}>
         {!isComplete ? (
-          <div className="flex flex-col items-center gap-4">
+          <div className="rest-controls flex flex-col items-center gap-4">
             <div className="flex gap-4">
               <button
                 onClick={handleToggle}
@@ -537,5 +537,6 @@ export const FullscreenTimer = ({
         )}
       </div>
     </div>
+    </>
   );
 };

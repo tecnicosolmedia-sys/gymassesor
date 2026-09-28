@@ -231,3 +231,44 @@
   z-index: -1;
   filter: drop-shadow(0 0 6px hsl(84 100% 50% / 0.6)) drop-shadow(0 0 12px hsl(84 100% 50% / 0.3));
 }
+
+/* ===== Reloj general + descanso responsivo ===== */
+:root {
+  --workout-header-h: 3.75rem;
+  --workout-header-total: calc(var(--workout-header-h) + env(safe-area-inset-top, 0px));
+}
+.workout-global-header {
+  height: var(--workout-header-total);
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.rest-timer-root {
+  padding-top: calc(var(--workout-header-total) + 0.75rem);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+  justify-content: safe center;
+}
+.rest-portrait {
+  /* 20rem ≈ etiqueta + botones + textos bajo la esfera */
+  --rest-ring: clamp(140px, min(76vw, calc(100svh - var(--workout-header-total) - env(safe-area-inset-bottom, 0px) - 20rem)), 320px);
+}
+.rest-landscape {
+  --rest-ring: clamp(110px, min(42vw, calc(100svh - var(--workout-header-total) - env(safe-area-inset-bottom, 0px) - 3.5rem)), 340px);
+}
+.rest-ring {
+  width: var(--rest-ring);
+  height: var(--rest-ring);
+  max-width: 100%;
+  flex-shrink: 0;
+}
+.rest-digits {
+  font-size: calc(var(--rest-ring) * 0.2);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  max-width: 78%;
+  white-space: nowrap;
+  text-align: center;
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --workout-header-h: 3rem; }
+  .rest-landscape .rest-controls { gap: 0.5rem; }
+}
