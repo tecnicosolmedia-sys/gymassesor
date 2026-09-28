@@ -71,6 +71,7 @@ describe('Análisis IA del ejercicio en el resumen', () => {
     render(<ExerciseSummary {...props} />);
 
     // Corrige el peso de la primera serie (+0.5 kg)
+    fireEvent.click(screen.getByRole('button', { name: /Editar registros/ }));
     const plusButtons = screen.getAllByRole('button');
     fireEvent.click(plusButtons.find(b => b.className.includes('rounded bg-secondary'))!); // -1 rep serie 1
 
