@@ -49,6 +49,7 @@ const Index = () => {
     currentSession,
     startSession,
     logCompletedSet,
+    replaceExerciseSession,
     endSession,
     deleteSession,
     deleteCompletedSet,
@@ -398,11 +399,15 @@ const Index = () => {
               onDelete={handleDeleteRoutine}
               onEditExercise={handleEditExercise}
               onDeleteExercise={handleDeleteExercise}
-              onSetComplete={(routineId, routineName, exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
+              onSetComplete={(routineId, routineName, exerciseId, exerciseName, muscleGroup, setData, totalSets, instanceKey) => {
                 if (!currentSession) {
                   startSession(routineId, routineName);
                 }
-                logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets);
+                logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets, instanceKey);
+              }}
+              onReplaceExerciseSession={(routineId, routineName, exerciseId, exerciseName, muscleGroup, completedSets, totalSets, instanceKey) => {
+                if (!currentSession) startSession(routineId, routineName);
+                replaceExerciseSession(exerciseId, exerciseName, muscleGroup, completedSets, totalSets, instanceKey);
               }}
               onUpdateSetConfig={handleUpdateSetConfig}
               onWorkoutComplete={() => {
@@ -730,9 +735,10 @@ const Index = () => {
             setResumingWorkout(false);
             clearSavedWorkout();
           }}
-          onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
-            logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets);
+          onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets, instanceKey) => {
+            logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets, instanceKey);
           }}
+          onReplaceExerciseSession={replaceExerciseSession}
           onEditExercise={handleEditExercise}
           onDeleteExercise={handleDeleteExercise}
           onUpdateSetConfig={handleUpdateSetConfig}
@@ -771,9 +777,10 @@ const Index = () => {
           onClose={() => {
             setShowFreeWorkout(false);
           }}
-          onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
-            logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets);
+          onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets, instanceKey) => {
+            logCompletedSet(exerciseId, exerciseName, muscleGroup, setData, totalSets, instanceKey);
           }}
+          onReplaceExerciseSession={replaceExerciseSession}
           onEditExercise={handleEditExercise}
           onDeleteExercise={handleDeleteExercise}
           onUpdateSetConfig={handleUpdateSetConfig}

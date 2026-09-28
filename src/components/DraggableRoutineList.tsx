@@ -1,3 +1,4 @@
+import { CompletedSet } from '@/types/workoutHistory';
 import { useState, useRef, useCallback } from 'react';
 import { RoutineCard } from './RoutineCard';
 import { Exercise, SetConfig } from '@/types/exercise';
@@ -15,7 +16,8 @@ interface DraggableRoutineListProps {
   onDelete: (id: string) => void;
   onEditExercise: (exercise: Exercise) => void;
   onDeleteExercise: (id: string) => void;
-  onSetComplete: (routineId: string, routineName: string, exerciseId: string, exerciseName: string, muscleGroup: string, setData: { setNumber: number; reps: number; weight: number; restTime: number }, totalSets: number) => void;
+  onSetComplete: (routineId: string, routineName: string, exerciseId: string, exerciseName: string, muscleGroup: string, setData: { setNumber: number; reps: number; weight: number; restTime: number }, totalSets: number, instanceKey?: string) => void;
+  onReplaceExerciseSession?: (routineId: string, routineName: string, exerciseId: string, exerciseName: string, muscleGroup: string, completedSets: CompletedSet[], totalSets: number, instanceKey?: string) => void;
   onUpdateSetConfig: (exerciseId: string, setConfigs: SetConfig[]) => void;
   onWorkoutComplete: () => void;
   onAddExerciseToRoutine: (routineId: string, exerciseId: string) => void;
@@ -32,7 +34,7 @@ interface DraggableRoutineListProps {
 export const DraggableRoutineList = ({
   routines, allRoutines, reorderRoutines, exercises,
   onEdit, onDelete, onEditExercise, onDeleteExercise,
-  onSetComplete, onUpdateSetConfig, onWorkoutComplete,
+  onSetComplete, onReplaceExerciseSession, onUpdateSetConfig, onWorkoutComplete,
   onAddExerciseToRoutine, onRemoveExerciseFromRoutine, onCreateExercise, newExerciseToAdd, onNewExerciseHandled,
   workoutSessions, onDeleteCompletedSet, onUpdateNotes,
 }: DraggableRoutineListProps) => {
@@ -156,8 +158,11 @@ export const DraggableRoutineList = ({
                 onDelete={onDelete}
                 onEditExercise={onEditExercise}
                 onDeleteExercise={onDeleteExercise}
-                onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets) => {
-                  onSetComplete(routine.id, routine.name, exerciseId, exerciseName, muscleGroup, setData, totalSets);
+                onSetComplete={(exerciseId, exerciseName, muscleGroup, setData, totalSets, instanceKey) => {
+                  onSetComplete(routine.id, routine.name, exerciseId, exerciseName, muscleGroup, setData, totalSets, instanceKey);
+                }}
+                onReplaceExerciseSession={(exerciseId, exerciseName, muscleGroup, completedSets, totalSets, instanceKey) => {
+                  onReplaceExerciseSession?.(routine.id, routine.name, exerciseId, exerciseName, muscleGroup, completedSets, totalSets, instanceKey);
                 }}
                 onUpdateSetConfig={onUpdateSetConfig}
                 onWorkoutComplete={onWorkoutComplete}

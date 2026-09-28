@@ -10,5 +10,3 @@
 - [x] Limpieza de ficha vacía al borrar la última serie histórica
 - [x] Historial, récords, resúmenes, revisión mid-workout y PDF actualizados
 - [x] Pruebas unitarias + TypeScript + build + tests
-- [ ] Implementar en un único borrador la edición estructural de series y la corrección visual de relojes, con pruebas, tipos y build; sin publicar ni desplegar.
-- [ ] Completar el commit parcial: cerrar cableado estructural, corregir reloj móvil, añadir pruebas completas, tipos y build; no publicar.

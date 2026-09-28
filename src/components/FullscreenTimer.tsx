@@ -339,43 +339,43 @@ export const FullscreenTimer = ({
     onClose();
   };
 
-  // Calcular tamaños según orientación - más grandes para LCD
-  const ringSize = isLandscape ? 'w-72 h-72 sm:w-96 sm:h-96' : 'w-72 h-72 sm:w-80 sm:h-80';
-  const ringRadius = isLandscape ? 140 : 120;
-  const ringCenter = isLandscape ? 160 : 144;
-  const svgSize = isLandscape ? 320 : 288;
-  const fontSize = isLandscape ? 'text-7xl sm:text-9xl' : 'text-6xl sm:text-8xl';
+  const hasGlobalHeader = globalElapsedTime !== undefined && !!onGlobalToggle;
 
   return (
-    <div 
-      className={cn(
-        "fixed inset-0 z-[9999] bg-background flex flex-col items-center justify-center p-4",
-        isLandscape && "flex-row gap-8"
-      )}
+    <>
+    {/* Cabecera global: capa propia, fija y por encima de cualquier overlay */}
+    <div
+      data-testid="workout-global-header"
+      className="workout-global-header fixed inset-x-0 top-0 z-[10200] flex items-center justify-center gap-2 px-3 bg-background/95 backdrop-blur-sm border-b border-border"
     >
-      {/* Cronómetro general siempre visible arriba (independiente del descanso) */}
-      {globalElapsedTime !== undefined && onGlobalToggle && (
+      {hasGlobalHeader && (
         <WorkoutStopwatch
-          className="absolute top-4 left-1/2 -translate-x-1/2"
           compact
-          elapsedTime={globalElapsedTime}
+          elapsedTime={globalElapsedTime!}
           isRunning={globalIsRunning === true}
-          onToggle={onGlobalToggle}
+          onToggle={onGlobalToggle!}
           onSetTime={onGlobalSetTime}
           onSetRunning={onGlobalSetRunning}
         />
       )}
-
-      {/* Close button - solo visible cuando está completo */}
       {!isComplete && (
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Cerrar descanso"
+          className="absolute right-3 p-2 rounded-full bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"
         >
           <X className="w-6 h-6" />
         </button>
       )}
-      
+    </div>
+    <div
+      data-testid="rest-timer-root"
+      data-orientation={isLandscape ? 'landscape' : 'portrait'}
+      className={cn(
+        "rest-timer-root fixed inset-0 z-[9999] bg-background flex items-center justify-center overflow-x-hidden overflow-y-auto",
+        isLandscape ? "rest-landscape flex-row gap-6 px-4" : "rest-portrait flex-col px-4",
+      )}
+    >
       {/* Background glow */}
       <div 
         className={cn(
@@ -387,51 +387,41 @@ export const FullscreenTimer = ({
       
       {/* Main content */}
       <div className={cn(
-        "relative flex flex-col items-center",
+        "relative flex flex-col items-center min-w-0",
         isLandscape && "flex-1"
       )}>
         <p className={cn(
-          "text-muted-foreground mb-4 font-medium text-center",
-          isLandscape ? "text-xl" : "text-lg"
+          "text-muted-foreground font-medium text-center",
+          isLandscape ? "text-base mb-1" : "text-lg mb-3"
         )}>
           {label}
         </p>
         
         {/* Progress ring */}
-        <div className={cn("relative", ringSize)}>
+        <div data-testid="rest-ring" className="rest-ring relative">
           <svg 
             className="w-full h-full transform -rotate-90"
-            viewBox={`0 0 ${svgSize} ${svgSize}`}
+            viewBox="0 0 288 288"
           >
-            {/* Background circle */}
+            <circle cx={144} cy={144} r={130} fill="none" stroke="hsl(var(--muted))" strokeWidth="12" />
             <circle
-              cx={ringCenter}
-              cy={ringCenter}
-              r={ringRadius}
-              fill="none"
-              stroke="hsl(var(--muted))"
-              strokeWidth="12"
-            />
-            {/* Progress circle */}
-            <circle
-              cx={ringCenter}
-              cy={ringCenter}
-              r={ringRadius}
+              cx={144}
+              cy={144}
+              r={130}
               fill="none"
               stroke={isComplete ? "hsl(var(--primary))" : isWarning ? "hsl(var(--warning))" : "hsl(var(--primary))"}
               strokeWidth="12"
               strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * ringRadius}
-              strokeDashoffset={2 * Math.PI * ringRadius * (1 - progress / 100)}
+              strokeDasharray={2 * Math.PI * 130}
+              strokeDashoffset={2 * Math.PI * 130 * (1 - progress / 100)}
               className="transition-all duration-1000"
             />
           </svg>
           
           {/* Time display - LCD style */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className={cn(
-              "font-lcd font-bold transition-all tracking-wider",
-              fontSize,
+            <span data-testid="rest-digits" className={cn(
+              "rest-digits font-lcd font-bold transition-colors",
               isWarning && "text-warning animate-pulse",
               isComplete && "text-primary",
               "drop-shadow-[0_0_10px_currentColor]"
@@ -445,10 +435,10 @@ export const FullscreenTimer = ({
       {/* Controls */}
       <div className={cn(
         "relative flex flex-col items-center gap-4",
-        isLandscape ? "flex-1" : "mt-8"
+        isLandscape ? "flex-1 min-w-0" : "mt-4"
       )}>
         {!isComplete ? (
-          <div className="flex flex-col items-center gap-4">
+          <div className="rest-controls flex flex-col items-center gap-4">
             <div className="flex gap-4">
               <button
                 onClick={handleToggle}
@@ -547,5 +537,6 @@ export const FullscreenTimer = ({
         )}
       </div>
     </div>
+    </>
   );
 };

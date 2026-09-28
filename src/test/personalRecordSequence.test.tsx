@@ -99,7 +99,7 @@ const RECORD_TITLE = /RÉCORD PERSONAL/i;
 
 /** Dígitos del temporizador de descanso a pantalla completa. */
 const timerValue = () =>
-  document.querySelector('.font-lcd.tracking-wider')?.textContent ?? '';
+  document.querySelector('[data-testid="rest-digits"]')?.textContent ?? '';
 
 const completeSet = () => fireEvent.click(screen.getByText(/Completar Serie 1/i));
 const clickContinue = () => fireEvent.click(screen.getByText(/^Continuar$/i));

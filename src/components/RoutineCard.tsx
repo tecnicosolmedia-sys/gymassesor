@@ -1,3 +1,4 @@
+import { CompletedSet } from '@/types/workoutHistory';
 import { Routine } from '@/types/routine';
 import { Exercise, SetConfig } from '@/types/exercise';
 import { WorkoutSession } from '@/types/workoutHistory';
@@ -22,8 +23,10 @@ interface RoutineCardProps {
     exerciseName: string,
     muscleGroup: string,
     setData: { setNumber: number; reps: number; weight: number; restTime: number },
-    totalSets: number
+    totalSets: number,
+    instanceKey?: string,
   ) => void;
+  onReplaceExerciseSession?: (exerciseId: string, exerciseName: string, muscleGroup: string, completedSets: CompletedSet[], totalSets: number, instanceKey?: string) => void;
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
   onWorkoutComplete?: (elapsedTime?: number) => void;
   onAddExerciseToRoutine?: (routineId: string, exerciseId: string) => void;
@@ -46,6 +49,7 @@ export const RoutineCard = ({
   onEditExercise,
   onDeleteExercise,
   onSetComplete,
+  onReplaceExerciseSession,
   onUpdateSetConfig,
   onWorkoutComplete,
   onAddExerciseToRoutine,
@@ -269,6 +273,7 @@ export const RoutineCard = ({
           allExercises={allExercises}
           onClose={() => setShowWorkoutFlow(false)}
           onSetComplete={onSetComplete || (() => {})}
+          onReplaceExerciseSession={onReplaceExerciseSession}
           onEditExercise={onEditExercise}
           onDeleteExercise={onDeleteExercise}
           onUpdateSetConfig={onUpdateSetConfig}
