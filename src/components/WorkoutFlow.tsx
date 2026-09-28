@@ -1545,6 +1545,7 @@ export const WorkoutFlow = ({
                   handleSessionSetConfig(currentExercise.instanceKey, exerciseId, setConfigs);
                 }}
 
+                onSaveTemplateSetConfig={onUpdateSetConfig}
                 onUpdateSessionSetConfig={(exerciseId, setConfigs) =>
                   handleSessionSetConfig(currentExercise.instanceKey, exerciseId, setConfigs)
                 }
