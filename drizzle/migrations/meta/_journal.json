@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794850110372,
+      "tag": "0000_restrict_exercise_image_update_delete_to_owners",
+      "breakpoints": true
+    }
+  ]
+}
