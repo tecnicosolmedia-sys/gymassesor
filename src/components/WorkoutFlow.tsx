@@ -560,23 +560,33 @@ export const WorkoutFlow = ({
 
       const original = getTemplateConfigs(exercise);
 
-      // Guardar en la biblioteca las marcas realizadas (peso, reps y descanso)
-      // de las series completadas, sustituyendo las preconfiguradas. Se mantiene
-      // el número de series de la plantilla (los cambios estructurales se
-      // deciden con el aviso de la próxima vez).
+      const completedWholeExercise = normalized.length > 0 &&
+        completed.length === normalized.length &&
+        normalized.every(config => completed.includes(config.setNumber));
+
+      // Al completar el ejercicio, la configuración efectiva completa pasa a ser
+      // la próxima configuración: número de series, reps, pesos y descansos.
+      // Si se terminó antes de tiempo, solo se sustituyen las series realizadas.
       if (onUpdateSetConfig && completed.length > 0) {
-        const performed = new Map(normalized.map(c => [c.setNumber, c]));
-        const merged = original.map(tpl => {
-          const done = completed.includes(tpl.setNumber) ? performed.get(tpl.setNumber) : undefined;
-          return done
-            ? { ...tpl, reps: done.reps, weight: done.weight, restTime: done.restTime }
-            : tpl;
-        });
-        const changed = merged.some((m, i) =>
-          m.reps !== original[i].reps || m.weight !== original[i].weight || m.restTime !== original[i].restTime);
-        if (changed) onUpdateSetConfig(exercise.id, merged);
+        if (completedWholeExercise) {
+          onUpdateSetConfig(exercise.id, normalized);
+        } else {
+          const performed = new Map(normalized.map(c => [c.setNumber, c]));
+          const merged = original.map(tpl => {
+            const done = completed.includes(tpl.setNumber) ? performed.get(tpl.setNumber) : undefined;
+            return done
+              ? { ...tpl, reps: done.reps, weight: done.weight, restTime: done.restTime }
+              : tpl;
+          });
+          const changed = merged.some((m, i) =>
+            m.reps !== original[i].reps || m.weight !== original[i].weight || m.restTime !== original[i].restTime);
+          if (changed) onUpdateSetConfig(exercise.id, merged);
+        }
       }
-      if (hasStructuralChange(original, normalized)) {
+
+      // Una estructura completada ya se ha guardado explícitamente como la nueva
+      // configuración. El aviso solo queda para cambios de una terminación parcial.
+      if (!completedWholeExercise && hasStructuralChange(original, normalized)) {
         saveStructuralChangeNotice({
           routineId,
           routineName,

@@ -1,4 +1,5 @@
 import { Exercise, SetConfig } from '@/types/exercise';
+import type { WorkoutSession } from '@/types/workoutHistory';
 
 export interface StructuralChangeNotice {
   routineId?: string;
@@ -40,6 +41,45 @@ export const getTemplateConfigs = (exercise: Exercise): SetConfig[] => {
       restTime: exercise.restBetweenSets,
     }));
   return normalizeSetConfigs(source);
+};
+
+/**
+ * Última configuración realmente registrada para un ejercicio.
+ * Conserva el número exacto de series completadas, sin reconstruirla con el
+ * número antiguo de la plantilla ni rellenar series que no se realizaron.
+ */
+export const getLastPerformedSetConfigs = (
+  exercise: Exercise,
+  sessions: WorkoutSession[],
+): SetConfig[] | null => {
+  const sortedSessions = sessions
+    .slice()
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  for (const session of sortedSessions) {
+    const exerciseSession = session.exercises.find(
+      item => item.exerciseId === exercise.id && item.completedSets.length > 0,
+    );
+    if (!exerciseSession) continue;
+
+    const uniqueSets = new Map<number, WorkoutSession['exercises'][number]['completedSets'][number]>();
+    exerciseSession.completedSets.forEach(set => {
+      if (!uniqueSets.has(set.setNumber)) uniqueSets.set(set.setNumber, set);
+    });
+
+    const sortedSets = Array.from(uniqueSets.values())
+      .sort((a, b) => a.setNumber - b.setNumber);
+
+    return normalizeSetConfigs(sortedSets.map((set, index) => ({
+      setNumber: index + 1,
+      reps: set.reps,
+      weight: set.weight,
+      restTime: typeof set.restTime === 'number' ? set.restTime : exercise.restBetweenSets,
+      isWarmup: set.isWarmup,
+    })));
+  }
+
+  return null;
 };
 
 export const addSessionSet = (configs: SetConfig[], fallback?: SetConfig): SetConfig[] => {

@@ -35,6 +35,7 @@ import {
   addSessionSet,
   consumeStructuralChangeNotice,
   describeStructuralChange,
+  getLastPerformedSetConfigs,
   getTemplateConfigs,
   hasStructuralChange,
   loadStructuralChangeNotice,
@@ -236,40 +237,13 @@ export const ExerciseCard = ({
   }, [instanceKey, exercise.id]);
 
 
-  // Buscar la última sesión completada de este ejercicio para precargar pesos/reps
-  const getLastSessionConfigs = (): SetConfig[] | null => {
-    if (!workoutSessions || workoutSessions.length === 0) return null;
-    // workoutSessions viene ordenado descendente por fecha, pero por seguridad ordenamos
-    const sorted = [...workoutSessions].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    for (const session of sorted) {
-      const exSession = session.exercises.find(e => e.exerciseId === exercise.id);
-      if (exSession && exSession.completedSets.length > 0) {
-        // Construir configs basados en las series de la última sesión
-        const sortedSets = [...exSession.completedSets].sort((a, b) => a.setNumber - b.setNumber);
-        return Array.from({ length: exercise.sets }, (_, i) => {
-          // Buscar la serie correspondiente o usar la última registrada como fallback
-          const matched = sortedSets.find(s => s.setNumber === i + 1) || sortedSets[sortedSets.length - 1];
-          return {
-            setNumber: i + 1,
-            reps: matched.reps,
-            weight: matched.weight,
-            restTime: matched.restTime || exercise.restBetweenSets,
-          };
-        });
-      }
-    }
-    return null;
-  };
-
   // Construir configs iniciales: prioridad a config aplicada en esta sesión >
-  // última sesión > setConfigs > valores del ejercicio
+  // últimas marcas realmente registradas > setConfigs > valores del ejercicio.
   const buildInitialConfigs = (): SetConfig[] => {
     if (initialSessionSetConfigs && initialSessionSetConfigs.length > 0) {
       return initialSessionSetConfigs.map(c => ({ ...c }));
     }
-    const lastSession = getLastSessionConfigs();
+    const lastSession = getLastPerformedSetConfigs(exercise, workoutSessions);
     if (lastSession) return lastSession;
     return exercise.setConfigs && exercise.setConfigs.length > 0
       ? exercise.setConfigs

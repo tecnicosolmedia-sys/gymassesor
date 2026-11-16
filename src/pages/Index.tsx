@@ -223,7 +223,7 @@ const Index = () => {
 
   // Handler para actualizar la configuración de series durante el entrenamiento
   const handleUpdateSetConfig = (exerciseId: string, setConfigs: SetConfig[]) => {
-    updateExercise(exerciseId, { setConfigs });
+    updateExercise(exerciseId, { setConfigs, sets: setConfigs.length });
   };
 
   // Nota permanente del ejercicio (public.exercises.notes)
