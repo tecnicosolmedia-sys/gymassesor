@@ -53,6 +53,9 @@ export const FullscreenTimer = ({
   const [isRunning, setIsRunning] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [isFlashing, setIsFlashing] = useState(false);
+  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current); }, []);
   const audioContextRef = useRef<AudioContext | null>(null);
   const hasPlayedRef = useRef<Set<number>>(new Set());
 
@@ -249,7 +252,11 @@ export const FullscreenTimer = ({
         playBoxingBell();
         setIsComplete(true);
         setIsRunning(false);
-        onCompleteRef.current();
+        setIsFlashing(true);
+        flashTimeoutRef.current = setTimeout(() => {
+          setIsFlashing(false);
+          onCompleteRef.current();
+        }, 2000);
       }
       return;
     }
@@ -537,6 +544,9 @@ export const FullscreenTimer = ({
         )}
       </div>
     </div>
+    {isFlashing && (
+      <div data-testid="rest-end-flash" className="fixed inset-0 z-[10300] pointer-events-none animate-strobe-flash" />
+    )}
     </>
   );
 };
