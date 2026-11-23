@@ -423,6 +423,19 @@ export const FullscreenTimer = ({
               strokeDashoffset={2 * Math.PI * 130 * (1 - progress / 100)}
               className="transition-all duration-1000"
             />
+            {/* Flash estroboscópico blanco: solo el aro, no la pantalla */}
+            {isFlashing && (
+              <circle
+                data-testid="rest-end-flash"
+                cx={144}
+                cy={144}
+                r={130}
+                fill="none"
+                strokeWidth="14"
+                strokeLinecap="round"
+                className="rest-ring-flash"
+              />
+            )}
           </svg>
           
           {/* Time display - LCD style */}
@@ -544,9 +557,6 @@ export const FullscreenTimer = ({
         )}
       </div>
     </div>
-    {isFlashing && (
-      <div data-testid="rest-end-flash" className="fixed inset-0 z-[10300] pointer-events-none animate-strobe-flash" />
-    )}
     </>
   );
 };

@@ -202,6 +202,23 @@
   animation: strobe-flash 0.18s steps(1, end) infinite;
 }
 
+/* Stroboscopic white flash restricted to the rest-timer ring */
+@keyframes strobe-ring {
+  0%, 100% {
+    stroke: hsl(0 0% 100%);
+    opacity: 1;
+    filter: drop-shadow(0 0 14px hsl(0 0% 100% / 0.9));
+  }
+  50% {
+    stroke: hsl(0 0% 100%);
+    opacity: 0;
+    filter: none;
+  }
+}
+.rest-ring-flash {
+  animation: strobe-ring 0.18s steps(1, end) infinite;
+}
+
 .neon-border-trace {
   position: relative;
   z-index: 0;
