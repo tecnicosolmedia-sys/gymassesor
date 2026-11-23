@@ -567,7 +567,9 @@ export const WorkoutFlow = ({
       // Al completar el ejercicio, la configuración efectiva completa pasa a ser
       // la próxima configuración: número de series, reps, pesos y descansos.
       // Si se terminó antes de tiempo, solo se sustituyen las series realizadas.
-      if (onUpdateSetConfig && completed.length > 0) {
+      // Dentro de una rutina las marcas se recuerdan por rutina (desde el historial),
+      // así que la plantilla general solo se actualiza en entrenamiento libre.
+      if (!routineId && onUpdateSetConfig && completed.length > 0) {
         if (completedWholeExercise) {
           onUpdateSetConfig(exercise.id, normalized);
         } else {
@@ -1540,6 +1542,7 @@ export const WorkoutFlow = ({
                 key={currentExercise.instanceKey}
                 instanceKey={currentExercise.instanceKey}
                 exercise={currentExercise}
+                routineId={routineId}
 
                 onEdit={onEditExercise}
                 onDelete={onDeleteExercise}

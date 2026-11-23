@@ -109,7 +109,6 @@ describe('últimas marcas del ejercicio', () => {
     const onUpdateSetConfig = vi.fn();
     render(
       <WorkoutFlow
-        routineId="routine-1"
         routineName="Pecho"
         exercises={[exercise]}
         allExercises={[exercise]}
@@ -137,5 +136,21 @@ describe('últimas marcas del ejercicio', () => {
       { setNumber: 3, reps: 12, weight: 20, restTime: 45 },
     ]);
     expect(loadStructuralChangeNotice('ex-1#0')).toBeNull();
+  });
+});
+
+import { getLastPerformedSetConfigs as lastByRoutine } from '@/utils/sessionSetStructure';
+describe('marcas por rutina', () => {
+  it('cada rutina usa solo sus propias últimas marcas', () => {
+    const ex = { id: 'e1', name: 'Press', muscleGroup: 'chest', sets: 1, reps: 10, weight: 20, restBetweenSets: 60 } as any;
+    const mk = (routineId: string, date: string, weight: number) => ({
+      id: routineId + date, routineId, routineName: routineId, date, duration: 0,
+      exercises: [{ exerciseId: 'e1', exerciseName: 'Press', muscleGroup: 'chest', totalSets: 1,
+        completedSets: [{ setNumber: 1, reps: 8, weight, restTime: 90 }] }],
+    }) as any;
+    const sessions = [mk('A', '2026-11-01', 80), mk('B', '2026-11-10', 60)];
+    expect(lastByRoutine(ex, sessions, 'A')![0].weight).toBe(80);
+    expect(lastByRoutine(ex, sessions, 'B')![0].weight).toBe(60);
+    expect(lastByRoutine(ex, sessions, 'C')).toBeNull();
   });
 });

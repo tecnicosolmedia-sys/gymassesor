@@ -51,9 +51,11 @@ export const getTemplateConfigs = (exercise: Exercise): SetConfig[] => {
 export const getLastPerformedSetConfigs = (
   exercise: Exercise,
   sessions: WorkoutSession[],
+  routineId?: string,
 ): SetConfig[] | null => {
+  // Con rutina: solo cuentan las sesiones de esa misma rutina.
   const sortedSessions = sessions
-    .slice()
+    .filter(session => !routineId || session.routineId === routineId)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   for (const session of sortedSessions) {

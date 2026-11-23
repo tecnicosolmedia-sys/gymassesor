@@ -98,6 +98,8 @@ interface ExerciseCardProps {
   onExerciseComplete?: (snapshot?: ExerciseCompletionSnapshot) => void;
   // Callback para guardar cambios en la configuración (persiste en la rutina maestra)
   onUpdateSetConfig?: (exerciseId: string, setConfigs: SetConfig[]) => void;
+  /** Rutina en la que se muestra: las últimas marcas se buscan solo en ella. */
+  routineId?: string;
   /**
    * Callback SOLO de sesión: aplica una configuración a esta aparición del ejercicio
    * dentro del entrenamiento en curso. No persiste en public.exercises.
@@ -150,6 +152,7 @@ export const ExerciseCard = ({
   skipExerciseRestTimer = false,
   onExerciseComplete,
   onUpdateSetConfig,
+  routineId,
   onUpdateSessionSetConfig,
   onSaveTemplateSetConfig,
   initialSessionSetConfigs,
@@ -243,7 +246,7 @@ export const ExerciseCard = ({
     if (initialSessionSetConfigs && initialSessionSetConfigs.length > 0) {
       return initialSessionSetConfigs.map(c => ({ ...c }));
     }
-    const lastSession = getLastPerformedSetConfigs(exercise, workoutSessions);
+    const lastSession = getLastPerformedSetConfigs(exercise, workoutSessions, routineId);
     if (lastSession) return lastSession;
     return exercise.setConfigs && exercise.setConfigs.length > 0
       ? exercise.setConfigs

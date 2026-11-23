@@ -240,6 +240,7 @@ export const RoutineCard = ({
                   <ExerciseCard
                     key={`${exercise.id}#${index}`}
                     exercise={exercise}
+                    routineId={routine.id}
                     onEdit={onEditExercise}
                     onDelete={onDeleteExercise}
                     onSetComplete={onSetComplete}
